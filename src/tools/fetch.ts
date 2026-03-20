@@ -36,8 +36,8 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       return Err(renderResult.error);
     }
 
-    const { title, text } = renderResult.value;
-    const rawContent = text || '';
+    const { html, title } = renderResult.value;
+    const rawContent = html || '';
 
     // Step 2: CRITICAL - Sanitize content (injection detection + PII redaction)
     // This step CANNOT be skipped or bypassed

@@ -7,57 +7,79 @@
  * CRITICAL: ALL content MUST pass through the sanitizer. This cannot be bypassed.
  */
 
+import * as cheerio from 'cheerio';
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
 import type { VisusFetchStructuredInput, VisusFetchStructuredOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
 /**
- * Extract structured data from content based on schema
+ * Extract structured data from HTML using cheerio
  *
- * Simple extraction: looks for schema field names/descriptions in content
- * Phase 1: Basic pattern matching
- * Phase 2+: LLM-powered extraction with Bedrock
+ * Phase 1: cheerio-based semantic HTML extraction
+ * Phase 2+: LLM-powered extraction with Bedrock for complex schemas
  */
 function extractStructuredData(
-  content: string,
+  html: string,
   schema: Record<string, string>
 ): Record<string, string | null> {
+  const $ = cheerio.load(html);
   const extracted: Record<string, string | null> = {};
 
   for (const [fieldName, description] of Object.entries(schema)) {
-    // Simple extraction: look for patterns near field name or description
-    const searchPattern = new RegExp(
-      `(${fieldName}|${description})\\s*[:=]?\\s*([^\\n]+)`,
-      'i'
-    );
+    const descLower = description.toLowerCase();
+    let value: string | null = null;
 
-    const match = content.match(searchPattern);
+    // Pattern: main heading, title, h1
+    if (descLower.includes('heading') || descLower.includes('title') || descLower.includes('h1')) {
+      const h1 = $('h1').first().text().trim();
+      if (h1) value = h1;
+    }
 
-    if (match && match[2]) {
-      extracted[fieldName] = match[2].trim();
-    } else {
-      // Try to find any mention of the field
-      const lines = content.split('\n');
-      let found = false;
+    // Pattern: subheading, subtitle, h2, h3
+    else if (descLower.includes('subheading') || descLower.includes('subtitle') || descLower.includes('h2') || descLower.includes('h3')) {
+      const h2 = $('h2, h3').first().text().trim();
+      if (h2) value = h2;
+    }
 
-      for (const line of lines) {
-        if (line.toLowerCase().includes(fieldName.toLowerCase()) ||
-            line.toLowerCase().includes(description.toLowerCase())) {
-          // Extract value after the field name
-          const parts = line.split(/[:=]/);
-          if (parts.length > 1) {
-            extracted[fieldName] = parts.slice(1).join(':').trim();
-            found = true;
-            break;
-          }
-        }
-      }
+    // Pattern: paragraph, body text, description
+    else if (descLower.includes('paragraph') || descLower.includes('body') || descLower.includes('description')) {
+      const p = $('p').first().text().trim();
+      if (p) value = p;
+    }
 
-      if (!found) {
-        extracted[fieldName] = null;
+    // Pattern: link, url, href
+    else if (descLower.includes('link') || descLower.includes('url') || descLower.includes('href')) {
+      const link = $('a').first();
+      const href = link.attr('href');
+      if (href) value = href;
+    }
+
+    // Pattern: link text, anchor text
+    else if (descLower.includes('link text') || descLower.includes('anchor')) {
+      const linkText = $('a').first().text().trim();
+      if (linkText) value = linkText;
+    }
+
+    // Pattern: page title (from <title> tag)
+    else if (descLower.includes('page title') || descLower.includes('document title')) {
+      const title = $('title').text().trim();
+      if (title) value = title;
+    }
+
+    // Fallback: try to find text containing the field name
+    else {
+      const elements = $('*').filter((_, el) => {
+        const text = $(el).text().toLowerCase();
+        return text.includes(fieldName.toLowerCase()) || text.includes(descLower);
+      });
+
+      if (elements.length > 0) {
+        value = $(elements.first()).text().trim();
       }
     }
+
+    extracted[fieldName] = value;
   }
 
   return extracted;
@@ -84,21 +106,19 @@ export async function visusFetchStructured(
   }
 
   try {
-    // Step 1: Render the page
+    // Step 1: Render the page (use default format to get HTML)
     const renderResult = await renderPage(url, {
-      timeout_ms,
-      format: 'text' // Use text for structured extraction
+      timeout_ms
     });
 
     if (!renderResult.ok) {
       return Err(renderResult.error);
     }
 
-    const { title, text } = renderResult.value;
-    const rawContent = text || '';
+    const { title, html } = renderResult.value;
 
-    // Step 2: Extract structured data from raw content
-    const extractedData = extractStructuredData(rawContent, schema);
+    // Step 2: Extract structured data from HTML using cheerio
+    const extractedData = extractStructuredData(html, schema);
 
     // Step 3: CRITICAL - Sanitize each extracted field
     // This step CANNOT be skipped or bypassed
@@ -141,7 +161,7 @@ export async function visusFetchStructured(
       metadata: {
         title: title || 'Untitled',
         fetched_at: new Date().toISOString(),
-        content_length_original: rawContent.length,
+        content_length_original: html.length,
         content_length_sanitized: Object.values(sanitizedData)
           .filter(v => v !== null)
           .join(' ')
