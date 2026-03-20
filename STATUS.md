@@ -1,9 +1,9 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-20 21:17 JST
+**Generated:** 2026-03-21 06:27 JST
 **Version:** 0.1.0
 **Phase:** 1 (Open Source MCP Tool)
-**Status:** ✅ **PHASE 1 COMPLETE + SMOKE TESTED**
+**Status:** ✅ **PUBLISHED TO NPM** 🚀
 
 ---
 
@@ -11,7 +11,10 @@
 
 Visus is a security-first MCP tool that provides Claude with sanitized web page access. The project implements a comprehensive injection sanitization pipeline with 43 pattern categories and PII redaction, ensuring all web content is cleaned before reaching the LLM.
 
-**Current Status:** Phase 1 implementation COMPLETE. All tests passing. Package ready for npm publication.
+**Current Status:** Phase 1 implementation COMPLETE. All tests passing (95/95). **Published to npm** as `visus-mcp@0.1.0` on 2026-03-21.
+
+**npm Package:** https://www.npmjs.com/package/visus-mcp
+**Installation:** `npm install -g visus-mcp` or `npx visus-mcp`
 
 ---
 
@@ -418,19 +421,22 @@ Per CLAUDE.md, the following are deferred:
 
 ## Next Steps
 
-### ✅ Phase 1 Complete - Ready for Release
+### ✅ Phase 1 Complete - PUBLISHED TO NPM
 
 **Completed:**
 - [x] Initial Git commit with tag v0.1.0
 - [x] All 95 tests passing
 - [x] Package validated with `npm publish --dry-run`
 - [x] Documentation complete
+- [x] **Published to npm** (2026-03-21)
+- [x] Claude Desktop smoke testing (4/4 tests passed)
+- [x] SSL certificate verification enabled
+- [x] GitHub repository published
 
-**Ready For:**
-1. npm publication (when ready)
-2. GitHub repository publication
-3. Claude Desktop integration testing
-4. Community feedback and testing
+**Live Now:**
+- 📦 npm: https://www.npmjs.com/package/visus-mcp
+- 🔗 GitHub: https://github.com/visus-mcp/visus-mcp
+- 📖 Installation: `npm install -g visus-mcp`
 
 ### Post-Launch (Phase 2 Planning)
 1. Monitor GitHub issues for injection bypass reports
@@ -448,35 +454,47 @@ Per CLAUDE.md, the following are deferred:
 ```
 Name:           visus-mcp
 Version:        0.1.0
-Size:           72.8 kB (tarball)
-Unpacked Size:  271.4 kB
-Files:          67
+Published:      2026-03-21 (npm registry)
+Size:           81.8 kB (tarball)
+Unpacked Size:  300.9 kB
+Files:          70
+Dependencies:   3 (@modelcontextprotocol/sdk, cheerio, undici)
 Node:           >=18
 License:        MIT
 Author:         Leo Chongolnee (Lateos)
+Maintainer:     leochong <lowmls@gmail.com>
 Repository:     https://github.com/visus-mcp/visus-mcp
+npm URL:        https://www.npmjs.com/package/visus-mcp
 ```
 
 ---
 
 ## Conclusion
 
-✅ **Visus Phase 1 is COMPLETE.**
+✅ **Visus Phase 1 is COMPLETE and LIVE.**
 
-The sanitization engine (core product) is implemented, tested, documented, and ready for publication. All 43 injection pattern categories are validated with 95/95 tests passing at 100% success rate.
+The sanitization engine (core product) is implemented, tested, documented, and **published to npm**. All 43 injection pattern categories are validated with 95/95 tests passing at 100% success rate.
 
-The project successfully overcame iCloud file lock issues by relocating to a non-synced directory, resulting in sub-second builds and fast test execution.
+The project successfully overcame multiple technical challenges:
+- iCloud file lock issues (relocated to non-synced directory)
+- SSL certificate verification (NODE_EXTRA_CA_CERTS with system certs)
+- Empty content bug (html vs text field extraction)
+- Structured extraction (cheerio semantic HTML parsing)
 
-**Phase 1 Status:** READY FOR NPM PUBLICATION
+All smoke tests passed with real injection detection in production (whitespace_steganography and css_hiding patterns caught during testing).
+
+**Phase 1 Status:** ✅ PUBLISHED TO NPM
 
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
-**Package:** https://www.npmjs.com/package/visus-mcp (pending publication)
+**npm Package:** https://www.npmjs.com/package/visus-mcp
+**Installation:** `npm install -g visus-mcp` or `npx visus-mcp`
 
 ---
 
-**Last Updated:** 2026-03-20 16:51 PST
+**Last Updated:** 2026-03-21 06:27 JST
 **Build:** SUCCESS ✅
 **Tests:** 95/95 PASSING ✅
-**Package:** VALIDATED ✅
+**Smoke Tests:** 4/4 PASSING ✅
+**Package:** PUBLISHED TO NPM ✅
 **Release:** v0.1.0 🚀
