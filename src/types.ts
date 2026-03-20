@@ -1,0 +1,101 @@
+/**
+ * Shared TypeScript interfaces for Visus MCP tool
+ */
+
+/**
+ * Input options for visus_fetch tool
+ */
+export interface VisusFetchInput {
+  url: string;
+  format?: 'markdown' | 'text';
+  timeout_ms?: number;
+}
+
+/**
+ * Output from visus_fetch tool
+ */
+export interface VisusFetchOutput {
+  url: string;
+  content: string;
+  sanitization: {
+    patterns_detected: string[];
+    pii_types_redacted: string[];
+    content_modified: boolean;
+  };
+  metadata: {
+    title: string;
+    fetched_at: string;
+    content_length_original: number;
+    content_length_sanitized: number;
+  };
+}
+
+/**
+ * Input for visus_fetch_structured tool
+ */
+export interface VisusFetchStructuredInput {
+  url: string;
+  schema: Record<string, string>; // field name → description
+  timeout_ms?: number;
+}
+
+/**
+ * Output from visus_fetch_structured tool
+ */
+export interface VisusFetchStructuredOutput {
+  url: string;
+  data: Record<string, string | null>;
+  sanitization: {
+    patterns_detected: string[];
+    pii_types_redacted: string[];
+    content_modified: boolean;
+  };
+  metadata: {
+    title: string;
+    fetched_at: string;
+    content_length_original: number;
+    content_length_sanitized: number;
+  };
+}
+
+/**
+ * Result from browser rendering
+ */
+export interface BrowserRenderResult {
+  html: string;
+  title: string;
+  url: string;
+  text?: string;
+  error?: string;
+}
+
+/**
+ * Environment configuration
+ */
+export interface VisusConfig {
+  timeout_ms: number;
+  max_content_kb: number;
+  lateos_api_key?: string;
+  lateos_endpoint?: string;
+}
+
+/**
+ * Result type for error handling (Lateos convention)
+ */
+export type Result<T, E = Error> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+/**
+ * Create a success result
+ */
+export function Ok<T>(value: T): Result<T, never> {
+  return { ok: true, value };
+}
+
+/**
+ * Create an error result
+ */
+export function Err<E>(error: E): Result<never, E> {
+  return { ok: false, error };
+}

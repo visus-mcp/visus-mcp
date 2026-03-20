@@ -1,0 +1,50 @@
+{
+  "name": "visus-mcp",
+  "version": "0.1.0",
+  "description": "Secure web access for Claude — sanitizes all web content before it reaches your LLM",
+  "main": "dist/index.js",
+  "bin": {
+    "visus-mcp": "dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:integration": "jest --testMatch='**/tests/**/*.integration.test.ts' --forceExit",
+    "lint": "tsc --noEmit",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "web-scraping",
+    "security",
+    "prompt-injection",
+    "ai-safety",
+    "lateos",
+    "sanitization",
+    "pii-redaction"
+  ],
+  "author": "Leo Chongolnee (Lateos)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.6",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lateos/visus-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lateos/visus-mcp/issues"
+  }
+}
