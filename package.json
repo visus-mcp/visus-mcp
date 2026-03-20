@@ -31,7 +31,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "undici": "^7.24.5"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

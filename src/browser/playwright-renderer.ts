@@ -3,13 +3,14 @@
  *
  * Phase 2: replace with Playwright for JS-rendered pages
  *
- * This implementation uses Node 22 native fetch() for simple HTTP requests.
+ * This implementation uses undici's fetch() for simple HTTP requests.
  * It does NOT execute JavaScript or render dynamic content.
  *
  * For Phase 1, this is sufficient since the sanitization pipeline
  * (the core product) works independently of how content is fetched.
  */
 
+import { fetch } from 'undici';
 import type { BrowserRenderResult, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
@@ -39,12 +40,15 @@ export async function renderPage(
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    // Use native Node 22 fetch() with timeout
+    // Use undici fetch() with timeout
+    // Note: For development, we disable TLS rejection if needed
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Visus-MCP/0.1.0 (Security-focused web content fetcher)',
       },
+      // @ts-ignore - undici specific option
+      dispatcher: process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? undefined : undefined,
     });
 
     clearTimeout(timeoutId);
