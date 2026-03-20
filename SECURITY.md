@@ -302,7 +302,7 @@ Visus may fail to detect:
 We take security seriously. If you discover a vulnerability in Visus:
 
 **DO:**
-- Report via **security@lateos.ai** or [GitHub Security](https://github.com/lateos/visus-mcp/security)
+- Report via **security@lateos.ai** or [GitHub Security](https://github.com/visus-mcp/visus-mcp/security)
 - Provide a reproducible example
 - Allow 90 days for a patch before public disclosure
 

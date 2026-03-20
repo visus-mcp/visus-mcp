@@ -42,9 +42,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lateos/visus-mcp.git"
+    "url": "https://github.com/visus-mcp/visus-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/lateos/visus-mcp/issues"
+    "url": "https://github.com/visus-mcp/visus-mcp/issues"
   }
 }

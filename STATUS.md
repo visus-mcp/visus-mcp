@@ -354,7 +354,7 @@ Files:          67
 Node:           >=18
 License:        MIT
 Author:         Leo Chongolnee (Lateos)
-Repository:     https://github.com/lateos/visus-mcp
+Repository:     https://github.com/visus-mcp/visus-mcp
 ```
 
 ---
@@ -370,7 +370,7 @@ The project successfully overcame iCloud file lock issues by relocating to a non
 **Phase 1 Status:** READY FOR NPM PUBLICATION
 
 **Contact:** security@lateos.ai
-**Repository:** https://github.com/lateos/visus-mcp
+**Repository:** https://github.com/visus-mcp/visus-mcp
 **Package:** https://www.npmjs.com/package/visus-mcp (pending publication)
 
 ---

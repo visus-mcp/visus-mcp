@@ -208,7 +208,7 @@ Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
 
 ```bash
 # Clone repo
-git clone https://github.com/lateos/visus-mcp.git
+git clone https://github.com/visus-mcp/visus-mcp.git
 cd visus-mcp
 
 # Install dependencies
@@ -248,7 +248,7 @@ For detailed threat model, pattern examples, and vulnerability reporting:
 
 **[→ Read SECURITY.md](./SECURITY.md)**
 
-Report vulnerabilities: **security@lateos.ai** or [GitHub Security](https://github.com/lateos/visus-mcp/security)
+Report vulnerabilities: **security@lateos.ai** or [GitHub Security](https://github.com/visus-mcp/visus-mcp/security)
 
 ---
 
