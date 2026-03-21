@@ -80,18 +80,64 @@ npx visus-mcp
 
 ### Claude Desktop Configuration
 
-Add to your `claude_desktop_config.json`:
+Visus supports three rendering backends:
+
+**Example 1 — Phase 1 (Default, No Lambda):**
+
+Basic configuration using undici HTTP fetch (no JavaScript execution):
 
 ```json
 {
   "mcpServers": {
     "visus": {
       "command": "npx",
-      "args": ["-y", "visus-mcp"]
+      "args": ["visus-mcp"]
     }
   }
 }
 ```
+
+**Example 2 — Managed Tier (Lateos Endpoint):**
+
+Use Lateos managed Lambda renderer with Playwright (supports JavaScript, SPAs):
+
+```json
+{
+  "mcpServers": {
+    "visus": {
+      "command": "npx",
+      "args": ["visus-mcp"],
+      "env": {
+        "VISUS_RENDERER_URL": "https://renderer.lateos.ai",
+        "NODE_EXTRA_CA_CERTS": "/path/to/system-ca-bundle.pem"
+      }
+    }
+  }
+}
+```
+
+**Example 3 — BYOC (Your Own Lambda):**
+
+Deploy your own Lambda renderer (see [visus-mcp-renderer](https://github.com/visus-mcp/visus-mcp-renderer)):
+
+```json
+{
+  "mcpServers": {
+    "visus": {
+      "command": "npx",
+      "args": ["visus-mcp"],
+      "env": {
+        "VISUS_RENDERER_URL": "https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com",
+        "NODE_EXTRA_CA_CERTS": "/path/to/system-ca-bundle.pem"
+      }
+    }
+  }
+}
+```
+
+Replace `YOUR_API_ID` and `YOUR_REGION` with values from your CDK deployment output.
+
+**CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which renderer you use. Rendered HTML is returned to your local visus-mcp process before Claude sees it. PHI never touches Lateos infrastructure (even when using the managed tier).
 
 Restart Claude Desktop. Visus tools are now available to Claude.
 

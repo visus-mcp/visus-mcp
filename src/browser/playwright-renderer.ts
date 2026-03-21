@@ -1,68 +1,205 @@
 /**
- * Browser Renderer - Phase 2 Playwright Implementation
+ * Browser Renderer - Phase 2 Lambda Architecture
  *
- * Uses Playwright headless Chromium to render pages with JavaScript execution.
- * Supports dynamic content, SPAs, and interactive web applications.
+ * This module provides web page rendering with three-tier fallback:
+ *   1. Lambda renderer (Playwright on AWS Lambda x86_64) - if VISUS_RENDERER_URL set
+ *   2. Local undici fetch() - fallback if Lambda unavailable
  *
- * The browser instance is managed as a singleton for efficiency across requests.
+ * CRITICAL: The sanitizer ALWAYS runs locally. Rendered HTML is returned from
+ * Lambda to the local process before Claude sees it. PHI never touches Lateos infrastructure.
  */
 
-import { chromium, type Browser, type Page } from 'playwright';
+import { request } from 'undici';
 import type { BrowserRenderResult, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
 /**
- * Singleton browser instance (lazy-initialized)
- * Reused across requests for performance
+ * Configuration
  */
-let browserInstance: Browser | null = null;
+const RENDERER_URL = process.env.VISUS_RENDERER_URL;
 
 /**
- * Get or create the browser instance
+ * Lambda renderer response types
  */
-async function getBrowser(): Promise<Browser> {
-  if (!browserInstance) {
-    browserInstance = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-      ],
+interface LambdaRenderSuccess {
+  html: string;
+  title: string;
+  status_code: number;
+  fetched_at: string;
+  render_time_ms: number;
+  renderer: 'playwright';
+}
+
+interface LambdaRenderError {
+  error: string;
+  url: string;
+  fetched_at: string;
+}
+
+/**
+ * Log to stderr which renderer is being used
+ */
+function logRenderer(renderer: 'lambda' | 'fetch', url: string): void {
+  console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    event: 'renderer_selected',
+    renderer,
+    url,
+  }));
+}
+
+/**
+ * Exponential backoff retry helper
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number,
+  initialDelayMs: number
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < maxRetries - 1) {
+        const delayMs = initialDelayMs * Math.pow(2, attempt);
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          event: 'retry_attempt',
+          attempt: attempt + 1,
+          max_retries: maxRetries,
+          delay_ms: delayMs,
+          error: lastError.message,
+        }));
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
+/**
+ * Render a page using Lambda renderer
+ */
+async function renderWithLambda(
+  url: string,
+  timeout_ms: number
+): Promise<Result<BrowserRenderResult, Error>> {
+  if (!RENDERER_URL) {
+    return Err(new Error('VISUS_RENDERER_URL not configured'));
+  }
+
+  logRenderer('lambda', url);
+
+  try {
+    // Retry Lambda calls with exponential backoff (3 attempts)
+    const response = await retryWithBackoff(async () => {
+      return await request(`${RENDERER_URL}/render`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          timeout_ms,
+          content_limit_bytes: 512000, // 500KB default
+        }),
+        bodyTimeout: timeout_ms + 5000, // Add 5s buffer for network overhead
+        headersTimeout: timeout_ms + 5000,
+      });
+    }, 3, 1000); // 3 retries, starting with 1s delay
+
+    const body = await response.body.json() as LambdaRenderSuccess | LambdaRenderError;
+
+    // Check if response is an error
+    if ('error' in body) {
+      return Err(new Error(`Lambda renderer error: ${body.error}`));
+    }
+
+    // Success response
+    return Ok({
+      html: body.html,
+      title: body.title,
+      url,
+      text: undefined, // Lambda renderer doesn't extract text
     });
 
-    // Log browser launch to stderr
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
-      event: 'browser_launched',
-      version: browserInstance.version(),
+      event: 'lambda_renderer_failed',
+      url,
+      error: errorMessage,
     }));
-  }
 
-  return browserInstance;
+    return Err(new Error(`Lambda renderer failed: ${errorMessage}`));
+  }
 }
 
 /**
- * Close browser instance and clean up resources
+ * Render a page using undici fetch (fallback)
  */
-export async function closeBrowser(): Promise<void> {
-  if (browserInstance) {
-    await browserInstance.close();
-    browserInstance = null;
+async function renderWithFetch(
+  url: string,
+  timeout_ms: number
+): Promise<Result<BrowserRenderResult, Error>> {
+  logRenderer('fetch', url);
 
-    console.error(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'browser_closed',
-    }));
+  try {
+    const response = await request(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Visus-MCP/0.2.0 (Security-focused web content fetcher; +https://github.com/visus-mcp/visus-mcp)',
+      },
+      bodyTimeout: timeout_ms,
+      headersTimeout: timeout_ms,
+    });
+
+    const html = await response.body.text();
+
+    // Extract title using regex (simple fallback)
+    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : '';
+
+    return Ok({
+      html,
+      title,
+      url,
+      text: undefined,
+    });
+
+  } catch (error) {
+    if (error instanceof Error) {
+      // Handle timeout errors
+      if (error.message.includes('timeout') || error.message.includes('UND_ERR')) {
+        return Err(new Error(`Navigation timeout after ${timeout_ms}ms`));
+      }
+
+      // Handle network errors
+      if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+        return Err(new Error(`Network error: ${error.message}`));
+      }
+
+      return Err(error);
+    }
+
+    return Err(new Error(String(error)));
   }
 }
 
 /**
- * Render a web page using Playwright
+ * Render a web page using the best available renderer
+ *
+ * Rendering strategy:
+ *   1. Lambda renderer (if VISUS_RENDERER_URL is set)
+ *   2. Undici fetch() (fallback)
  *
  * @param url - The URL to fetch
  * @param options - Rendering options
@@ -76,69 +213,27 @@ export async function renderPage(
   } = {}
 ): Promise<Result<BrowserRenderResult, Error>> {
   const timeout = options.timeout_ms ?? 10000; // Default 10 seconds
-  let page: Page | null = null;
 
-  try {
-    const browser = await getBrowser();
-    page = await browser.newPage({
-      userAgent: 'Visus-MCP/0.2.0 (Security-focused web content fetcher; +https://github.com/visus-mcp/visus-mcp)',
-    });
+  // Strategy 1: Try Lambda renderer if configured
+  if (RENDERER_URL) {
+    const lambdaResult = await renderWithLambda(url, timeout);
 
-    // Set timeout for navigation
-    page.setDefaultTimeout(timeout);
-    page.setDefaultNavigationTimeout(timeout);
-
-    // Navigate and wait for network to be idle
-    // This ensures JavaScript has executed and dynamic content is loaded
-    await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout,
-    });
-
-    // Extract content
-    const html = await page.content();
-    const title = await page.title();
-    const finalUrl = page.url(); // URL after redirects
-
-    // Extract text content if requested
-    const text: string | undefined = options.format === 'text'
-      ? (await page.evaluate('document.body.innerText') as string)
-      : undefined;
-
-    // Close page to free resources
-    await page.close();
-
-    return Ok({
-      html,
-      title,
-      url: finalUrl,
-      text,
-    });
-
-  } catch (error) {
-    // Ensure page is closed on error
-    if (page) {
-      await page.close().catch(() => {
-        // Ignore cleanup errors
-      });
+    // If Lambda succeeds, return result
+    if (lambdaResult.ok) {
+      return lambdaResult;
     }
 
-    if (error instanceof Error) {
-      // Handle specific Playwright errors
-      if (error.message.includes('Timeout')) {
-        return Err(new Error(`Navigation timeout after ${timeout}ms`));
-      }
-
-      if (error.message.includes('net::')) {
-        // Network errors (DNS, connection refused, etc.)
-        return Err(new Error(`Network error: ${error.message}`));
-      }
-
-      return Err(error);
-    }
-
-    return Err(new Error(String(error)));
+    // Lambda failed, log warning and fall back to fetch
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'lambda_fallback_to_fetch',
+      url,
+      lambda_error: lambdaResult.error.message,
+    }));
   }
+
+  // Strategy 2: Fallback to undici fetch
+  return await renderWithFetch(url, timeout);
 }
 
 /**
@@ -152,35 +247,30 @@ export async function checkUrl(
   url: string,
   timeout_ms = 5000
 ): Promise<Result<boolean, Error>> {
-  let page: Page | null = null;
-
   try {
-    const browser = await getBrowser();
-    page = await browser.newPage();
-    page.setDefaultTimeout(timeout_ms);
-    page.setDefaultNavigationTimeout(timeout_ms);
-
-    const response = await page.goto(url, {
-      waitUntil: 'domcontentloaded', // Don't wait for full load, just check accessibility
-      timeout: timeout_ms,
+    const response = await request(url, {
+      method: 'HEAD',
+      headersTimeout: timeout_ms,
+      bodyTimeout: timeout_ms,
     });
 
-    await page.close();
-
     // Consider 2xx and 3xx status codes as accessible
-    const statusCode = response?.status() ?? 0;
+    const statusCode = response.statusCode;
     const isAccessible = (statusCode >= 200 && statusCode < 400);
 
     return Ok(isAccessible);
 
   } catch (error) {
-    if (page) {
-      await page.close().catch(() => {
-        // Ignore cleanup errors
-      });
-    }
-
     // URL is not accessible
     return Ok(false);
   }
+}
+
+/**
+ * Close browser instance and clean up resources
+ * (No-op in Lambda architecture - included for compatibility)
+ */
+export async function closeBrowser(): Promise<void> {
+  // No-op: Lambda renderer is stateless, no local browser to close
+  // This function exists for backward compatibility with tests
 }
