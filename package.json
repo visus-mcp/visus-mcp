@@ -1,6 +1,6 @@
 {
   "name": "visus-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Secure web access for Claude — sanitizes all web content before it reaches your LLM",
   "main": "dist/index.js",
   "bin": {
@@ -12,7 +12,15 @@
     "test": "jest",
     "test:integration": "jest --testMatch='**/tests/**/*.integration.test.ts' --forceExit",
     "lint": "tsc --noEmit",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "cdk": "cdk",
+    "cdk:synth": "cdk synth",
+    "cdk:deploy": "npm run build && cdk deploy",
+    "cdk:deploy:dev": "npm run build && cdk deploy VisusStack-dev",
+    "cdk:deploy:prod": "npm run build && cdk deploy VisusStack-prod",
+    "cdk:diff": "cdk diff",
+    "cdk:destroy": "cdk destroy",
+    "cdk:bootstrap": "cdk bootstrap"
   },
   "keywords": [
     "mcp",
@@ -32,14 +40,21 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "@playwright/test": "^1.58.2",
     "cheerio": "^1.2.0",
+    "playwright": "^1.58.2",
     "undici": "^7.24.5"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^29.5.14",
-    "@types/node": "^20.17.6",
+    "@types/node": "^20.19.37",
+    "aws-cdk": "^2.1112.0",
+    "aws-cdk-lib": "^2.244.0",
+    "constructs": "^10.5.1",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },
   "repository": {

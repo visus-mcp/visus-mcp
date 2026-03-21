@@ -57,7 +57,7 @@ The sanitizer is the product's primary moat. It must detect and neutralize 43 in
 ### Browser Rendering
 Location: `src/browser/playwright-renderer.ts`
 
-Uses Playwright headless Chromium to fetch pages. Phase 1 uses headless only; Phase 2 adds user-session relay for login-gated pages.
+**Phase 2 (Current):** Uses Playwright headless Chromium with full JavaScript execution support. Browser instance is managed as a singleton for performance. Supports dynamic content, SPAs, and interactive web applications via `waitUntil: 'networkidle'`. Phase 3 will add user-session relay for login-gated pages.
 
 ## Development Commands
 

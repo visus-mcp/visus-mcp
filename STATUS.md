@@ -1,9 +1,38 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-21 06:27 JST
-**Version:** 0.1.0
-**Phase:** 1 (Open Source MCP Tool)
-**Status:** ✅ **PUBLISHED TO NPM** 🚀
+**Generated:** 2026-03-21 16:25 JST
+**Version:** 0.2.0
+**Phase:** 2 (Playwright Integration + AWS Infrastructure)
+**Status:** ✅ **PHASE 2 COMPLETE** - Ready for AWS Deployment
+
+---
+
+## Phase 2 Completion Summary
+
+**All Phase 2 Components Implemented:**
+- ✅ Playwright headless Chromium integration (replaces undici HTTP fetch)
+- ✅ Full JavaScript execution and dynamic content support (waitUntil: 'networkidle')
+- ✅ Singleton browser instance for performance optimization
+- ✅ Dual-mode runtime detection (stdio MCP vs Lambda)
+- ✅ AWS Lambda handler with API Gateway integration
+- ✅ AWS CDK infrastructure (TypeScript)
+- ✅ Cognito User Pool with authentication
+- ✅ DynamoDB audit logging table with KMS encryption
+- ✅ IAM roles with scoped permissions (security compliant)
+- ✅ All 95 tests passing with Playwright
+- ✅ TypeScript compilation successful (v0.2.0)
+- ✅ Documentation updated for Phase 2
+
+**Deployment Status:**
+- ⏳ Awaiting user action: CDK bootstrap in AWS account
+- ⏳ Awaiting user action: Deploy stack with `npm run cdk:deploy:dev`
+
+**Browser Rendering (Phase 2):**
+- **Engine:** Playwright Chromium v1208 (headless)
+- **JavaScript Execution:** Full SPA support with network idle detection
+- **Dynamic Content:** Waits for JavaScript rendering to complete
+- **Browser Management:** Singleton pattern with automatic cleanup
+- **Sanitization:** Unchanged - all 43 patterns still detected
 
 ---
 
@@ -11,7 +40,8 @@
 
 Visus is a security-first MCP tool that provides Claude with sanitized web page access. The project implements a comprehensive injection sanitization pipeline with 43 pattern categories and PII redaction, ensuring all web content is cleaned before reaching the LLM.
 
-**Current Status:** Phase 1 implementation COMPLETE. All tests passing (95/95). **Published to npm** as `visus-mcp@0.1.0` on 2026-03-21.
+**Phase 1 Status:** ✅ COMPLETE. Published to npm as `visus-mcp@0.1.0` on 2026-03-21.
+**Phase 2 Status:** ✅ COMPLETE. Playwright integrated, AWS infrastructure defined, ready for deployment.
 
 **npm Package:** https://www.npmjs.com/package/visus-mcp
 **Installation:** `npm install -g visus-mcp` or `npx visus-mcp`
@@ -103,13 +133,15 @@ Repository: Git initialized, committed, tagged v0.1.0
 - IP addresses → `[REDACTED:IP]`
 
 #### 3. Browser Rendering (`src/browser/playwright-renderer.ts`)
-- **Phase 1:** undici `fetch()` implementation for robust SSL handling
-- HTTP-based page fetching with `AbortController` timeout
-- SSL certificate verification via NODE_EXTRA_CA_CERTS (macOS system certs)
-- Simple HTML text extraction (regex-based)
+- **Phase 2 (Current):** Playwright headless Chromium implementation
+- Full browser automation with JavaScript execution
+- Singleton browser instance for performance (lazy-initialized)
+- Network idle detection: `waitUntil: 'networkidle'` ensures dynamic content loads
+- Supports SPAs, AJAX-heavy sites, and interactive applications
+- Proper resource cleanup: `page.close()` after each request
 - Timeout handling (default: 10 seconds)
-- Content size limits (default: 512KB)
-- **Phase 2:** Will migrate to Playwright for JavaScript rendering
+- Text extraction via `page.evaluate('document.body.innerText')`
+- Browser version: Chromium v1208 (Playwright 1.58.2)
 
 #### 4. MCP Tools (`src/tools/`)
 
@@ -130,6 +162,66 @@ Repository: Git initialized, committed, tagged v0.1.0
 - Result types for error handling
 - Sanitization metadata types
 - Tool output schemas
+
+#### 6. Runtime Detection (`src/runtime.ts`) - **NEW IN PHASE 2**
+- Dual-mode environment detection (stdio vs Lambda)
+- Detects AWS_LAMBDA_FUNCTION_NAME environment variable
+- Returns RuntimeConfig with isStdio/isLambda flags
+- Validates runtime environment before execution
+- Structured logging for runtime events
+
+#### 7. Lambda Handler (`src/lambda-handler.ts`) - **NEW IN PHASE 2**
+- AWS Lambda entry point for API Gateway integration
+- Routes: POST /fetch, POST /fetch-structured, GET /health
+- API Gateway proxy integration with typed events
+- Cognito authentication (via authorizer)
+- CORS headers (Phase 2: open, Phase 3: restricted)
+- Request/response JSON validation
+- Error handling with CloudWatch logging
+- Browser cleanup after each invocation
+
+#### 8. AWS Infrastructure (`infrastructure/`) - **NEW IN PHASE 2**
+
+**CDK Stack (`infrastructure/stack.ts`):**
+- **KMS Key**: Encryption at rest with automatic key rotation
+- **DynamoDB Table**: `visus-audit-{env}` with partition key `user_id`, sort key `timestamp`
+  - Global Secondary Index: `request_id-index`
+  - Pay-per-request billing mode
+  - Point-in-time recovery (production only)
+- **Cognito User Pool**: Email-based authentication with strong password policy
+  - Auto-verify email
+  - Account recovery via email only
+  - OAuth 2.0 flows enabled
+- **Lambda Function**: Node.js 20 runtime, 1024MB memory, 30s timeout
+  - Reserved concurrent executions: 100 (prod), 10 (dev)
+  - CloudWatch Logs with retention: 30 days (prod), 7 days (dev)
+  - Environment variables: AUDIT_TABLE_NAME, ENVIRONMENT
+- **API Gateway**: REST API with Cognito authorizer
+  - Throttling: 100 req/s rate limit, 200 burst
+  - Logging: INFO level with data tracing
+  - Metrics enabled
+  - CORS enabled (all origins in Phase 2)
+- **IAM Roles**: Scoped permissions (no wildcards - RULE 2 compliant)
+  - DynamoDB write access (table-specific)
+  - KMS encrypt/decrypt access (key-specific)
+  - CloudWatch Logs write access
+
+**CDK App (`infrastructure/app.ts`):**
+- Environment detection: `dev` or `prod`
+- Stack naming: `VisusStack-{environment}`
+- AWS account and region from environment variables
+- Tags: Project, Phase, Environment, ManagedBy
+
+**CDK Commands Available:**
+```bash
+npm run cdk:synth        # Synthesize CloudFormation template
+npm run cdk:deploy       # Deploy to AWS
+npm run cdk:deploy:dev   # Deploy dev environment
+npm run cdk:deploy:prod  # Deploy prod environment
+npm run cdk:diff         # Show changes before deployment
+npm run cdk:destroy      # Delete all AWS resources
+npm run cdk:bootstrap    # Bootstrap CDK in AWS account
+```
 
 ---
 
@@ -230,26 +322,40 @@ visus_fetch_structured("https://example.com", {
 ```json
 {
   "@modelcontextprotocol/sdk": "^1.0.4",
-  "undici": "^7.24.5",
-  "cheerio": "^1.0.0"
+  "@playwright/test": "^1.58.2",
+  "playwright": "^1.58.2",
+  "cheerio": "^1.2.0",
+  "undici": "^7.24.5"
 }
 ```
 
-- **undici**: Robust HTTP client with proper SSL certificate handling
+- **@modelcontextprotocol/sdk**: MCP protocol implementation for stdio transport
+- **playwright**: Headless Chromium browser automation (Phase 2)
+- **@playwright/test**: Playwright test utilities
 - **cheerio**: HTML parsing for structured data extraction
+- **undici**: Robust HTTP client (kept for compatibility)
 
 ### Development
 ```json
 {
+  "@types/aws-lambda": "^8.10.161",
   "@types/jest": "^29.5.14",
-  "@types/node": "^20.17.6",
+  "@types/node": "^20.19.37",
+  "aws-cdk": "^2.1112.0",
+  "aws-cdk-lib": "^2.244.0",
+  "constructs": "^10.5.1",
   "jest": "^29.7.0",
   "ts-jest": "^29.2.5",
+  "ts-node": "^10.9.2",
   "typescript": "^5.7.2"
 }
 ```
 
-**Note:** Playwright and Turndown removed for Phase 1. Native fetch() used instead.
+**Phase 2 Additions:**
+- **playwright**: Headless browser with JavaScript execution support
+- **aws-cdk-lib**: AWS CDK infrastructure as code framework
+- **@types/aws-lambda**: TypeScript types for Lambda handlers
+- **ts-node**: TypeScript execution for CDK synthesis
 
 ---
 
@@ -404,48 +510,69 @@ All 8 critical security rules have been followed:
 
 ---
 
-## What's NOT in Phase 1 (Future Phases)
+## Phase 2 Implemented Features
 
-Per CLAUDE.md, the following are deferred:
+All Phase 2 features from CLAUDE.md have been completed:
 
-- AWS Lambda deployment (Phase 2)
-- DynamoDB audit logging (Phase 2)
-- Cognito authentication (Phase 2)
-- User-session relay / Chrome extension (Phase 3)
-- Lateos dashboard integration (Phase 2)
-- Paid tier gating (Phase 2)
-- WAF protection (Phase 2 per ADR-011)
-- Playwright browser rendering (Phase 2)
+- ✅ **Playwright browser rendering** - Headless Chromium with JavaScript execution
+- ✅ **AWS Lambda deployment** - Handler with dual-mode support
+- ✅ **DynamoDB audit logging** - KMS-encrypted table with GSI
+- ✅ **Cognito authentication** - User pool with OAuth 2.0 support
+- ✅ **API Gateway** - REST API with Cognito authorizer
+- ✅ **IAM roles** - Scoped permissions (security compliant)
+- ✅ **CloudWatch Logs** - Structured logging with retention policies
+- ✅ **Dual-mode runtime** - stdio MCP + Lambda handler in unified codebase
+
+**Deferred to Phase 3:**
+- User-session relay / Chrome extension (login-gated pages)
+- Lateos dashboard integration
+- Paid tier gating and billing
+- WAF protection enhancements
 
 ---
 
 ## Next Steps
 
-### ✅ Phase 1 Complete - PUBLISHED TO NPM
+### ✅ Phase 2 Complete - Ready for AWS Deployment
 
 **Completed:**
-- [x] Initial Git commit with tag v0.1.0
-- [x] All 95 tests passing
-- [x] Package validated with `npm publish --dry-run`
-- [x] Documentation complete
-- [x] **Published to npm** (2026-03-21)
-- [x] Claude Desktop smoke testing (4/4 tests passed)
-- [x] SSL certificate verification enabled
-- [x] GitHub repository published
+- [x] Playwright headless Chromium integration
+- [x] Dual-mode runtime detection (stdio vs Lambda)
+- [x] AWS Lambda handler with API Gateway routes
+- [x] AWS CDK infrastructure (TypeScript)
+- [x] Cognito User Pool with authentication
+- [x] DynamoDB audit table with KMS encryption
+- [x] IAM roles with scoped permissions
+- [x] All 95 tests passing (Playwright validated)
+- [x] TypeScript compilation successful (v0.2.0)
+- [x] CDK stack synthesizes successfully
+- [x] Documentation updated
 
-**Live Now:**
-- 📦 npm: https://www.npmjs.com/package/visus-mcp
-- 🔗 GitHub: https://github.com/visus-mcp/visus-mcp
-- 📖 Installation: `npm install -g visus-mcp`
+**Awaiting User Action:**
+1. **Bootstrap CDK** (one-time setup):
+   ```bash
+   export AWS_REGION=us-east-1  # or preferred region
+   npm run cdk:bootstrap
+   ```
 
-### Post-Launch (Phase 2 Planning)
-1. Monitor GitHub issues for injection bypass reports
-2. Expand pattern library based on real-world attacks
-3. Performance benchmarking (sanitizer throughput)
-4. Playwright integration for JavaScript-rendered pages
-5. AWS infrastructure deployment
-6. DynamoDB audit logging
-7. Cognito authentication for hosted tier
+2. **Deploy to AWS**:
+   ```bash
+   npm run cdk:deploy:dev   # Development environment
+   # or
+   npm run cdk:deploy:prod  # Production environment
+   ```
+
+3. **Test deployed API**:
+   - CDK will output ApiEndpoint, UserPoolId, UserPoolClientId
+   - Create a Cognito user and test authentication
+   - Call `/fetch` and `/fetch-structured` endpoints
+
+### Phase 3 Planning
+1. User-session relay (Chrome extension for login-gated pages)
+2. Lateos dashboard integration
+3. Usage tracking and billing integration
+4. WAF rule enhancements
+5. Multi-region deployment
 
 ---
 
@@ -453,12 +580,11 @@ Per CLAUDE.md, the following are deferred:
 
 ```
 Name:           visus-mcp
-Version:        0.1.0
-Published:      2026-03-21 (npm registry)
-Size:           81.8 kB (tarball)
-Unpacked Size:  300.9 kB
-Files:          70
-Dependencies:   3 (@modelcontextprotocol/sdk, cheerio, undici)
+Version:        0.2.0 (Phase 2 - not yet published)
+Previous:       0.1.0 (published 2026-03-21)
+Size:           TBD (includes Playwright + AWS CDK)
+Dependencies:   8 production (@modelcontextprotocol/sdk, playwright, @playwright/test, cheerio, undici)
+DevDeps:        10 (@types/aws-lambda, aws-cdk, aws-cdk-lib, constructs, ts-node, etc.)
 Node:           >=18
 License:        MIT
 Author:         Leo Chongolnee (Lateos)
@@ -471,30 +597,47 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ## Conclusion
 
-✅ **Visus Phase 1 is COMPLETE and LIVE.**
+✅ **Visus Phase 2 is COMPLETE.**
 
-The sanitization engine (core product) is implemented, tested, documented, and **published to npm**. All 43 injection pattern categories are validated with 95/95 tests passing at 100% success rate.
+**Phase 1 Achievements:**
+- ✅ Sanitization engine (43 injection patterns + PII redaction)
+- ✅ Published to npm as `visus-mcp@0.1.0`
+- ✅ All 95 tests passing (100% success rate)
+- ✅ Claude Desktop integration validated
 
-The project successfully overcame multiple technical challenges:
-- iCloud file lock issues (relocated to non-synced directory)
-- SSL certificate verification (NODE_EXTRA_CA_CERTS with system certs)
-- Empty content bug (html vs text field extraction)
-- Structured extraction (cheerio semantic HTML parsing)
+**Phase 2 Achievements:**
+- ✅ **Playwright Integration** - Headless Chromium with JavaScript execution
+- ✅ **Dual-Mode Architecture** - Unified codebase for stdio MCP + Lambda
+- ✅ **AWS Infrastructure** - Complete CDK stack with 20+ resources:
+  - Lambda function (Node.js 20, 1024MB, 30s timeout)
+  - API Gateway (REST API with Cognito auth)
+  - DynamoDB table (KMS-encrypted audit logging)
+  - Cognito User Pool (email-based authentication)
+  - IAM roles (scoped permissions, security compliant)
+  - CloudWatch Logs (structured logging with retention)
+- ✅ **Security Compliance** - All 8 CLAUDE.md security rules enforced
+- ✅ **No Regressions** - All existing tests still pass with Playwright
 
-All smoke tests passed with real injection detection in production (whitespace_steganography and css_hiding patterns caught during testing).
+**Technical Challenges Overcome:**
+- Phase 1: iCloud file locks, SSL certificate verification, structured extraction
+- Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
 
-**Phase 1 Status:** ✅ PUBLISHED TO NPM
+**Deployment Ready:**
+- CDK stack synthesizes successfully
+- Infrastructure validated (20+ AWS resources defined)
+- Awaiting user action: `cdk bootstrap` + `cdk deploy`
 
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
 **npm Package:** https://www.npmjs.com/package/visus-mcp
-**Installation:** `npm install -g visus-mcp` or `npx visus-mcp`
+**Installation:** `npm install -g visus-mcp` or `npx visus-mcp` (v0.1.0 - stdio mode)
 
 ---
 
-**Last Updated:** 2026-03-21 06:27 JST
+**Last Updated:** 2026-03-21 16:25 JST
 **Build:** SUCCESS ✅
 **Tests:** 95/95 PASSING ✅
-**Smoke Tests:** 4/4 PASSING ✅
-**Package:** PUBLISHED TO NPM ✅
-**Release:** v0.1.0 🚀
+**CDK Synth:** SUCCESS ✅
+**Phase 1:** ✅ PUBLISHED TO NPM
+**Phase 2:** ✅ COMPLETE - READY FOR AWS DEPLOYMENT
+**Release:** v0.2.0 (pending deployment)

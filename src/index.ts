@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Visus MCP Server Entry Point
+ * Visus MCP - Dual-Mode Entry Point (Phase 2)
  *
- * Registers and serves the two Visus tools via the Model Context Protocol (MCP).
+ * Supports two runtime modes:
+ * 1. stdio MCP server (npx visus-mcp) - Open source tier
+ * 2. AWS Lambda handler (API Gateway) - Hosted tier
+ *
+ * Runtime detection determines which mode to use based on environment variables.
  *
  * Tools:
  * - visus_fetch: Fetch and sanitize web page content
@@ -24,6 +28,7 @@ import {
 import { visusFetch, visusFetchToolDefinition } from './tools/fetch.js';
 import { visusFetchStructured, visusFetchStructuredToolDefinition } from './tools/fetch-structured.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
+import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 
 /**
  * Create and configure the MCP server
@@ -31,7 +36,7 @@ import { closeBrowser } from './browser/playwright-renderer.js';
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.1.0'
+    version: '0.2.0'
   },
   {
     capabilities: {
@@ -119,9 +124,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 /**
- * Start the server
+ * Start the MCP server (stdio mode)
  */
-async function main() {
+async function startMcpServer() {
   const transport = new StdioServerTransport();
 
   // Connect server to transport
@@ -130,9 +135,9 @@ async function main() {
   // Log startup to stderr (not stdout - MCP uses stdout)
   console.error(JSON.stringify({
     timestamp: new Date().toISOString(),
-    event: 'server_started',
+    event: 'mcp_server_started',
     name: 'visus-mcp',
-    version: '0.1.0',
+    version: '0.2.0',
     tools: ['visus_fetch', 'visus_fetch_structured']
   }));
 
@@ -140,7 +145,7 @@ async function main() {
   process.on('SIGINT', async () => {
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
-      event: 'server_shutdown'
+      event: 'mcp_server_shutdown'
     }));
 
     await closeBrowser();
@@ -150,7 +155,7 @@ async function main() {
   process.on('SIGTERM', async () => {
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
-      event: 'server_shutdown'
+      event: 'mcp_server_shutdown'
     }));
 
     await closeBrowser();
@@ -158,12 +163,43 @@ async function main() {
   });
 }
 
-// Run server
-main().catch((error) => {
-  console.error(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: 'server_error',
-    error: error instanceof Error ? error.message : String(error)
-  }));
-  process.exit(1);
-});
+/**
+ * Main entry point - Dual-mode detection
+ */
+async function main() {
+  // Detect runtime environment
+  const runtime = detectRuntime();
+  logRuntimeConfig(runtime);
+  validateRuntime(runtime);
+
+  // Route to appropriate entry point
+  if (runtime.isStdio) {
+    // Open-source tier: stdio MCP server
+    await startMcpServer();
+  } else if (runtime.isLambda) {
+    // Hosted tier: Lambda handler
+    // In Lambda mode, the handler is exported and invoked by AWS
+    // This code path is not executed; see lambda-handler.ts export below
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'lambda_mode_detected',
+      message: 'Lambda handler will be invoked by AWS runtime'
+    }));
+  }
+}
+
+// Export Lambda handlers (for AWS deployment)
+// These are only used when the file is imported as a module by Lambda runtime
+export { handler, healthCheck } from './lambda-handler.js';
+
+// Run stdio MCP server when executed directly (not in Lambda)
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  main().catch((error) => {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'startup_error',
+      error: error instanceof Error ? error.message : String(error)
+    }));
+    process.exit(1);
+  });
+}

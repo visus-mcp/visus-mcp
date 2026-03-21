@@ -1,31 +1,71 @@
 /**
- * Browser Renderer - Phase 1 HTTP Fetch Implementation
+ * Browser Renderer - Phase 2 Playwright Implementation
  *
- * Phase 2: replace with Playwright for JS-rendered pages
+ * Uses Playwright headless Chromium to render pages with JavaScript execution.
+ * Supports dynamic content, SPAs, and interactive web applications.
  *
- * This implementation uses undici's fetch() for simple HTTP requests.
- * It does NOT execute JavaScript or render dynamic content.
- *
- * For Phase 1, this is sufficient since the sanitization pipeline
- * (the core product) works independently of how content is fetched.
+ * The browser instance is managed as a singleton for efficiency across requests.
  */
 
-import { fetch } from 'undici';
+import { chromium, type Browser, type Page } from 'playwright';
 import type { BrowserRenderResult, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
 /**
- * Close browser instance (no-op for HTTP fetch)
+ * Singleton browser instance (lazy-initialized)
+ * Reused across requests for performance
  */
-export async function closeBrowser(): Promise<void> {
-  return Promise.resolve();
+let browserInstance: Browser | null = null;
+
+/**
+ * Get or create the browser instance
+ */
+async function getBrowser(): Promise<Browser> {
+  if (!browserInstance) {
+    browserInstance = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+      ],
+    });
+
+    // Log browser launch to stderr
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'browser_launched',
+      version: browserInstance.version(),
+    }));
+  }
+
+  return browserInstance;
 }
 
 /**
- * Fetch a web page using native HTTP fetch
+ * Close browser instance and clean up resources
+ */
+export async function closeBrowser(): Promise<void> {
+  if (browserInstance) {
+    await browserInstance.close();
+    browserInstance = null;
+
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'browser_closed',
+    }));
+  }
+}
+
+/**
+ * Render a web page using Playwright
  *
  * @param url - The URL to fetch
- * @param options - Fetch options
+ * @param options - Rendering options
  * @returns Result containing the page HTML and metadata
  */
 export async function renderPage(
@@ -36,49 +76,64 @@ export async function renderPage(
   } = {}
 ): Promise<Result<BrowserRenderResult, Error>> {
   const timeout = options.timeout_ms ?? 10000; // Default 10 seconds
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let page: Page | null = null;
 
   try {
-    // Use undici fetch() with timeout
-    // Note: For development, we disable TLS rejection if needed
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Visus-MCP/0.1.0 (Security-focused web content fetcher)',
-      },
-      // @ts-ignore - undici specific option
-      dispatcher: process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? undefined : undefined,
+    const browser = await getBrowser();
+    page = await browser.newPage({
+      userAgent: 'Visus-MCP/0.2.0 (Security-focused web content fetcher; +https://github.com/visus-mcp/visus-mcp)',
     });
 
-    clearTimeout(timeoutId);
+    // Set timeout for navigation
+    page.setDefaultTimeout(timeout);
+    page.setDefaultNavigationTimeout(timeout);
 
-    if (!response.ok) {
-      return Err(
-        new Error(`HTTP ${response.status}: ${response.statusText}`)
-      );
-    }
+    // Navigate and wait for network to be idle
+    // This ensures JavaScript has executed and dynamic content is loaded
+    await page.goto(url, {
+      waitUntil: 'networkidle',
+      timeout,
+    });
 
-    const html = await response.text();
+    // Extract content
+    const html = await page.content();
+    const title = await page.title();
+    const finalUrl = page.url(); // URL after redirects
 
-    // Extract title from HTML using simple regex
-    // This is a Phase 1 approximation - Phase 2 will use Playwright's proper parsing
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].trim() : 'Untitled';
+    // Extract text content if requested
+    const text: string | undefined = options.format === 'text'
+      ? (await page.evaluate('document.body.innerText') as string)
+      : undefined;
+
+    // Close page to free resources
+    await page.close();
 
     return Ok({
       html,
       title,
-      url: response.url, // Use final URL after redirects
-      text: options.format === 'text' ? extractText(html) : undefined,
+      url: finalUrl,
+      text,
     });
+
   } catch (error) {
-    clearTimeout(timeoutId);
+    // Ensure page is closed on error
+    if (page) {
+      await page.close().catch(() => {
+        // Ignore cleanup errors
+      });
+    }
 
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return Err(new Error(`Request timeout after ${timeout}ms`));
+      // Handle specific Playwright errors
+      if (error.message.includes('Timeout')) {
+        return Err(new Error(`Navigation timeout after ${timeout}ms`));
       }
+
+      if (error.message.includes('net::')) {
+        // Network errors (DNS, connection refused, etc.)
+        return Err(new Error(`Network error: ${error.message}`));
+      }
+
       return Err(error);
     }
 
@@ -97,46 +152,35 @@ export async function checkUrl(
   url: string,
   timeout_ms = 5000
 ): Promise<Result<boolean, Error>> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout_ms);
+  let page: Page | null = null;
 
   try {
-    const response = await fetch(url, {
-      method: 'HEAD', // Use HEAD request to check without downloading body
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Visus-MCP/0.1.0 (Security-focused web content fetcher)',
-      },
+    const browser = await getBrowser();
+    page = await browser.newPage();
+    page.setDefaultTimeout(timeout_ms);
+    page.setDefaultNavigationTimeout(timeout_ms);
+
+    const response = await page.goto(url, {
+      waitUntil: 'domcontentloaded', // Don't wait for full load, just check accessibility
+      timeout: timeout_ms,
     });
 
-    clearTimeout(timeoutId);
+    await page.close();
 
     // Consider 2xx and 3xx status codes as accessible
-    const isAccessible = response.ok || (response.status >= 300 && response.status < 400);
-    return Ok(isAccessible);
-  } catch (error) {
-    clearTimeout(timeoutId);
+    const statusCode = response?.status() ?? 0;
+    const isAccessible = (statusCode >= 200 && statusCode < 400);
 
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return Err(new Error(`Request timeout after ${timeout_ms}ms`));
-      }
-      return Err(error);
+    return Ok(isAccessible);
+
+  } catch (error) {
+    if (page) {
+      await page.close().catch(() => {
+        // Ignore cleanup errors
+      });
     }
 
-    return Err(new Error(String(error)));
+    // URL is not accessible
+    return Ok(false);
   }
-}
-
-/**
- * Extract plain text from HTML (simple implementation)
- * Phase 2 will use Playwright's textContent() for accurate extraction
- */
-function extractText(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
-    .replace(/<[^>]+>/g, '') // Remove all HTML tags
-    .replace(/\s+/g, ' ') // Collapse whitespace
-    .trim();
 }
