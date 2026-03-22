@@ -1,17 +1,18 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23 (Updated)
-**Version:** 0.6.0-dev
+**Generated:** 2026-03-23
+**Version:** 0.6.0
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** 🚧 **v0.6.0 IN DEVELOPMENT** - Content-Type Format Detection
+**Status:** ✅ **v0.6.0 PUBLISHED** - Content-Type Format Detection
 
 ---
 
-## v0.6.0 Development - Content-Type Format Detection
+## v0.6.0 Release - Content-Type Format Detection
 
-**Status:** 🚧 IN DEVELOPMENT
+**Status:** ✅ RELEASED
 **Type:** Feature enhancement
-**Implemented:** 2026-03-23
+**Published:** 2026-03-23
+**Install:** `npm install -g visus-mcp@0.6.0`
 
 ### New Features
 
@@ -77,8 +78,8 @@ Sanitization (43 patterns + PII) → Token Ceiling → Output
 - `convertXml(raw)`: Parses XML to clean text using fast-xml-parser
 - `convertRss(raw)`: Extracts RSS/Atom metadata and items to Markdown
 
-**Dependencies Added:**
-- `fast-xml-parser`: ^4.5.0 (already installed, no new dependency)
+**Dependencies:**
+- `fast-xml-parser`: ^5.5.8 (already installed, no new dependency added)
 
 **Test Coverage:**
 New test scenarios in `tests/fetch-tool.test.ts`:
@@ -1340,18 +1341,19 @@ All Phase 2 features from CLAUDE.md have been completed:
 
 ```
 Name:           visus-mcp
-Version:        0.5.0 (published 2026-03-23)
-Previous:       0.4.0 (Safe Web Search)
+Version:        0.6.0 (published 2026-03-23)
+Previous:       0.5.0 (Threat Reporting)
+                0.4.0 (Safe Web Search)
                 0.3.2 (Reader Mode Feature)
                 0.3.1 (Security Hardening)
                 0.3.0 (PII Allowlist Feature)
                 0.2.0 (Phase 2 - AWS Lambda renderer)
                 0.1.0 (Phase 1 - stdio mode)
-Size:           ~115 kB (tarball)
-Unpacked:       ~450 kB
+Size:           ~195 kB (tarball)
+Unpacked:       ~767 kB
 Dependencies:   9 production (@modelcontextprotocol/sdk, playwright, @playwright/test,
                 cheerio, undici, @mozilla/readability@0.6.0, jsdom@29.0.1,
-                @toon-format/toon@2.1.0)
+                @toon-format/toon@2.1.0, fast-xml-parser@5.5.8)
 DevDeps:        10 (@types/aws-lambda, aws-cdk, aws-cdk-lib, constructs, ts-node, etc.)
 Node:           >=18
 License:        MIT
@@ -1365,7 +1367,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ## Conclusion
 
-✅ **Visus v0.5.0 is COMPLETE and PUBLISHED.**
+✅ **Visus v0.6.0 is COMPLETE and PUBLISHED.**
 
 **Phase 1 Achievements:**
 - ✅ Sanitization engine (43 injection patterns + PII redaction)
@@ -1412,7 +1414,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **Zero Regressions** - All existing tests continue to pass
 - ✅ **Published to npm** - Available as `visus-mcp@0.5.0`
 
-**v0.6.0 Achievements (In Development):**
+**v0.6.0 Achievements:**
 - ✅ **Content-Type Format Detection** — Automatic format detection from HTTP headers
 - ✅ **JSON Support** — Pretty-printing with 2-space indentation for API responses
 - ✅ **XML Support** — Clean text conversion using fast-xml-parser
@@ -1421,6 +1423,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **14 New Tests** - Format detection test coverage (246 total tests)
 - ✅ **Zero Regressions** - All existing tests continue to pass
 - ✅ **Security Preserved** — Sanitizer runs on ALL formats unchanged
+- ✅ **Published to npm** - Available as `visus-mcp@0.6.0`
 
 **Technical Challenges Overcome:**
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
@@ -1442,11 +1445,11 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
 **npm Package:** https://www.npmjs.com/package/visus-mcp
-**Installation:** `npm install -g visus-mcp@0.5.0` or `npx visus-mcp@0.5.0`
+**Installation:** `npm install -g visus-mcp@0.6.0` or `npx visus-mcp@0.6.0`
 
 ---
 
-**Last Updated:** 2026-03-23 (Updated for v0.6.0-dev)
+**Last Updated:** 2026-03-23
 **Build:** SUCCESS ✅
 **Tests:** 246/246 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
@@ -1457,8 +1460,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **v0.3.2:** ✅ PUBLISHED TO NPM (Reader Mode Feature - 14 tests added)
 **v0.4.0:** ✅ PUBLISHED TO NPM (Safe Web Search Feature - 18 tests added)
 **v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting - 31 tests added)
-**v0.6.0:** 🚧 IN DEVELOPMENT (Content-Type Format Detection - 14 tests added)
+**v0.6.0:** ✅ PUBLISHED TO NPM (Content-Type Format Detection - 14 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
-**Latest Release:** v0.5.0 (2026-03-23)
-**Next Release:** v0.6.0 (Content-Type Format Detection)
+**Latest Release:** v0.6.0 (2026-03-23)
