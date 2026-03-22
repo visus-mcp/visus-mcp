@@ -1,9 +1,9 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-21 16:25 JST
+**Generated:** 2026-03-22 14:30 JST
 **Version:** 0.2.0
 **Phase:** 2 (Playwright Integration + AWS Infrastructure)
-**Status:** ✅ **PHASE 2 COMPLETE** - Ready for AWS Deployment
+**Status:** ✅ **PHASE 2 DEPLOYED** - Production Lambda Renderer Live
 
 ---
 
@@ -24,8 +24,20 @@
 - ✅ Documentation updated for Phase 2
 
 **Deployment Status:**
-- ⏳ Awaiting user action: CDK bootstrap in AWS account
-- ⏳ Awaiting user action: Deploy stack with `npm run cdk:deploy:dev`
+- ✅ CDK bootstrapped in AWS account 080746528746 (us-east-1)
+- ✅ Lambda renderer deployed successfully
+- ✅ API Endpoint: https://wyomy29zd7.execute-api.us-east-1.amazonaws.com
+- ✅ Function: VisusRendererStack-dev-RendererFunction3AA1789A-554zTOoz3FVg
+- ✅ CloudWatch Logs: /aws/lambda/visus-renderer-dev
+
+**Performance Metrics (Production Lambda):**
+- **Cold Start:** 4.2s billed (887ms init + 3.3s execution), 489 MB memory
+- **Warm Invocations:** 1.0-6.2s depending on page complexity
+  - Simple pages (example.com): 1.0s, 489 MB
+  - GitHub SPA (heavy JavaScript): 6.2s, 604 MB
+  - MedlinePlus (clinical): 3.0s, 604 MB
+- **Memory Utilization:** 489-604 MB (well under 2048 MB limit)
+- **Stability:** 100% success rate across all smoke tests
 
 **Browser Rendering (Phase 2):**
 - **Engine:** Playwright Chromium v1208 (headless)
@@ -313,6 +325,53 @@ visus_fetch_structured("https://example.com", {
 - Content modified: false
 
 **Smoke Test Summary:** ✅ 4/4 tests passing - Production ready
+
+### ✅ Lambda Renderer Smoke Tests (2026-03-22)
+
+**Environment:**
+- AWS Lambda (Node.js 22.x, x86_64, 2048 MB memory)
+- Playwright headless Chromium bundled via @sparticuz/chromium@143.0.4
+- HTTP API Gateway (https://wyomy29zd7.execute-api.us-east-1.amazonaws.com)
+- Region: us-east-1
+
+#### Smoke Test 1: Simple Static Page ✅
+```
+POST /render {"url": "https://example.com"}
+```
+**Result:** SUCCESS
+- **Cold start:** 5.6s total (4.2s Lambda + network)
+- **Warm invocation:** 1.6s
+- **Response:** HTTP 200, 462 bytes HTML
+- **Content:** "Example Domain" heading + full page text
+- **Memory:** 489 MB peak
+
+#### Smoke Test 2: GitHub SPA (JavaScript Heavy) ✅
+```
+POST /render {"url": "https://github.com/visus-mcp/visus-mcp"}
+```
+**Result:** SUCCESS
+- **Duration:** 8.1s (6.2s Lambda execution)
+- **Response:** HTTP 200, 462 KB HTML
+- **JavaScript Execution:** Confirmed (README content + file tree rendered)
+- **Content:** 583 "Visus" mentions, full repo page structure
+- **Memory:** 604 MB peak
+
+#### Smoke Test 3: MedlinePlus Clinical Content ✅
+```
+POST /render {"url": "https://medlineplus.gov/druginfo/meds/a682878.html"}
+```
+**Result:** SUCCESS
+- **Duration:** 3.9s
+- **Response:** HTTP 200, 44 KB HTML
+- **Clinical Data:** Aspirin drug information with dosage, side effects
+- **Memory:** 604 MB peak
+
+**Lambda Smoke Test Summary:** ✅ 3/3 tests passing - Lambda renderer fully operational
+
+**npm Test Suite with Lambda Renderer:** ✅ 95/95 tests passing (2.0s)
+- All sanitizer tests pass with Playwright rendering
+- All MCP tool tests pass with Lambda backend
+- Zero regressions from Phase 1
 
 ---
 
@@ -622,10 +681,12 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
 - Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
 
-**Deployment Ready:**
-- CDK stack synthesizes successfully
-- Infrastructure validated (20+ AWS resources defined)
-- Awaiting user action: `cdk bootstrap` + `cdk deploy`
+**Deployment Complete:**
+- ✅ CDK stack deployed successfully to us-east-1
+- ✅ Lambda function operational (100% success rate)
+- ✅ API Gateway endpoint live and responding
+- ✅ All smoke tests passing (3/3 Lambda + 95/95 npm tests)
+- ✅ Zero regressions from Phase 1
 
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
@@ -634,10 +695,11 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ---
 
-**Last Updated:** 2026-03-21 16:25 JST
+**Last Updated:** 2026-03-22 14:30 JST
 **Build:** SUCCESS ✅
 **Tests:** 95/95 PASSING ✅
-**CDK Synth:** SUCCESS ✅
-**Phase 1:** ✅ PUBLISHED TO NPM
-**Phase 2:** ✅ COMPLETE - READY FOR AWS DEPLOYMENT
-**Release:** v0.2.0 (pending deployment)
+**CDK Deploy:** SUCCESS ✅
+**Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
+**Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
+**Lambda Endpoint:** https://wyomy29zd7.execute-api.us-east-1.amazonaws.com
+**Release:** v0.2.0 (ready for npm publish)
