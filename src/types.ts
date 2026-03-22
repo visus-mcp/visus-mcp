@@ -93,6 +93,32 @@ export interface VisusReadOutput {
 }
 
 /**
+ * Input for visus_search tool
+ */
+export interface VisusSearchInput {
+  query: string;
+  max_results?: number;
+}
+
+/**
+ * Output from visus_search tool
+ */
+export interface VisusSearchOutput {
+  query: string;
+  result_count: number;
+  sanitized: true;
+  results: Array<{
+    title: string;
+    url: string;
+    snippet: string;
+    injections_removed: number;
+    pii_redacted: number;
+  }>;
+  total_injections_removed: number;
+  message?: string;
+}
+
+/**
  * Result from browser rendering
  */
 export interface BrowserRenderResult {

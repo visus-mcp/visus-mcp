@@ -1,9 +1,115 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23 13:57 JST
-**Version:** 0.3.2-dev
-**Phase:** 2+ (Reader Mode Feature Added)
-**Status:** ✅ **v0.3.2 READY** - Reader Mode Implemented
+**Generated:** 2026-03-23 14:30 JST
+**Version:** 0.4.0-dev
+**Phase:** 2+ (Safe Web Search Feature Added)
+**Status:** ✅ **v0.4.0 READY** - Safe Web Search Implemented
+
+---
+
+## v0.4.0 Development - Safe Web Search Feature
+
+**Status:** ✅ COMPLETE (Ready for release)
+**Type:** Feature enhancement
+**Implemented:** 2026-03-23
+
+### New Features
+
+**🎯 Safe Web Search with DuckDuckGo Integration**
+
+Adds fourth MCP tool `visus_search` that queries DuckDuckGo and sanitizes all search results before they reach the LLM, enabling safe web research workflows.
+
+**Key Features:**
+- ✅ DuckDuckGo Instant Answer API integration (no API key required)
+- ✅ Independent sanitization of every result title and snippet
+- ✅ Prompt injection detection and removal in search results
+- ✅ PII redaction (email, phone, etc.) in snippets
+- ✅ Configurable max_results (default: 5, max: 10)
+- ✅ 8-second timeout with graceful error handling
+- ✅ 18 new tests (201 total, all passing)
+- ✅ Zero regressions - all existing tests continue to pass
+
+**Safe Research Loop (3-Step Workflow):**
+1. **Discover** - Use `visus_search` to find relevant pages safely
+2. **Read** - Use `visus_read` to extract clean article content
+3. **Extract** - Use `visus_fetch_structured` to pull specific data
+
+All three steps run content through the sanitization pipeline for end-to-end security.
+
+**Search Result Sanitization:**
+- Each result's title and snippet sanitized independently
+- Injection patterns detected and neutralized
+- PII redacted before reaching LLM
+- Total injection count aggregated across all results
+- SEO spam and malicious instructions removed
+
+**Output Metadata Fields:**
+- `query`: Search query string
+- `result_count`: Number of results returned
+- `sanitized`: Always true (all results sanitized)
+- `results[]`: Array of sanitized search results
+  - `title`: Sanitized result title (first sentence or 80 chars)
+  - `url`: Result URL
+  - `snippet`: Sanitized result text
+  - `injections_removed`: Count of injections detected in this result
+  - `pii_redacted`: Count of PII types redacted in this result
+- `total_injections_removed`: Sum of injections across all results
+- `message`: Optional error/status message
+
+**Technical Implementation:**
+- Created `src/tools/search.ts` with DuckDuckGo API integration
+- Added `src/types.ts` VisusSearchInput/VisusSearchOutput interfaces
+- Registered tool in `src/index.ts` with correct MCP annotations
+- Added comprehensive test suite `tests/search.test.ts` (18 tests)
+- Updated `tests/fetch-tool.test.ts` with annotation tests
+- Updated README.md with tool documentation and Example 5
+- Added "Safe Research Loop" workflow documentation
+
+**API Details:**
+- Endpoint: `https://api.duckduckgo.com/?q={query}&format=json&no_redirect=1&no_html=1`
+- No API key required (public API)
+- Parses RelatedTopics and AbstractText fields
+- Handles nested Topics structure
+- Filters out results with empty URLs
+- 8-second timeout with AbortController
+
+**Error Handling:**
+- API timeout → structured response with message
+- Network error → structured response (never throws)
+- No results → empty array with message
+- Invalid input → Result error with validation message
+
+**Use Cases:**
+- Safe web research before fetching pages
+- Discovering relevant content without exposure to malicious search results
+- SEO spam filtering
+- PII-safe search result browsing
+- Multi-step research workflows (search → read → extract)
+
+**MCP Annotations:**
+- `readOnlyHint`: true
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `openWorldHint`: true
+
+**Example Usage:**
+```json
+{
+  "query": "AI prompt injection attacks",
+  "max_results": 5
+}
+```
+
+Returns sanitized search results with injection detection metadata, filtering out malicious content before it reaches the LLM.
+
+**Test Results:** ✅ 201/201 tests passing (18 new search tests + 5 annotation tests added)
+
+**README Documentation:**
+- Added visus_search tool documentation with input/output schemas
+- Added Example 5: Safe Web Search with Injection Detection
+- Added "Safe Research Loop" section with 3-step workflow
+- Demonstrated injection detection in search results
+- Showed PII redaction in snippets
 
 ---
 
@@ -239,17 +345,18 @@ Visus is a security-first MCP tool that provides Claude with sanitized web page 
 
 ### ✅ Test Execution
 - **Status:** SUCCESS - All tests passing
-- **Test Results:** 176/176 tests passing (100%)
-- **Test Suites:** 5/5 passing
-- **Execution Time:** ~4.3 seconds
+- **Test Results:** 201/201 tests passing (100%)
+- **Test Suites:** 6/6 passing
+- **Execution Time:** ~4.7 seconds
 - **Test Files:**
   - `tests/sanitizer.test.ts` - PASS (43 pattern categories validated)
-  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions validated)
+  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions + annotations validated)
   - `tests/pii-allowlist.test.ts` - PASS (26 allowlist tests) - **v0.3.0**
   - `tests/auth-smoke.test.ts` - PASS (24 auth enforcement tests) - **v0.3.1**
   - `tests/reader.test.ts` - PASS (14 reader mode tests) - **v0.3.2**
+  - `tests/search.test.ts` - PASS (18 search tests) - **v0.4.0**
   - `tests/injection-corpus.ts` - Test data library
-- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + security fixes validated
+- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + safe web search + security fixes validated
 
 ---
 
@@ -271,7 +378,7 @@ Repository: Git initialized, committed, tagged v0.1.0
 
 #### 1. MCP Server (`src/index.ts`)
 - Entry point with shebang for CLI execution
-- Registers three tools: `visus_fetch`, `visus_fetch_structured`, and `visus_read` (**v0.3.2**)
+- Registers four tools: `visus_fetch`, `visus_fetch_structured`, `visus_read`, and `visus_search` (**v0.4.0**)
 - MCP SDK integration (@modelcontextprotocol/sdk v1.0.4)
 - Graceful shutdown handlers (SIGINT, SIGTERM)
 - Structured JSON logging to stderr (MCP protocol compliance)
@@ -349,6 +456,15 @@ Repository: Git initialized, committed, tagged v0.1.0
 - Full sanitization pipeline: Playwright → Reader → Sanitizer → Token ceiling
 - Graceful fallback for non-article pages (reader_mode_available: false)
 - Token-efficient (~70% size reduction vs full page HTML)
+
+**`visus_search(query, max_results?)` - NEW IN v0.4.0**
+- Searches the web via DuckDuckGo Instant Answer API
+- Sanitizes all result titles and snippets independently
+- Detects and removes prompt injections in search results
+- Redacts PII (email, phone, etc.) before reaching LLM
+- Returns structured results with injection metadata
+- No API key required (public DuckDuckGo API)
+- Safe Research Loop: search → read → extract workflow
 
 #### 5. Type Definitions (`src/types.ts`)
 - TypeScript strict mode interfaces
@@ -1007,15 +1123,16 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ---
 
-**Last Updated:** 2026-03-23 13:57 JST
+**Last Updated:** 2026-03-23 14:30 JST
 **Build:** SUCCESS ✅
-**Tests:** 176/176 PASSING ✅
+**Tests:** 201/201 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
 **v0.3.0:** ✅ PUBLISHED TO NPM (PII Allowlist Feature)
 **v0.3.1:** ✅ PUBLISHED TO NPM (Security Hardening - 2 findings resolved)
-**v0.3.2:** ✅ READY FOR RELEASE (Reader Mode Feature - 14 tests added)
+**v0.3.2:** ✅ PUBLISHED TO NPM (Reader Mode Feature - 14 tests added)
+**v0.4.0:** ✅ READY FOR RELEASE (Safe Web Search Feature - 18 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
-**Latest Development:** v0.3.2-dev (2026-03-23)
+**Latest Development:** v0.4.0-dev (2026-03-23)

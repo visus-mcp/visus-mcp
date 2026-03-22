@@ -28,6 +28,7 @@ import {
 import { visusFetch, visusFetchToolDefinition } from './tools/fetch.js';
 import { visusFetchStructured, visusFetchStructuredToolDefinition } from './tools/fetch-structured.js';
 import { visusRead, visusReadToolDefinition } from './tools/read.js';
+import { visusSearch, visusSearchToolDefinition } from './tools/search.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 
@@ -54,7 +55,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       visusFetchToolDefinition,
       visusFetchStructuredToolDefinition,
-      visusReadToolDefinition
+      visusReadToolDefinition,
+      visusSearchToolDefinition
     ]
   };
 });
@@ -127,6 +129,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'visus_search': {
+        const result = await visusSearch(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_search failed: ${result.error.message}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,
@@ -160,7 +182,7 @@ async function startMcpServer() {
     event: 'mcp_server_started',
     name: 'visus-mcp',
     version: '0.2.0',
-    tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read']
+    tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
   }));
 
   // Graceful shutdown

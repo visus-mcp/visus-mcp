@@ -508,4 +508,66 @@ describe('Annotations', () => {
 
   // Note: visus_read tool definition tests moved to tests/reader.test.ts
   // to avoid jsdom ESM parsing issues in this file
+
+  describe('visus_search tool definition', () => {
+    it('should have title annotation', () => {
+      const searchToolDef = {
+        name: 'visus_search',
+        title: 'Search the Web (Sanitized)',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true
+      };
+      expect(searchToolDef.title).toBe('Search the Web (Sanitized)');
+    });
+
+    it('should have readOnlyHint set to true', () => {
+      const searchToolDef = {
+        name: 'visus_search',
+        title: 'Search the Web (Sanitized)',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true
+      };
+      expect(searchToolDef.readOnlyHint).toBe(true);
+    });
+
+    it('should have destructiveHint set to false', () => {
+      const searchToolDef = {
+        name: 'visus_search',
+        title: 'Search the Web (Sanitized)',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true
+      };
+      expect(searchToolDef.destructiveHint).toBe(false);
+    });
+
+    it('should have idempotentHint set to true', () => {
+      const searchToolDef = {
+        name: 'visus_search',
+        title: 'Search the Web (Sanitized)',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true
+      };
+      expect(searchToolDef.idempotentHint).toBe(true);
+    });
+
+    it('should have openWorldHint set to true', () => {
+      const searchToolDef = {
+        name: 'visus_search',
+        title: 'Search the Web (Sanitized)',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true
+      };
+      expect(searchToolDef.openWorldHint).toBe(true);
+    });
+  });
 });

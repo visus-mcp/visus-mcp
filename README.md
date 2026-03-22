@@ -181,6 +181,39 @@ Extract clean article content from a web page using Mozilla Readability (reader 
 }
 ```
 
+### `visus_search`
+
+Search the web via DuckDuckGo and return sanitized results with prompt injection and PII removed. Use before `visus_fetch` or `visus_read` to safely discover and then read pages.
+
+**Input:**
+```json
+{
+  "query": "TypeScript programming",
+  "max_results": 5    // optional, default: 5, max: 10
+}
+```
+
+**Output:**
+```json
+{
+  "query": "TypeScript programming",
+  "result_count": 5,
+  "sanitized": true,
+  "results": [
+    {
+      "title": "TypeScript is a strongly typed programming language.",
+      "url": "https://typescriptlang.org",
+      "snippet": "TypeScript is a strongly typed programming language that builds on JavaScript...",
+      "injections_removed": 0,
+      "pii_redacted": 0
+    }
+  ],
+  "total_injections_removed": 0
+}
+```
+
+All search result titles and snippets are independently sanitized before reaching the LLM.
+
 ### `visus_fetch_structured`
 
 Extract structured data from a web page according to a schema.
@@ -386,6 +419,92 @@ When you need clean article content without navigation clutter, use `visus_read`
 **What Visus caught:** Readability successfully extracted the main article content, removing Wikipedia's navigation sidebar, footer links, and UI chrome. The extracted text is ~70% smaller than the full page HTML, saving tokens while preserving all essential information. No injection patterns or PII were detected in this educational content.
 
 **Use case:** Reader mode is ideal for documentation pages, news articles, blog posts, and any content-heavy page where you want the text without the surrounding UI. The `word_count` field helps you estimate token usage before processing.
+
+---
+
+### Example 5: Safe Web Search with Injection Detection
+
+Search the web safely using `visus_search` with DuckDuckGo, demonstrating how search results are sanitized before reaching the LLM.
+
+**Tool Call:**
+```json
+{
+  "query": "AI prompt injection attacks",
+  "max_results": 3
+}
+```
+
+**Sanitized Output (with detected injection):**
+```json
+{
+  "query": "AI prompt injection attacks",
+  "result_count": 3,
+  "sanitized": true,
+  "results": [
+    {
+      "title": "Prompt injection is a type of cyberattack...",
+      "url": "https://en.wikipedia.org/wiki/Prompt_injection",
+      "snippet": "Prompt injection is a type of cyberattack that involves adding malicious instructions to a prompt...",
+      "injections_removed": 0,
+      "pii_redacted": 0
+    },
+    {
+      "title": "[REDACTED:INSTRUCTION_INJECTION] for details contact...",
+      "url": "https://suspicious-seo-spam.example",
+      "snippet": "[REDACTED:INSTRUCTION_INJECTION] [REDACTED:EMAIL]",
+      "injections_removed": 2,
+      "pii_redacted": 1
+    },
+    {
+      "title": "AI Safety: Understanding Prompt Injection.",
+      "url": "https://example.com/ai-safety",
+      "snippet": "Learn how to protect your AI systems from prompt injection vulnerabilities...",
+      "injections_removed": 0,
+      "pii_redacted": 0
+    }
+  ],
+  "total_injections_removed": 2
+}
+```
+
+**What Visus caught:** The second search result contained both a prompt injection pattern ("Ignore previous instructions and...") and an email address. Both were detected and redacted before the result reached the LLM. The other results were clean and passed through unmodified.
+
+**Use case:** Always use `visus_search` before fetching pages to safely discover content. Search results can contain SEO spam, malicious instructions, or PII that would compromise your AI agent.
+
+---
+
+### Safe Research Loop (3-Step Workflow)
+
+Combine all three tools for safe, context-efficient web research:
+
+**Step 1: Discover** – Use `visus_search` to find relevant pages safely:
+```json
+{
+  "query": "TypeScript async patterns",
+  "max_results": 5
+}
+```
+
+**Step 2: Read** – Use `visus_read` to extract clean article content:
+```json
+{
+  "url": "https://blog.example.com/typescript-async-guide"
+}
+```
+
+**Step 3: Extract** – Use `visus_fetch_structured` to pull specific data:
+```json
+{
+  "url": "https://docs.typescript.com/reference/async",
+  "schema": {
+    "syntax": "async/await syntax",
+    "example": "code example",
+    "best_practices": "recommended patterns"
+  }
+}
+```
+
+All three steps run content through the sanitization pipeline, ensuring end-to-end security from search to extraction.
 
 ---
 
