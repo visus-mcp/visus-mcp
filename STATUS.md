@@ -1,17 +1,18 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23 22:30 JST
-**Version:** 0.5.0-dev
-**Phase:** 2+ (Compliance Framework Threat Reporting)
-**Status:** ✅ **v0.5.0 READY** - Structured Threat Reporting Implemented
+**Generated:** 2026-03-23 07:35 JST
+**Version:** 0.5.0
+**Phase:** 3 (Anthropic Directory Prep)
+**Status:** ✅ **v0.5.0 PUBLISHED** - Threat Reporting + Full Directory Prep
 
 ---
 
-## v0.5.0 Development - Structured Threat Reporting with TOON + Markdown
+## v0.5.0 Release - Structured Threat Reporting with TOON + Markdown
 
-**Status:** ✅ COMPLETE (Ready for release)
+**Status:** ✅ RELEASED
 **Type:** Security enhancement
-**Implemented:** 2026-03-23
+**Published:** 2026-03-23
+**Install:** `npm install -g visus-mcp@0.5.0`
 
 ### New Features
 
@@ -500,18 +501,19 @@ Visus is a security-first MCP tool that provides Claude with sanitized web page 
 
 ### ✅ Test Execution
 - **Status:** SUCCESS - All tests passing
-- **Test Results:** 201/201 tests passing (100%)
-- **Test Suites:** 6/6 passing
-- **Execution Time:** ~4.7 seconds
+- **Test Results:** 232/232 tests passing (100%)
+- **Test Suites:** 7/7 passing
+- **Execution Time:** ~5.8 seconds
 - **Test Files:**
-  - `tests/sanitizer.test.ts` - PASS (43 pattern categories validated)
-  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions + annotations validated)
+  - `tests/sanitizer.test.ts` - PASS (43 pattern categories + 5 threat report integration tests)
+  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions + annotations + 2 threat report tests)
+  - `tests/threat-reporter.test.ts` - PASS (38 threat reporting tests) - **v0.5.0**
   - `tests/pii-allowlist.test.ts` - PASS (26 allowlist tests) - **v0.3.0**
   - `tests/auth-smoke.test.ts` - PASS (24 auth enforcement tests) - **v0.3.1**
   - `tests/reader.test.ts` - PASS (14 reader mode tests) - **v0.3.2**
   - `tests/search.test.ts` - PASS (18 search tests) - **v0.4.0**
   - `tests/injection-corpus.ts` - Test data library
-- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + safe web search + security fixes validated
+- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + safe web search + security fixes + threat reporting with framework mappings validated
 
 ---
 
@@ -1197,10 +1199,20 @@ All Phase 2 features from CLAUDE.md have been completed:
    - Call `/fetch` and `/fetch-structured` endpoints
 
 ### Phase 3 Planning
-1. User-session relay (Chrome extension for login-gated pages)
-2. Lateos dashboard integration
-3. Usage tracking and billing integration
-4. Multi-region deployment
+1. Anthropic MCP Directory submission (local/stdio track first)
+2. Community registry listings (Smithery, mcp.so, PulseMCP)
+3. Privacy policy page (lateos.ai/privacy)
+4. User-session relay (Chrome extension for login-gated pages)
+5. Lateos dashboard integration
+6. Usage tracking and billing integration
+7. Multi-region deployment
+
+### Roadmap (Post-Phase 3)
+- WAF protection enhancements (cost-deferred; revisit at scale)
+- `visus_clean` — Format normalization (XML, YAML, CSV, SQL, PDF)
+- `visus_report` — PDF compliance artifact export
+- ISO/IEC 42001 framework mapping
+- GitHub integration (visus-github separate package)
 
 ---
 
@@ -1208,12 +1220,18 @@ All Phase 2 features from CLAUDE.md have been completed:
 
 ```
 Name:           visus-mcp
-Version:        0.3.0 (published 2026-03-22)
-Previous:       0.2.0 (Phase 2 - AWS Lambda renderer)
+Version:        0.5.0 (published 2026-03-23)
+Previous:       0.4.0 (Safe Web Search)
+                0.3.2 (Reader Mode Feature)
+                0.3.1 (Security Hardening)
+                0.3.0 (PII Allowlist Feature)
+                0.2.0 (Phase 2 - AWS Lambda renderer)
                 0.1.0 (Phase 1 - stdio mode)
-Size:           109.9 kB (tarball)
-Unpacked:       414.7 kB
-Dependencies:   8 production (@modelcontextprotocol/sdk, playwright, @playwright/test, cheerio, undici)
+Size:           ~115 kB (tarball)
+Unpacked:       ~450 kB
+Dependencies:   9 production (@modelcontextprotocol/sdk, playwright, @playwright/test,
+                cheerio, undici, @mozilla/readability@0.6.0, jsdom@29.0.1,
+                @toon-format/toon@2.1.0)
 DevDeps:        10 (@types/aws-lambda, aws-cdk, aws-cdk-lib, constructs, ts-node, etc.)
 Node:           >=18
 License:        MIT
@@ -1227,7 +1245,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ## Conclusion
 
-✅ **Visus v0.3.0 is COMPLETE and PUBLISHED.**
+✅ **Visus v0.5.0 is COMPLETE and PUBLISHED.**
 
 **Phase 1 Achievements:**
 - ✅ Sanitization engine (43 injection patterns + PII redaction)
@@ -1257,37 +1275,57 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **Auth Smoke Tests** - 22 comprehensive authentication enforcement tests
 - ✅ **Security Audit** - Identified 2 findings (1 HIGH, 1 LOW) with remediation
 
+**v0.4.0 Achievements:**
+- ✅ **visus_search** — Safe DuckDuckGo web search, no API key required
+- ✅ **18 New Tests** - Search tool test coverage (201 total tests)
+- ✅ **Safe Research Loop** - search → read → extract workflow
+- ✅ **Zero Regressions** - All existing tests continue to pass
+- ✅ **Published to npm** - Available as `visus-mcp@0.4.0`
+
+**v0.5.0 Achievements:**
+- ✅ **Threat Reporting** — TOON + Markdown dual output layers
+- ✅ **Framework Mappings** — NIST AI 600-1, OWASP LLM Top 10, MITRE ATLAS
+- ✅ **Severity Classification** — All 43 patterns mapped to CRITICAL/HIGH/MEDIUM/LOW
+- ✅ **Zero Overhead** — Reports omitted on clean pages (no findings)
+- ✅ **31 New Tests** - Threat reporting test coverage (232 total tests)
+- ✅ **PDF Export Hook** - Marked for v0.6.0 visus_report tool
+- ✅ **Zero Regressions** - All existing tests continue to pass
+- ✅ **Published to npm** - Available as `visus-mcp@0.5.0`
+
 **Technical Challenges Overcome:**
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
 - Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
 - v0.3.0: Phone regex pattern matching, Luhn validation for credit cards, letter-based phone number handling
 - Security Audit: Application-level auth gap identification, health endpoint HTTP method ordering
+- v0.4.0: DuckDuckGo API response structure, nested Topics handling, search result aggregation
+- v0.5.0: TOON library Jest ESM compatibility (resolved with manual fallback format)
 
 **Deployment Complete:**
 - ✅ CDK stack deployed successfully to us-east-1
 - ✅ Lambda function operational (100% success rate)
 - ✅ API Gateway endpoint live and responding
-- ✅ All smoke tests passing (3/3 Lambda + 144/144 npm tests)
+- ✅ All smoke tests passing (3/3 Lambda + 232/232 npm tests)
 - ✅ Zero regressions from Phase 1/2
 - ✅ Auth enforcement validated (22/22 tests, 2 findings documented)
 
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
 **npm Package:** https://www.npmjs.com/package/visus-mcp
-**Installation:** `npm install -g visus-mcp@0.3.0` or `npx visus-mcp@0.3.0`
+**Installation:** `npm install -g visus-mcp@0.5.0` or `npx visus-mcp@0.5.0`
 
 ---
 
-**Last Updated:** 2026-03-23 14:30 JST
+**Last Updated:** 2026-03-23 07:35 JST
 **Build:** SUCCESS ✅
-**Tests:** 201/201 PASSING ✅
+**Tests:** 232/232 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
 **v0.3.0:** ✅ PUBLISHED TO NPM (PII Allowlist Feature)
 **v0.3.1:** ✅ PUBLISHED TO NPM (Security Hardening - 2 findings resolved)
 **v0.3.2:** ✅ PUBLISHED TO NPM (Reader Mode Feature - 14 tests added)
-**v0.4.0:** ✅ READY FOR RELEASE (Safe Web Search Feature - 18 tests added)
+**v0.4.0:** ✅ PUBLISHED TO NPM (Safe Web Search Feature - 18 tests added)
+**v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting - 31 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
-**Latest Development:** v0.4.0-dev (2026-03-23)
+**Latest Release:** v0.5.0 (2026-03-23)
