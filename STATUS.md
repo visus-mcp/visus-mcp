@@ -1,9 +1,53 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-22 14:30 JST
-**Version:** 0.2.0
-**Phase:** 2 (Playwright Integration + AWS Infrastructure)
-**Status:** ✅ **PHASE 2 DEPLOYED** - Production Lambda Renderer Live
+**Generated:** 2026-03-22 15:15 JST
+**Version:** 0.3.0
+**Phase:** 2+ (PII Allowlist Enhancement)
+**Status:** ✅ **v0.3.0 PUBLISHED** - PII Allowlist Feature Live
+
+---
+
+## v0.3.0 Release - PII Allowlist Feature
+
+**Released:** 2026-03-22
+**npm Package:** https://www.npmjs.com/package/visus-mcp
+**Installation:** `npm install -g visus-mcp@0.3.0` or `npx visus-mcp@0.3.0`
+
+### New Features
+
+**Domain-Scoped PII Allowlist for Health Authority Phone Numbers**
+
+Implements allowlist system to prevent false-positive redaction of verified institutional phone numbers (Poison Control, FDA MedWatch, CDC INFO, etc.)
+
+**Key Features:**
+- ✅ 8 trusted health authority numbers with domain-scoped trust
+- ✅ Phone number normalization and validation utilities
+- ✅ `strictDomainMode` flag (default: false for lenient matching)
+- ✅ Full metadata tracking via new `pii_allowlisted` field
+- ✅ 26 new test cases (121 total, all passing)
+- ✅ Zero regressions - all existing PII redaction continues to work
+
+**Trusted Numbers:**
+1. Emergency Services (911)
+2. Poison Control Center (1-800-222-1222) - medlineplus.gov, cdc.gov, fda.gov, etc.
+3. FDA MedWatch (1-800-332-1088) - fda.gov, medlineplus.gov, cdc.gov
+4. CDC INFO (1-800-232-4636) - cdc.gov, medlineplus.gov
+5. SAMHSA National Helpline (1-800-662-4357) - samhsa.gov, medlineplus.gov
+6. National Suicide Prevention Lifeline (1-800-273-8255, 988) - samhsa.gov, medlineplus.gov
+7. National Domestic Violence Hotline (1-800-799-7233) - thehotline.org, cdc.gov
+8. Medicare (1-800-633-1795) - medicare.gov, cms.gov
+9. Veterans Crisis Line (1-800-273-8255) - va.gov, veteranscrisisline.net
+
+**Technical Implementation:**
+- Created `src/sanitizer/pii-allowlist.ts` with trusted number configuration
+- Updated `src/sanitizer/pii-redactor.ts` to check allowlist before redacting
+- Modified sanitizer pipeline to pass `sourceUrl` for domain context
+- Updated tool outputs to include `pii_allowlisted` metadata
+- Added comprehensive test suite (`tests/pii-allowlist.test.ts`)
+
+**Security Note:** Only institutional/government numbers are allowlisted. Personal phone numbers continue to be redacted normally.
+
+**Test Results:** ✅ 121/121 tests passing (26 new allowlist tests added)
 
 ---
 
@@ -19,7 +63,7 @@
 - ✅ Cognito User Pool with authentication
 - ✅ DynamoDB audit logging table with KMS encryption
 - ✅ IAM roles with scoped permissions (security compliant)
-- ✅ All 95 tests passing with Playwright
+- ✅ All 121 tests passing with Playwright (including 26 allowlist tests)
 - ✅ TypeScript compilation successful (v0.2.0)
 - ✅ Documentation updated for Phase 2
 
@@ -75,14 +119,15 @@ Visus is a security-first MCP tool that provides Claude with sanitized web page 
 
 ### ✅ Test Execution
 - **Status:** SUCCESS - All tests passing
-- **Test Results:** 95/95 tests passing (100%)
-- **Test Suites:** 2/2 passing
-- **Execution Time:** 1.393 seconds
+- **Test Results:** 121/121 tests passing (100%)
+- **Test Suites:** 3/3 passing
+- **Execution Time:** ~1.5 seconds
 - **Test Files:**
   - `tests/sanitizer.test.ts` - PASS (43 pattern categories validated)
   - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions validated)
+  - `tests/pii-allowlist.test.ts` - PASS (26 allowlist tests) - **NEW in v0.3.0**
   - `tests/injection-corpus.ts` - Test data library
-- **Coverage:** All 43 injection pattern categories tested and validated
+- **Coverage:** All 43 injection pattern categories + PII allowlist tested and validated
 
 ---
 
@@ -139,10 +184,16 @@ Repository: Git initialized, committed, tagged v0.1.0
 
 **PII Redaction:**
 - Email addresses → `[REDACTED:EMAIL]`
-- Phone numbers → `[REDACTED:PHONE]`
+- Phone numbers → `[REDACTED:PHONE]` (with allowlist for trusted health authority numbers)
 - SSNs → `[REDACTED:SSN]`
 - Credit cards → `[REDACTED:CREDIT_CARD]`
 - IP addresses → `[REDACTED:IP]`
+
+**PII Allowlist (v0.3.0):**
+- Trusted health authority phone numbers preserved (8 verified numbers)
+- Domain-scoped trust (e.g., Poison Control only on medlineplus.gov, cdc.gov, fda.gov)
+- Configurable `strictDomainMode` for enhanced security
+- Metadata tracking via `pii_allowlisted` field
 
 #### 3. Browser Rendering (`src/browser/playwright-renderer.ts`)
 - **Phase 2 (Current):** Playwright headless Chromium implementation
@@ -368,10 +419,11 @@ POST /render {"url": "https://medlineplus.gov/druginfo/meds/a682878.html"}
 
 **Lambda Smoke Test Summary:** ✅ 3/3 tests passing - Lambda renderer fully operational
 
-**npm Test Suite with Lambda Renderer:** ✅ 95/95 tests passing (2.0s)
+**npm Test Suite with Lambda Renderer:** ✅ 121/121 tests passing (~1.5s)
 - All sanitizer tests pass with Playwright rendering
 - All MCP tool tests pass with Lambda backend
-- Zero regressions from Phase 1
+- All PII allowlist tests pass (v0.3.0)
+- Zero regressions from Phase 1/2
 
 ---
 
@@ -467,7 +519,7 @@ Checklist from CLAUDE.md:
 - [x] No false positives on 10 clean content samples
 - [x] README leads with security narrative
 - [x] SECURITY.md documents the threat model
-- [x] `npm test` passes with 0 failures ✅ **95/95 tests passing**
+- [x] `npm test` passes with 0 failures ✅ **121/121 tests passing** (95 Phase 1/2 + 26 allowlist)
 - [x] `npm run build` produces clean `/dist`
 - [x] `npm publish --dry-run` succeeds
 
@@ -602,8 +654,9 @@ All Phase 2 features from CLAUDE.md have been completed:
 - [x] Cognito User Pool with authentication
 - [x] DynamoDB audit table with KMS encryption
 - [x] IAM roles with scoped permissions
-- [x] All 95 tests passing (Playwright validated)
-- [x] TypeScript compilation successful (v0.2.0)
+- [x] PII allowlist for health authority numbers (v0.3.0)
+- [x] All 121 tests passing (Playwright + allowlist validated)
+- [x] TypeScript compilation successful (v0.3.0)
 - [x] CDK stack synthesizes successfully
 - [x] Documentation updated
 
@@ -639,9 +692,11 @@ All Phase 2 features from CLAUDE.md have been completed:
 
 ```
 Name:           visus-mcp
-Version:        0.2.0 (Phase 2 - not yet published)
-Previous:       0.1.0 (published 2026-03-21)
-Size:           TBD (includes Playwright + AWS CDK)
+Version:        0.3.0 (published 2026-03-22)
+Previous:       0.2.0 (Phase 2 - AWS Lambda renderer)
+                0.1.0 (Phase 1 - stdio mode)
+Size:           109.9 kB (tarball)
+Unpacked:       414.7 kB
 Dependencies:   8 production (@modelcontextprotocol/sdk, playwright, @playwright/test, cheerio, undici)
 DevDeps:        10 (@types/aws-lambda, aws-cdk, aws-cdk-lib, constructs, ts-node, etc.)
 Node:           >=18
@@ -656,7 +711,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ## Conclusion
 
-✅ **Visus Phase 2 is COMPLETE.**
+✅ **Visus v0.3.0 is COMPLETE and PUBLISHED.**
 
 **Phase 1 Achievements:**
 - ✅ Sanitization engine (43 injection patterns + PII redaction)
@@ -677,29 +732,38 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **Security Compliance** - All 8 CLAUDE.md security rules enforced
 - ✅ **No Regressions** - All existing tests still pass with Playwright
 
+**v0.3.0 Achievements:**
+- ✅ **PII Allowlist Feature** - Domain-scoped health authority phone number preservation
+- ✅ **8 Trusted Numbers** - Poison Control, FDA MedWatch, CDC INFO, etc.
+- ✅ **26 New Tests** - Comprehensive allowlist test coverage (121 total tests)
+- ✅ **Zero Regressions** - All existing PII redaction continues to work
+- ✅ **Published to npm** - Available as `visus-mcp@0.3.0`
+
 **Technical Challenges Overcome:**
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
 - Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
+- v0.3.0: Phone regex pattern matching, Luhn validation for credit cards, letter-based phone number handling
 
 **Deployment Complete:**
 - ✅ CDK stack deployed successfully to us-east-1
 - ✅ Lambda function operational (100% success rate)
 - ✅ API Gateway endpoint live and responding
-- ✅ All smoke tests passing (3/3 Lambda + 95/95 npm tests)
-- ✅ Zero regressions from Phase 1
+- ✅ All smoke tests passing (3/3 Lambda + 121/121 npm tests)
+- ✅ Zero regressions from Phase 1/2
 
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
 **npm Package:** https://www.npmjs.com/package/visus-mcp
-**Installation:** `npm install -g visus-mcp` or `npx visus-mcp` (v0.1.0 - stdio mode)
+**Installation:** `npm install -g visus-mcp@0.3.0` or `npx visus-mcp@0.3.0`
 
 ---
 
-**Last Updated:** 2026-03-22 14:30 JST
+**Last Updated:** 2026-03-22 15:15 JST
 **Build:** SUCCESS ✅
-**Tests:** 95/95 PASSING ✅
+**Tests:** 121/121 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
+**v0.3.0:** ✅ PUBLISHED TO NPM (PII Allowlist Feature)
 **Lambda Endpoint:** https://wyomy29zd7.execute-api.us-east-1.amazonaws.com
-**Release:** v0.2.0 (ready for npm publish)
+**Latest Release:** v0.3.0 (2026-03-22)
