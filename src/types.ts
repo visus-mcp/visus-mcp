@@ -20,6 +20,7 @@ export interface VisusFetchOutput {
   sanitization: {
     patterns_detected: string[];
     pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
   };
   metadata: {
@@ -48,6 +49,7 @@ export interface VisusFetchStructuredOutput {
   sanitization: {
     patterns_detected: string[];
     pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
   };
   metadata: {

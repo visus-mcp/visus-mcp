@@ -120,11 +120,12 @@ export async function visusFetchStructured(
     // Step 2: Extract structured data from HTML using cheerio
     const extractedData = extractStructuredData(html, schema);
 
-    // Step 3: CRITICAL - Sanitize each extracted field
+    // Step 3: CRITICAL - Sanitize each extracted field (with allowlisting)
     // This step CANNOT be skipped or bypassed
     const sanitizedData: Record<string, string | null> = {};
     const allPatternsDetected = new Set<string>();
     const allPIITypesRedacted = new Set<string>();
+    const allPIIAllowlisted: Array<{ type: string; value: string; reason: string }> = [];
     let anyContentModified = false;
 
     for (const [fieldName, value] of Object.entries(extractedData)) {
@@ -133,7 +134,7 @@ export async function visusFetchStructured(
         continue;
       }
 
-      const sanitizationResult = sanitize(value);
+      const sanitizationResult = sanitize(value, url);
       sanitizedData[fieldName] = sanitizationResult.content;
 
       // Collect all patterns detected across fields
@@ -143,6 +144,7 @@ export async function visusFetchStructured(
       sanitizationResult.sanitization.pii_types_redacted.forEach(p =>
         allPIITypesRedacted.add(p)
       );
+      allPIIAllowlisted.push(...sanitizationResult.sanitization.pii_allowlisted);
 
       if (sanitizationResult.sanitization.content_modified) {
         anyContentModified = true;
@@ -156,6 +158,7 @@ export async function visusFetchStructured(
       sanitization: {
         patterns_detected: Array.from(allPatternsDetected),
         pii_types_redacted: Array.from(allPIITypesRedacted),
+        pii_allowlisted: allPIIAllowlisted,
         content_modified: anyContentModified
       },
       metadata: {

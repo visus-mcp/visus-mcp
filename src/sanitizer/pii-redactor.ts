@@ -5,14 +5,23 @@
  * to prevent leakage of sensitive data to the LLM.
  *
  * Redacts: emails, phone numbers, SSNs, credit cards, IP addresses
+ * Supports allowlisting of trusted institutional phone numbers (e.g., Poison Control)
  */
+
+import {
+  isAllowlistedPhoneNumber,
+  type PIIAllowlistConfig,
+  DEFAULT_ALLOWLIST
+} from './pii-allowlist.js';
 
 export interface PIIRedactionResult {
   content: string;
   pii_types_redacted: string[];
+  pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
   content_modified: boolean;
   metadata: {
     redaction_counts: Record<string, number>;
+    allowlist_counts: Record<string, number>;
   };
 }
 
@@ -151,10 +160,20 @@ function luhnCheck(digits: string): boolean {
 
 /**
  * Redact PII from content
+ *
+ * @param content Content to redact PII from
+ * @param sourceUrl Optional source URL for domain-scoped allowlisting
+ * @param allowlistConfig Optional custom allowlist config
  */
-export function redactPII(content: string): PIIRedactionResult {
+export function redactPII(
+  content: string,
+  sourceUrl?: string,
+  allowlistConfig: PIIAllowlistConfig = DEFAULT_ALLOWLIST
+): PIIRedactionResult {
   const piiTypesRedacted = new Set<string>();
   const redactionCounts: Record<string, number> = {};
+  const allowlistCounts: Record<string, number> = {};
+  const piiAllowlisted: Array<{ type: string; value: string; reason: string }> = [];
   let sanitizedContent = content;
 
   for (const pattern of PII_PATTERNS) {
@@ -166,6 +185,26 @@ export function redactPII(content: string): PIIRedactionResult {
       // Apply validator if present
       if (pattern.validator && !pattern.validator(matchedText)) {
         continue;
+      }
+
+      // Check allowlist for phone numbers
+      if (pattern.type === 'PHONE') {
+        const allowlistedEntry = isAllowlistedPhoneNumber(
+          matchedText,
+          sourceUrl,
+          allowlistConfig
+        );
+
+        if (allowlistedEntry) {
+          // This is a trusted number - DO NOT redact
+          piiAllowlisted.push({
+            type: pattern.type,
+            value: matchedText,
+            reason: `Trusted ${allowlistedEntry.category}: ${allowlistedEntry.name}`
+          });
+          allowlistCounts[pattern.name] = (allowlistCounts[pattern.name] || 0) + 1;
+          continue; // Skip redaction
+        }
       }
 
       // Redact the PII
@@ -182,9 +221,11 @@ export function redactPII(content: string): PIIRedactionResult {
   return {
     content: sanitizedContent,
     pii_types_redacted: Array.from(piiTypesRedacted),
+    pii_allowlisted: piiAllowlisted,
     content_modified: sanitizedContent !== content,
     metadata: {
-      redaction_counts: redactionCounts
+      redaction_counts: redactionCounts,
+      allowlist_counts: allowlistCounts
     }
   };
 }

@@ -39,9 +39,9 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     const { html, title } = renderResult.value;
     const rawContent = html || '';
 
-    // Step 2: CRITICAL - Sanitize content (injection detection + PII redaction)
+    // Step 2: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
     // This step CANNOT be skipped or bypassed
-    const sanitizationResult = sanitize(rawContent);
+    const sanitizationResult = sanitize(rawContent, url);
 
     // Step 3: Build output
     const output: VisusFetchOutput = {
@@ -50,6 +50,7 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       sanitization: {
         patterns_detected: sanitizationResult.sanitization.patterns_detected,
         pii_types_redacted: sanitizationResult.sanitization.pii_types_redacted,
+        pii_allowlisted: sanitizationResult.sanitization.pii_allowlisted,
         content_modified: sanitizationResult.sanitization.content_modified
       },
       metadata: {

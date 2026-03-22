@@ -16,6 +16,7 @@ export interface SanitizationResult {
   sanitization: {
     patterns_detected: string[];
     pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
   };
   metadata: {
@@ -37,20 +38,21 @@ export interface SanitizationResult {
  *
  * Pipeline:
  * 1. Injection detection and neutralization (43 patterns)
- * 2. PII redaction (email, phone, SSN, CC, IP)
+ * 2. PII redaction (email, phone, SSN, CC, IP) with allowlisting
  * 3. Metadata collection and logging
  *
  * @param content Raw content from web page
+ * @param sourceUrl Optional source URL for domain-scoped PII allowlisting
  * @returns Sanitized content with detection metadata
  */
-export function sanitize(content: string): SanitizationResult {
+export function sanitize(content: string, sourceUrl?: string): SanitizationResult {
   const originalLength = content.length;
 
   // Step 1: Detect and neutralize injection patterns
   const injectionResult = detectAndNeutralize(content);
 
-  // Step 2: Redact PII from the already-sanitized content
-  const piiResult = redactPII(injectionResult.content);
+  // Step 2: Redact PII from the already-sanitized content (with allowlisting)
+  const piiResult = redactPII(injectionResult.content, sourceUrl);
 
   // Step 3: Combine results
   const finalContent = piiResult.content;
@@ -63,6 +65,7 @@ export function sanitize(content: string): SanitizationResult {
   logSanitization({
     patterns_detected: injectionResult.patterns_detected,
     pii_types_redacted: piiResult.pii_types_redacted,
+    pii_allowlisted: piiResult.pii_allowlisted,
     severity_score: severityScore,
     has_critical_threats: criticalThreats,
     content_modified: contentModified
@@ -73,6 +76,7 @@ export function sanitize(content: string): SanitizationResult {
     sanitization: {
       patterns_detected: injectionResult.patterns_detected,
       pii_types_redacted: piiResult.pii_types_redacted,
+      pii_allowlisted: piiResult.pii_allowlisted,
       content_modified: contentModified
     },
     metadata: {
@@ -92,6 +96,7 @@ export function sanitize(content: string): SanitizationResult {
 function logSanitization(event: {
   patterns_detected: string[];
   pii_types_redacted: string[];
+  pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
   severity_score: number;
   has_critical_threats: boolean;
   content_modified: boolean;
@@ -103,7 +108,7 @@ function logSanitization(event: {
   };
 
   // Only log if there were detections (reduce noise)
-  if (event.content_modified) {
+  if (event.content_modified || event.pii_allowlisted.length > 0) {
     console.error(JSON.stringify(logEntry));
   }
 }
