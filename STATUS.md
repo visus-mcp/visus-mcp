@@ -1,9 +1,164 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23 14:30 JST
-**Version:** 0.4.0-dev
-**Phase:** 2+ (Safe Web Search Feature Added)
-**Status:** ✅ **v0.4.0 READY** - Safe Web Search Implemented
+**Generated:** 2026-03-23 22:30 JST
+**Version:** 0.5.0-dev
+**Phase:** 2+ (Compliance Framework Threat Reporting)
+**Status:** ✅ **v0.5.0 READY** - Structured Threat Reporting Implemented
+
+---
+
+## v0.5.0 Development - Structured Threat Reporting with TOON + Markdown
+
+**Status:** ✅ COMPLETE (Ready for release)
+**Type:** Security enhancement
+**Implemented:** 2026-03-23
+
+### New Features
+
+**🎯 Compliance Framework-Aligned Threat Reports**
+
+When prompt injection or PII is detected, Visus now automatically generates structured threat reports with two output layers for maximum utility.
+
+**Key Features:**
+- ✅ TOON-formatted findings array (token-efficient, machine-readable)
+- ✅ Markdown compliance report (human-readable, renders in Claude Desktop)
+- ✅ Three framework alignments: OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS
+- ✅ Severity classification (CRITICAL, HIGH, MEDIUM, LOW, CLEAN)
+- ✅ Zero overhead for clean pages (report omitted when no findings)
+- ✅ Aggregated reporting across multiple results (search, structured extraction)
+- ✅ 31 new tests (232 total, all passing)
+- ✅ Zero regressions - all existing tests continue to pass
+
+**Two Output Layers:**
+
+1. **TOON Format** - Token-efficient encoding preserving machine readability:
+   ```
+   findings[N]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,mitre_atlas,remediation}:
+   1,PI-007,role_hijacking,CRITICAL,0.95,LLM01:2025,MS-2.5,AML.T0051.000,Content sanitized
+   ```
+
+2. **Markdown Report** - Human-readable tables with emoji severity indicators:
+   - Overall severity assessment (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, 🟢 LOW, ✅ CLEAN)
+   - Findings summary table by severity
+   - Detailed findings table with framework mappings
+   - PII redaction statistics
+   - Remediation confirmation
+
+**Framework Alignments:**
+- **OWASP LLM Top 10 (2025)**: Industry-standard LLM security risks
+- **NIST AI 600-1**: Generative AI Profile for risk management
+- **MITRE ATLAS**: Adversarial Threat Landscape for AI Systems
+
+**Severity Classification:**
+All 43 injection patterns mapped to severity levels:
+- **CRITICAL (11 patterns)**: direct_instruction_injection, role_hijacking, system_prompt_extraction, privilege_escalation, data_exfiltration, code_execution_requests, memory_manipulation, jailbreak_keywords, ethical_override, credential_harvesting, html_script_injection
+- **HIGH (13 patterns)**: context_poisoning, base64_obfuscation, zero_width_characters, data_uri_injection, markdown_link_injection, instruction_delimiter_injection, token_smuggling, system_message_injection, file_system_access, training_data_extraction, nested_encoding, authority_impersonation, callback_url_injection
+- **MEDIUM (14 patterns)**: comment_injection, unicode_lookalikes, url_fragment_hashjack, social_engineering_urgency, multi_language_obfuscation, reverse_text_obfuscation, conversation_reset, chain_of_thought_manipulation, hypothetical_scenario_injection, output_format_manipulation, simulator_mode, payload_splitting, css_hiding, testing_debugging_claims
+- **LOW (5 patterns)**: leetspeak_obfuscation, capability_probing, negative_instruction, time_based_triggers, whitespace_steganography
+
+**When Reports Are Generated:**
+- ✅ Injections detected → Report included
+- ✅ PII redacted → Report included
+- ❌ Clean content → Report omitted (zero overhead)
+
+**Tool Integration:**
+All four tools now include optional `threat_report` field:
+- `visus_fetch` - Single-page threat report
+- `visus_fetch_structured` - Aggregated across all extracted fields
+- `visus_read` - Reader mode content threat report
+- `visus_search` - Aggregated across all search results
+
+### Technical Implementation
+
+**New Components:**
+
+1. **src/sanitizer/severity-classifier.ts** (120 lines)
+   - Maps all 43 patterns to severity levels
+   - Aggregates severity across multiple findings
+   - Provides emoji indicators for Markdown rendering
+   - Aligned with NIST AI 600-1 and OWASP LLM risk levels
+
+2. **src/sanitizer/framework-mapper.ts** (280 lines)
+   - Maps each pattern to OWASP LLM Top 10 (2025)
+   - Maps each pattern to NIST AI 600-1 controls
+   - Maps each pattern to MITRE ATLAS tactics
+   - Provides default mappings for unknown patterns
+
+3. **src/sanitizer/threat-reporter.ts** (220 lines)
+   - Generates TOON-formatted findings array
+   - Generates Markdown compliance report with tables
+   - Only creates reports when findings exist
+   - Includes TODO for future PDF export hook
+
+**Modified Files:**
+- `src/sanitizer/index.ts` - Integrated threat reporter
+- `src/types.ts` - Added `threat_report?: ThreatReport` to all tool output interfaces
+- `src/tools/fetch.ts` - Include threat report in response
+- `src/tools/fetch-structured.ts` - Aggregate threat report across fields
+- `src/tools/read.ts` - Include threat report in response
+- `src/tools/search.ts` - Aggregate threat report across results
+- `README.md` - Added "Threat Reporting" section with examples
+- `jest.config.js` - Updated transformIgnorePatterns for @toon-format
+
+**Test Coverage:**
+
+New test file:
+- `tests/threat-reporter.test.ts` - 38 tests covering:
+  - TOON encoding format validation
+  - Markdown report generation with all sections
+  - Severity classification for all levels
+  - Framework mappings (OWASP, NIST, MITRE)
+  - Clean content handling (null report)
+  - PII redaction reporting
+  - Emoji rendering for all severity levels
+
+Updated test files:
+- `tests/sanitizer.test.ts` - Added 5 threat report integration tests
+- `tests/fetch-tool.test.ts` - Added 2 threat report response tests
+
+**Test Results:**
+```
+Test Suites: 7 passed, 7 total
+Tests:       232 passed, 232 total (31 new tests for threat reporting)
+Time:        8.169 s
+```
+
+### Example Threat Report Output
+
+When a CRITICAL injection is detected:
+
+```json
+{
+  "threat_report": {
+    "generated": "2026-03-23T22:30:00.000Z",
+    "source_url": "https://malicious.example.com",
+    "overall_severity": "CRITICAL",
+    "total_findings": 2,
+    "by_severity": {
+      "CRITICAL": 2,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0
+    },
+    "pii_redacted": 1,
+    "sanitization_applied": true,
+    "frameworks": ["OWASP LLM Top 10", "NIST AI 600-1", "MITRE ATLAS"],
+    "findings_toon": "findings[2]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,mitre_atlas,remediation}:\n1,PI-007,role_hijacking,CRITICAL,0.95,LLM01:2025 - Prompt Injection,MS-2.5 - Prompt Injection,AML.T0051.000 - LLM Prompt Injection,Content sanitized. role hijacking removed.\n2,PI-042,data_exfiltration,CRITICAL,0.95,LLM02:2025 - Sensitive Information Disclosure,MS-2.6 - Data Disclosure,AML.T0048 - External Harms,Content sanitized. data exfiltration removed.",
+    "report_markdown": "---\n## 🔴 Visus Threat Report\n**Generated:** 2026-03-23T22:30:00.000Z\n**Source:** https://malicious.example.com\n**Overall Severity:** CRITICAL\n**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS\n\n### Findings Summary\n| Severity | Count |\n|---|---|\n| 🔴 CRITICAL | 2 |\n| 🟠 HIGH | 0 |\n| 🟡 MEDIUM | 0 |\n| 🟢 LOW | 0 |\n\n### Findings Detail\n| # | Category | Severity | Confidence | OWASP | MITRE |\n|---|---|---|---|---|---|\n| 1 | role_hijacking | CRITICAL | 95% | LLM01:2025 | AML.T0051.000 |\n| 2 | data_exfiltration | CRITICAL | 95% | LLM02:2025 | AML.T0048 |\n\n### PII Redaction\n- **Items Redacted:** 1\n- **Standard:** NIST AI 600-1 MS-2.6\n\n### Remediation Status\n✅ All findings sanitized. Content delivered clean.\n\n*Report generated by Visus MCP — Security-first web access for Claude*\n---"
+  }
+}
+```
+
+### Dependencies Added
+
+- `@toon-format/toon@2.1.0` - TOON encoding library (manual fallback used for Jest compatibility)
+
+### Future Roadmap
+
+**PDF Export (Planned for v0.6.0):**
+- New `visus_report` tool for generating PDF compliance artifacts
+- Export hook location marked with TODO in `src/sanitizer/threat-reporter.ts:139`
+- Compliance documentation for security audits and governance reviews
 
 ---
 

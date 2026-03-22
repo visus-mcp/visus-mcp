@@ -16,7 +16,7 @@ export default {
   testMatch: ['**/tests/**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(@mozilla/readability|jsdom|@exodus/bytes|html-encoding-sniffer)/)',
+    'node_modules/(?!(@mozilla/readability|jsdom|@exodus/bytes|html-encoding-sniffer|@toon-format)/)',
   ],
   testTimeout: 15000,
   forceExit: true,

@@ -67,7 +67,9 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
           truncated: true,
           truncated_at_chars: truncationResult.truncated_at_chars
         })
-      }
+      },
+      // Include threat_report only if findings exist
+      ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report })
     };
 
     // Log to stderr if critical threats detected

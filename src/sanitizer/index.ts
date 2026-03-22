@@ -10,6 +10,7 @@
 
 import { detectAndNeutralize, getSeverityScore, hasCriticalThreats } from './injection-detector.js';
 import { redactPII } from './pii-redactor.js';
+import { generateThreatReport, type ThreatReport } from './threat-reporter.js';
 
 export interface SanitizationResult {
   content: string;
@@ -31,6 +32,7 @@ export interface SanitizationResult {
       low: number;
     };
   };
+  threat_report?: ThreatReport;
 }
 
 /**
@@ -71,7 +73,15 @@ export function sanitize(content: string, sourceUrl?: string): SanitizationResul
     content_modified: contentModified
   });
 
-  return {
+  // Step 4: Generate threat report (only if findings exist)
+  const threatReport = generateThreatReport({
+    patterns_detected: injectionResult.patterns_detected,
+    pii_redacted: piiResult.pii_types_redacted.length,
+    source_url: sourceUrl || 'unknown',
+    detections_by_severity: injectionResult.metadata.detections_by_severity
+  });
+
+  const result: SanitizationResult = {
     content: finalContent,
     sanitization: {
       patterns_detected: injectionResult.patterns_detected,
@@ -87,6 +97,13 @@ export function sanitize(content: string, sourceUrl?: string): SanitizationResul
       detections_by_severity: injectionResult.metadata.detections_by_severity
     }
   };
+
+  // Include threat_report only if findings exist
+  if (threatReport) {
+    result.threat_report = threatReport;
+  }
+
+  return result;
 }
 
 /**

@@ -2,6 +2,8 @@
  * Shared TypeScript interfaces for Visus MCP tool
  */
 
+import type { ThreatReport } from './sanitizer/threat-reporter.js';
+
 /**
  * Input options for visus_fetch tool
  */
@@ -31,6 +33,7 @@ export interface VisusFetchOutput {
     truncated?: boolean;
     truncated_at_chars?: number;
   };
+  threat_report?: ThreatReport;
 }
 
 /**
@@ -70,6 +73,7 @@ export interface VisusFetchStructuredOutput {
     truncated?: boolean;
     truncated_at_chars?: number;
   };
+  threat_report?: ThreatReport;
 }
 
 /**
@@ -90,6 +94,7 @@ export interface VisusReadOutput {
     truncated: boolean;
     fetched_at?: string;
   };
+  threat_report?: ThreatReport;
 }
 
 /**
@@ -116,6 +121,7 @@ export interface VisusSearchOutput {
   }>;
   total_injections_removed: number;
   message?: string;
+  threat_report?: ThreatReport;
 }
 
 /**

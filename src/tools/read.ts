@@ -81,7 +81,9 @@ export async function visusRead(input: VisusReadInput): Promise<Result<VisusRead
         pii_redacted: sanitizationResult.sanitization.pii_types_redacted.length,
         truncated: truncationResult.truncated,
         fetched_at: new Date().toISOString()
-      }
+      },
+      // Include threat_report only if findings exist
+      ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report })
     };
 
     // Log to stderr if critical threats detected

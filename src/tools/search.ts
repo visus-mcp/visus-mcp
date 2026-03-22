@@ -9,6 +9,7 @@
  */
 
 import { sanitize } from '../sanitizer/index.js';
+import { generateThreatReport } from '../sanitizer/threat-reporter.js';
 import type { VisusSearchInput, VisusSearchOutput, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
@@ -136,7 +137,9 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
 
     // Sanitize each result independently
     const sanitizedResults = [];
+    const allPatternsDetected = new Set<string>();
     let totalInjectionsRemoved = 0;
+    let totalPIIRedacted = 0;
 
     for (const result of validResults) {
       // Sanitize title
@@ -154,6 +157,11 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
         snippetSanitization.sanitization.pii_types_redacted.length;
 
       totalInjectionsRemoved += injectionsRemoved;
+      totalPIIRedacted += piiRedacted;
+
+      // Collect all patterns detected across all results
+      titleSanitization.sanitization.patterns_detected.forEach(p => allPatternsDetected.add(p));
+      snippetSanitization.sanitization.patterns_detected.forEach(p => allPatternsDetected.add(p));
 
       sanitizedResults.push({
         title: titleSanitization.content,
@@ -164,12 +172,21 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       });
     }
 
+    // Generate aggregated threat report for all search results
+    const threatReport = generateThreatReport({
+      patterns_detected: Array.from(allPatternsDetected),
+      pii_redacted: totalPIIRedacted,
+      source_url: `DuckDuckGo Search: ${input.query}`
+    });
+
     return Ok({
       query: input.query,
       result_count: sanitizedResults.length,
       sanitized: true,
       results: sanitizedResults,
-      total_injections_removed: totalInjectionsRemoved
+      total_injections_removed: totalInjectionsRemoved,
+      // Include threat_report only if findings exist
+      ...(threatReport && { threat_report: threatReport })
     });
 
   } catch (error) {

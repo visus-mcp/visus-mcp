@@ -11,6 +11,7 @@ import * as cheerio from 'cheerio';
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
+import { generateThreatReport } from '../sanitizer/threat-reporter.js';
 import type { VisusFetchStructuredInput, VisusFetchStructuredOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -184,7 +185,14 @@ export async function visusFetchStructured(
       }
     }
 
-    // Step 5: Build output
+    // Step 5: Generate aggregated threat report
+    const threatReport = generateThreatReport({
+      patterns_detected: Array.from(allPatternsDetected),
+      pii_redacted: Array.from(allPIITypesRedacted).length,
+      source_url: url
+    });
+
+    // Step 6: Build output
     const output: VisusFetchStructuredOutput = {
       url,
       data: finalData,
@@ -206,7 +214,9 @@ export async function visusFetchStructured(
           truncated: true,
           truncated_at_chars: truncationResult.truncated_at_chars
         })
-      }
+      },
+      // Include threat_report only if findings exist
+      ...(threatReport && { threat_report: threatReport })
     };
 
     // Log to stderr if threats detected
