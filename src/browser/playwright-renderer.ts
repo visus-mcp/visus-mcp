@@ -126,6 +126,7 @@ async function renderWithLambda(
       html: body.html,
       title: body.title,
       url,
+      contentType: 'text/html', // Lambda renderer defaults to HTML
       text: undefined, // Lambda renderer doesn't extract text
     });
 
@@ -164,6 +165,12 @@ async function renderWithFetch(
 
     const html = await response.body.text();
 
+    // Capture Content-Type header
+    const contentTypeHeader = response.headers['content-type'];
+    const contentType = typeof contentTypeHeader === 'string'
+      ? contentTypeHeader.split(';')[0].trim()  // Remove charset and other params
+      : 'text/html'; // Default to HTML if missing
+
     // Extract title using regex (simple fallback)
     const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : '';
@@ -172,6 +179,7 @@ async function renderWithFetch(
       html,
       title,
       url,
+      contentType,
       text: undefined,
     });
 

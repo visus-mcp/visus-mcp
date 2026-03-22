@@ -147,7 +147,13 @@ Restart Claude Desktop. Visus tools are now available to Claude.
 
 ### `visus_fetch`
 
-Fetch and sanitize a web page. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+Fetch and sanitize a web page with automatic format detection. Supports HTML, JSON, XML, and RSS/Atom feeds. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+
+**Supported Formats:**
+- **HTML** (`text/html`, `application/xhtml+xml`) - Standard web pages, returned as-is
+- **JSON** (`application/json`) - API responses, formatted with 2-space indentation
+- **XML** (`application/xml`, `text/xml`) - XML documents, converted to clean text representation
+- **RSS/Atom** (`application/rss+xml`, `application/atom+xml`) - Feeds converted to Markdown with up to 10 items
 
 ### `visus_read`
 
@@ -545,6 +551,93 @@ Search the web safely using `visus_search` with DuckDuckGo, demonstrating how se
 **What Visus caught:** The second search result contained both a prompt injection pattern ("Ignore previous instructions and...") and an email address. Both were detected and redacted before the result reached the LLM. The other results were clean and passed through unmodified.
 
 **Use case:** Always use `visus_search` before fetching pages to safely discover content. Search results can contain SEO spam, malicious instructions, or PII that would compromise your AI agent.
+
+---
+
+### Example 6: JSON API Response with Format Detection
+
+Fetch JSON data from an API endpoint with automatic formatting and sanitization.
+
+**Tool Call:**
+```json
+{
+  "url": "https://api.github.com/repos/anthropics/anthropic-sdk-typescript",
+  "format": "text"
+}
+```
+
+**Sanitized Output (excerpt):**
+```json
+{
+  "url": "https://api.github.com/repos/anthropics/anthropic-sdk-typescript",
+  "content": "JSON Response:\n\n{\n  \"name\": \"anthropic-sdk-typescript\",\n  \"full_name\": \"anthropics/anthropic-sdk-typescript\",\n  \"description\": \"TypeScript library for the Anthropic API\",\n  \"stargazers_count\": 1234,\n  \"forks_count\": 89\n}",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": [],
+    "content_modified": false
+  },
+  "metadata": {
+    "title": "",
+    "fetched_at": "2024-01-15T16:30:00.000Z",
+    "content_length_original": 3456,
+    "content_length_sanitized": 3456,
+    "format_detected": "json",
+    "content_type": "application/json"
+  }
+}
+```
+
+**What Visus caught:** The Content-Type header `application/json` was detected, and the raw JSON was automatically formatted with 2-space indentation for readability. The sanitizer validated the content and found no injection patterns or PII (clean API response).
+
+**Format detection features:**
+- Automatically detects Content-Type from HTTP response headers
+- JSON responses are pretty-printed with indentation
+- XML/RSS feeds are converted to clean Markdown
+- All formats pass through the sanitizer pipeline
+- `format_detected` and `content_type` included in metadata
+
+---
+
+### Example 7: RSS Feed with Automatic Markdown Conversion
+
+Fetch an RSS feed and have it automatically converted to clean Markdown format.
+
+**Tool Call:**
+```json
+{
+  "url": "https://blog.example.com/feed.xml"
+}
+```
+
+**Sanitized Output (excerpt):**
+```json
+{
+  "url": "https://blog.example.com/feed.xml",
+  "content": "RSS Feed:\n\n# Example Blog\nThe latest news and updates\n\n## Items\n\n### New Feature Release\n\nWe're excited to announce our latest feature update...\n\nLink: https://blog.example.com/new-feature\nPublished: Mon, 15 Jan 2024 10:00:00 GMT\n\n---\n\n### Security Best Practices\n\nLearn about the latest security recommendations...\n\nLink: https://blog.example.com/security\nPublished: Tue, 16 Jan 2024 14:30:00 GMT\n\n---",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": [],
+    "content_modified": false
+  },
+  "metadata": {
+    "title": "",
+    "fetched_at": "2024-01-15T16:45:00.000Z",
+    "content_length_original": 5678,
+    "content_length_sanitized": 5678,
+    "format_detected": "rss",
+    "content_type": "application/rss+xml"
+  }
+}
+```
+
+**What Visus caught:** The Content-Type header `application/rss+xml` triggered RSS feed parsing. The feed XML was converted to clean Markdown showing the channel title, description, and up to 10 feed items with titles, links, descriptions (truncated to 200 chars), and publication dates. All content was sanitized for injection patterns.
+
+**RSS/Atom support:**
+- RSS 2.0, RSS 1.0 (RDF), and Atom feed formats supported
+- Extracts channel metadata and up to 10 items
+- Converts to clean Markdown with proper formatting
+- Item descriptions truncated to 200 characters for readability
+- Graceful fallback to XML parsing for invalid feeds
 
 ---
 

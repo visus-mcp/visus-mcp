@@ -1,9 +1,129 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23 07:35 JST
-**Version:** 0.5.0
+**Generated:** 2026-03-23 (Updated)
+**Version:** 0.6.0-dev
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** ✅ **v0.5.0 PUBLISHED** - Threat Reporting + Full Directory Prep
+**Status:** 🚧 **v0.6.0 IN DEVELOPMENT** - Content-Type Format Detection
+
+---
+
+## v0.6.0 Development - Content-Type Format Detection
+
+**Status:** 🚧 IN DEVELOPMENT
+**Type:** Feature enhancement
+**Implemented:** 2026-03-23
+
+### New Features
+
+**🎯 Automatic Content-Type Detection and Format Conversion**
+
+Adds intelligent format detection to `visus_fetch` based on HTTP Content-Type headers, enabling proper handling of JSON APIs, XML documents, and RSS/Atom feeds.
+
+**Key Features:**
+- ✅ Automatic Content-Type detection from HTTP response headers
+- ✅ JSON formatting with 2-space indentation for readability
+- ✅ XML parsing and clean text conversion using fast-xml-parser
+- ✅ RSS/Atom feed conversion to Markdown (up to 10 items)
+- ✅ Format-specific processing before sanitization
+- ✅ Metadata fields: `format_detected` and `content_type` in all responses
+- ✅ 14 new tests (246 total, all passing)
+- ✅ Zero regressions - all existing tests continue to pass
+
+**Supported Formats:**
+1. **HTML** (`text/html`, `application/xhtml+xml`)
+   - Processed as-is (existing behavior unchanged)
+   - Readability extraction available via `visus_read` tool
+
+2. **JSON** (`application/json`, `text/json`)
+   - Automatic pretty-printing with 2-space indentation
+   - Invalid JSON returns raw string unchanged
+   - Prefix: "JSON Response:\n\n"
+
+3. **XML** (`application/xml`, `text/xml`, `application/atom+xml`)
+   - Parsed with fast-xml-parser for clean representation
+   - Invalid XML falls back to tag stripping
+   - Prefix: "XML Response:\n\n"
+
+4. **RSS/Atom** (`application/rss+xml`, `application/feed+json`)
+   - RSS 2.0, RSS 1.0 (RDF), and Atom formats supported
+   - Converts to Markdown with channel metadata
+   - Up to 10 items extracted with title, link, description (200 char max), pubDate
+   - Invalid RSS falls back to XML parsing
+   - Prefix: "RSS Feed:\n\n"
+
+**Processing Pipeline:**
+```
+URL Fetch → Content-Type Detection → Format-Specific Conversion →
+Sanitization (43 patterns + PII) → Token Ceiling → Output
+```
+
+**Security Guarantees:**
+- ✅ Sanitizer runs on ALL formats (cannot be bypassed)
+- ✅ Token ceiling (96k chars) applies to all formats
+- ✅ PII redaction works on all formats
+- ✅ Readability ONLY used for HTML (never JSON/XML/RSS)
+
+**Technical Implementation:**
+- Created `src/utils/format-converter.ts` with format detection and conversion
+- Updated `src/browser/playwright-renderer.ts` to capture Content-Type from responses
+- Modified `src/tools/fetch.ts` to apply format-specific conversion
+- Updated `src/types.ts` with `format_detected` and `content_type` metadata fields
+- Added comprehensive test suite in `tests/fetch-tool.test.ts` (14 new tests)
+- Updated README.md with Examples 6 and 7 demonstrating JSON and RSS handling
+
+**Format Converter Functions:**
+- `detectFormat(contentType)`: Maps Content-Type to format enum
+- `convertJson(raw)`: Formats JSON with indentation, graceful error handling
+- `convertXml(raw)`: Parses XML to clean text using fast-xml-parser
+- `convertRss(raw)`: Extracts RSS/Atom metadata and items to Markdown
+
+**Dependencies Added:**
+- `fast-xml-parser`: ^4.5.0 (already installed, no new dependency)
+
+**Test Coverage:**
+New test scenarios in `tests/fetch-tool.test.ts`:
+- HTML content-type detection
+- JSON content-type detection and formatting
+- XML content-type detection and parsing
+- RSS content-type detection and Markdown conversion
+- Unknown/missing content-type defaults to HTML
+- Valid JSON formatting with proper indentation
+- Invalid JSON fallback to raw string
+- RSS feed Markdown with multiple items
+- Invalid RSS fallback to XML parser
+- Sanitizer runs on JSON with injections
+- Sanitizer runs on RSS with injections
+- format_detected appears in metadata for all formats
+- content_type appears in metadata for all formats
+- Format detection works for all supported types
+
+**Example Usage:**
+
+JSON API:
+```json
+{
+  "url": "https://api.github.com/repos/anthropics/anthropic-sdk-typescript"
+}
+```
+
+Returns formatted JSON with `format_detected: "json"` and `content_type: "application/json"`.
+
+RSS Feed:
+```json
+{
+  "url": "https://blog.example.com/feed.xml"
+}
+```
+
+Returns Markdown-formatted feed with `format_detected: "rss"` and `content_type: "application/rss+xml"`.
+
+**Test Results:** ✅ 246/246 tests passing (14 new format detection tests added)
+
+**README Documentation:**
+- Updated `visus_fetch` tool description with supported formats list
+- Added Example 6: JSON API Response with Format Detection
+- Added Example 7: RSS Feed with Automatic Markdown Conversion
+- Documented format detection features and RSS/Atom support
 
 ---
 
@@ -501,19 +621,19 @@ Visus is a security-first MCP tool that provides Claude with sanitized web page 
 
 ### ✅ Test Execution
 - **Status:** SUCCESS - All tests passing
-- **Test Results:** 232/232 tests passing (100%)
+- **Test Results:** 246/246 tests passing (100%)
 - **Test Suites:** 7/7 passing
-- **Execution Time:** ~5.8 seconds
+- **Execution Time:** ~7.2 seconds
 - **Test Files:**
   - `tests/sanitizer.test.ts` - PASS (43 pattern categories + 5 threat report integration tests)
-  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions + annotations + 2 threat report tests)
+  - `tests/fetch-tool.test.ts` - PASS (all MCP tool functions + annotations + 2 threat report tests + 14 format detection tests) - **v0.6.0**
   - `tests/threat-reporter.test.ts` - PASS (38 threat reporting tests) - **v0.5.0**
   - `tests/pii-allowlist.test.ts` - PASS (26 allowlist tests) - **v0.3.0**
   - `tests/auth-smoke.test.ts` - PASS (24 auth enforcement tests) - **v0.3.1**
   - `tests/reader.test.ts` - PASS (14 reader mode tests) - **v0.3.2**
   - `tests/search.test.ts` - PASS (18 search tests) - **v0.4.0**
   - `tests/injection-corpus.ts` - Test data library
-- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + safe web search + security fixes + threat reporting with framework mappings validated
+- **Coverage:** All 43 injection pattern categories + PII allowlist + authentication enforcement + reader mode + safe web search + security fixes + threat reporting with framework mappings + Content-Type format detection (JSON, XML, RSS/Atom) validated
 
 ---
 
@@ -1292,6 +1412,16 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **Zero Regressions** - All existing tests continue to pass
 - ✅ **Published to npm** - Available as `visus-mcp@0.5.0`
 
+**v0.6.0 Achievements (In Development):**
+- ✅ **Content-Type Format Detection** — Automatic format detection from HTTP headers
+- ✅ **JSON Support** — Pretty-printing with 2-space indentation for API responses
+- ✅ **XML Support** — Clean text conversion using fast-xml-parser
+- ✅ **RSS/Atom Support** — Feed conversion to Markdown (up to 10 items)
+- ✅ **Metadata Enhancement** — format_detected and content_type in all responses
+- ✅ **14 New Tests** - Format detection test coverage (246 total tests)
+- ✅ **Zero Regressions** - All existing tests continue to pass
+- ✅ **Security Preserved** — Sanitizer runs on ALL formats unchanged
+
 **Technical Challenges Overcome:**
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
 - Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
@@ -1299,6 +1429,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - Security Audit: Application-level auth gap identification, health endpoint HTTP method ordering
 - v0.4.0: DuckDuckGo API response structure, nested Topics handling, search result aggregation
 - v0.5.0: TOON library Jest ESM compatibility (resolved with manual fallback format)
+- v0.6.0: Content-Type header extraction from undici responses, RSS/Atom feed parsing, format-specific conversion pipeline integration
 
 **Deployment Complete:**
 - ✅ CDK stack deployed successfully to us-east-1
@@ -1315,9 +1446,9 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ---
 
-**Last Updated:** 2026-03-23 07:35 JST
+**Last Updated:** 2026-03-23 (Updated for v0.6.0-dev)
 **Build:** SUCCESS ✅
-**Tests:** 232/232 PASSING ✅
+**Tests:** 246/246 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
@@ -1326,6 +1457,8 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **v0.3.2:** ✅ PUBLISHED TO NPM (Reader Mode Feature - 14 tests added)
 **v0.4.0:** ✅ PUBLISHED TO NPM (Safe Web Search Feature - 18 tests added)
 **v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting - 31 tests added)
+**v0.6.0:** 🚧 IN DEVELOPMENT (Content-Type Format Detection - 14 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
 **Latest Release:** v0.5.0 (2026-03-23)
+**Next Release:** v0.6.0 (Content-Type Format Detection)

@@ -9,6 +9,7 @@
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
+import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
 import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -37,12 +38,28 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       return Err(renderResult.error);
     }
 
-    const { html, title } = renderResult.value;
+    const { html, title, contentType } = renderResult.value;
     const rawContent = html || '';
 
-    // Step 2: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
+    // Step 2: Detect format and apply format-appropriate conversion
+    const detectedContentType = contentType || 'text/html';
+    const formatType = detectFormat(detectedContentType);
+
+    let processedContent = rawContent;
+
+    // Apply format-specific conversion (skip Readability for non-HTML)
+    if (formatType === 'json') {
+      processedContent = convertJson(rawContent);
+    } else if (formatType === 'xml') {
+      processedContent = convertXml(rawContent);
+    } else if (formatType === 'rss') {
+      processedContent = convertRss(rawContent);
+    }
+    // For 'html' format, processedContent remains as rawContent
+
+    // Step 3: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
     // This step CANNOT be skipped or bypassed
-    const sanitizationResult = sanitize(rawContent, url);
+    const sanitizationResult = sanitize(processedContent, url);
 
     // Step 3: Apply token ceiling truncation (AFTER sanitization)
     // Anthropic MCP Directory enforces 25,000 token response limit
@@ -63,6 +80,8 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
         fetched_at: new Date().toISOString(),
         content_length_original: sanitizationResult.metadata.original_length,
         content_length_sanitized: sanitizationResult.metadata.sanitized_length,
+        format_detected: formatType,
+        content_type: detectedContentType,
         ...(truncationResult.truncated && {
           truncated: true,
           truncated_at_chars: truncationResult.truncated_at_chars

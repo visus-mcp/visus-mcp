@@ -30,6 +30,8 @@ export interface VisusFetchOutput {
     fetched_at: string;
     content_length_original: number;
     content_length_sanitized: number;
+    format_detected?: 'html' | 'json' | 'xml' | 'rss';
+    content_type?: string;
     truncated?: boolean;
     truncated_at_chars?: number;
   };
@@ -70,6 +72,8 @@ export interface VisusFetchStructuredOutput {
     fetched_at: string;
     content_length_original: number;
     content_length_sanitized: number;
+    format_detected?: 'html' | 'json' | 'xml' | 'rss';
+    content_type?: string;
     truncated?: boolean;
     truncated_at_chars?: number;
   };
@@ -131,6 +135,7 @@ export interface BrowserRenderResult {
   html: string;
   title: string;
   url: string;
+  contentType?: string;
   text?: string;
   error?: string;
 }
