@@ -68,10 +68,10 @@ Implements allowlist system to prevent false-positive redaction of verified inst
 - ✅ Documentation updated for Phase 2
 
 **Deployment Status:**
-- ✅ CDK bootstrapped in AWS account 080746528746 (us-east-1)
+- ✅ CDK bootstrapped in AWS account [AWS_ACCOUNT_ID] (us-east-1)
 - ✅ Lambda renderer deployed successfully
-- ✅ API Endpoint: https://wyomy29zd7.execute-api.us-east-1.amazonaws.com
-- ✅ Function: VisusRendererStack-dev-RendererFunction3AA1789A-554zTOoz3FVg
+- ✅ API Endpoint: [API_ENDPOINT]
+- ✅ Function: [LAMBDA_FUNCTION_NAME]
 - ✅ CloudWatch Logs: /aws/lambda/visus-renderer-dev
 
 **Performance Metrics (Production Lambda):**
@@ -382,7 +382,7 @@ visus_fetch_structured("https://example.com", {
 **Environment:**
 - AWS Lambda (Node.js 22.x, x86_64, 2048 MB memory)
 - Playwright headless Chromium bundled via @sparticuz/chromium@143.0.4
-- HTTP API Gateway (https://wyomy29zd7.execute-api.us-east-1.amazonaws.com)
+- HTTP API Gateway ([API_ENDPOINT])
 - Region: us-east-1
 
 #### Smoke Test 1: Simple Static Page ✅
@@ -702,7 +702,7 @@ DevDeps:        10 (@types/aws-lambda, aws-cdk, aws-cdk-lib, constructs, ts-node
 Node:           >=18
 License:        MIT
 Author:         Leo Chongolnee (Lateos)
-Maintainer:     leochong <lowmls@gmail.com>
+Maintainer:     security@lateos.ai
 Repository:     https://github.com/visus-mcp/visus-mcp
 npm URL:        https://www.npmjs.com/package/visus-mcp
 ```
@@ -765,5 +765,5 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
 **v0.3.0:** ✅ PUBLISHED TO NPM (PII Allowlist Feature)
-**Lambda Endpoint:** https://wyomy29zd7.execute-api.us-east-1.amazonaws.com
+**Lambda Endpoint:** [API_ENDPOINT]
 **Latest Release:** v0.3.0 (2026-03-22)

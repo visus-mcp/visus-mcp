@@ -3,6 +3,7 @@ dist/
 coverage/
 cdk.out/
 .env
+.env.*
 .DS_Store
 *.log
 .vscode/
