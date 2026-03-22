@@ -14,7 +14,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 (Roongrunchai Chongolnee / leochong). Lateos is deployed on AWS serverless (Lambda, Step Functions,
 API Gateway, Cognito, Bedrock with Guardrails, DynamoDB with KMS encryption, Secrets Manager) in
 me-central-1. The platform holds CISSP/CEH-informed design, 43 validated injection patterns, PII
-redaction, and 73/73 passing tests.
+redaction, and 122/122 passing tests.
 
 The core differentiator: **every other MCP browser/scraping tool passes raw web content directly to
 the LLM**. Visus does not. Every fetched page passes through the Lateos injection sanitization

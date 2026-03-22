@@ -303,4 +303,22 @@ describe('Full Sanitization Pipeline', () => {
     expect(result.sanitization.content_modified).toBe(false);
     expect(result.metadata.original_length).toBe(longContent.length);
   });
+
+  it('should not flag AWS API Gateway URLs as code execution requests', () => {
+    const awsUrls = [
+      'https://abc123.execute-api.us-east-1.amazonaws.com/prod',
+      'Deploy to https://xyz456.execute-api.eu-west-1.amazonaws.com',
+      'API endpoint: https://my-api.execute-api.ap-southeast-1.amazonaws.com/dev/fetch'
+    ];
+
+    awsUrls.forEach(content => {
+      const result = sanitize(content);
+
+      // Should not detect code_execution_requests pattern
+      expect(result.sanitization.patterns_detected).not.toContain('code_execution_requests');
+      // Content should pass through unmodified (no PII in these URLs)
+      expect(result.content).toBe(content);
+      expect(result.sanitization.content_modified).toBe(false);
+    });
+  });
 });

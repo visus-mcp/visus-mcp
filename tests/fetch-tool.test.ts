@@ -5,8 +5,8 @@
  * Note: These tests use mocked browser responses to avoid external dependencies.
  */
 
-import { visusFetch } from '../src/tools/fetch.js';
-import { visusFetchStructured } from '../src/tools/fetch-structured.js';
+import { visusFetch, visusFetchToolDefinition } from '../src/tools/fetch.js';
+import { visusFetchStructured, visusFetchStructuredToolDefinition } from '../src/tools/fetch-structured.js';
 import { renderPage, closeBrowser } from '../src/browser/playwright-renderer.js';
 import type { BrowserRenderResult } from '../src/types.js';
 import { Ok } from '../src/types.js';
@@ -174,6 +174,68 @@ describe('visus_fetch Tool', () => {
       expect(result.value.sanitization.patterns_detected.length).toBeGreaterThanOrEqual(0);
     }
   });
+
+  describe('Token Ceiling Truncation', () => {
+    it('should pass through content under 96,000 chars untruncated', async () => {
+      // Create realistic content well under the 96,000 character limit
+      // Use varied, natural-looking text that won't trigger sanitizer
+      const paragraph = 'This is a sample paragraph of documentation text that discusses various technical concepts and implementation details. It contains normal prose without any suspicious patterns. ';
+      const shortContent = paragraph.repeat(280); // ~50k chars of natural text
+      const mockResult: BrowserRenderResult = {
+        html: `<html><body><p>${shortContent}</p></body></html>`,
+        title: 'Short Content',
+        url: 'https://example.com/docs',
+        text: shortContent
+      };
+
+      mockRenderPage.mockResolvedValue(Ok(mockResult));
+
+      const result = await visusFetch({
+        url: 'https://example.com/docs'
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.metadata.truncated).toBeUndefined();
+        expect(result.value.metadata.truncated_at_chars).toBeUndefined();
+        // Content length should be close to original (sanitizer might make minor changes)
+        expect(result.value.content.length).toBeGreaterThan(40000); // Still substantial
+        expect(result.value.content).not.toContain('CONTENT TRUNCATED');
+      }
+    });
+
+    it('should truncate content over 96,000 chars with correct metadata', async () => {
+      // Create realistic content that exceeds the 96,000 character limit
+      const paragraph = 'This is another sample paragraph of technical documentation that contains detailed information about software architecture patterns and best practices. The content is completely benign. ';
+      const longContent = paragraph.repeat(560); // ~100k chars of natural text
+      const mockResult: BrowserRenderResult = {
+        html: `<html><body><p>${longContent}</p></body></html>`,
+        title: 'Long Content',
+        url: 'https://example.com/long-docs',
+        text: longContent
+      };
+
+      mockRenderPage.mockResolvedValue(Ok(mockResult));
+
+      const result = await visusFetch({
+        url: 'https://example.com/long-docs'
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // Should be marked as truncated
+        expect(result.value.metadata.truncated).toBe(true);
+        expect(result.value.metadata.truncated_at_chars).toBe(96000);
+
+        // Content should be truncated
+        expect(result.value.content.length).toBeLessThan(longContent.length);
+
+        // Should contain truncation warning
+        expect(result.value.content).toContain('CONTENT TRUNCATED');
+        expect(result.value.content).toContain('Anthropic MCP Directory enforces a 25,000 token response limit');
+      }
+    });
+  });
 });
 
 describe('visus_fetch_structured Tool', () => {
@@ -326,4 +388,124 @@ describe('visus_fetch_structured Tool', () => {
       expect(result.value.sanitization).toBeDefined();
     }
   });
+
+  describe('Token Ceiling Truncation', () => {
+    it('should pass through structured data under ceiling untruncated', async () => {
+      // Create moderate-sized structured data
+      const mockResult: BrowserRenderResult = {
+        html: '<html><body><h1>Title</h1><p>Description</p></body></html>',
+        title: 'Test',
+        url: 'https://example.com',
+        text: 'Title: Short Title\nDescription: Short description'
+      };
+
+      mockRenderPage.mockResolvedValue(Ok(mockResult));
+
+      const result = await visusFetchStructured({
+        url: 'https://example.com',
+        schema: {
+          title: 'h1',
+          description: 'paragraph'
+        }
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.metadata.truncated).toBeUndefined();
+        expect(result.value.metadata.truncated_at_chars).toBeUndefined();
+      }
+    });
+
+    it('should truncate structured data over ceiling with correct metadata', async () => {
+      // Create very large field values with realistic content
+      const sentence = 'This is a sentence in a long technical document that discusses various concepts. ';
+      const longValue = sentence.repeat(1250); // ~100k chars of natural text
+      const mockResult: BrowserRenderResult = {
+        html: `<html><body><h1>${longValue}</h1></body></html>`,
+        title: 'Long',
+        url: 'https://example.com/long-article',
+        text: `Title: ${longValue}`
+      };
+
+      mockRenderPage.mockResolvedValue(Ok(mockResult));
+
+      const result = await visusFetchStructured({
+        url: 'https://example.com/long-article',
+        schema: {
+          title: 'h1'
+        }
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // Should be marked as truncated
+        expect(result.value.metadata.truncated).toBe(true);
+        expect(result.value.metadata.truncated_at_chars).toBe(96000);
+
+        // Data should be present but truncated
+        expect(result.value.data.title).toBeDefined();
+      }
+    });
+  });
+});
+
+describe('Annotations', () => {
+  describe('visus_fetch tool definition', () => {
+    it('should have title annotation', () => {
+      expect(visusFetchToolDefinition.title).toBe('Fetch Web Page (Sanitized)');
+    });
+
+    it('should have readOnlyHint set to true', () => {
+      expect(visusFetchToolDefinition.readOnlyHint).toBe(true);
+    });
+
+    it('should have destructiveHint set to false', () => {
+      expect(visusFetchToolDefinition.destructiveHint).toBe(false);
+    });
+
+    it('should have idempotentHint set to true', () => {
+      expect(visusFetchToolDefinition.idempotentHint).toBe(true);
+    });
+
+    it('should have openWorldHint set to true', () => {
+      expect(visusFetchToolDefinition.openWorldHint).toBe(true);
+    });
+
+    it('should have description mentioning sanitization', () => {
+      expect(visusFetchToolDefinition.description).toContain('sanitization');
+      expect(visusFetchToolDefinition.description).toContain('PII redaction');
+      expect(visusFetchToolDefinition.description).toContain('BEFORE reaching the LLM');
+    });
+  });
+
+  describe('visus_fetch_structured tool definition', () => {
+    it('should have title annotation', () => {
+      expect(visusFetchStructuredToolDefinition.title).toBe('Fetch Structured Data (Sanitized)');
+    });
+
+    it('should have readOnlyHint set to true', () => {
+      expect(visusFetchStructuredToolDefinition.readOnlyHint).toBe(true);
+    });
+
+    it('should have destructiveHint set to false', () => {
+      expect(visusFetchStructuredToolDefinition.destructiveHint).toBe(false);
+    });
+
+    it('should have idempotentHint set to true', () => {
+      expect(visusFetchStructuredToolDefinition.idempotentHint).toBe(true);
+    });
+
+    it('should have openWorldHint set to true', () => {
+      expect(visusFetchStructuredToolDefinition.openWorldHint).toBe(true);
+    });
+
+    it('should have description mentioning sanitization', () => {
+      expect(visusFetchStructuredToolDefinition.description).toContain('sanitization');
+      expect(visusFetchStructuredToolDefinition.description).toContain('PII redaction');
+      expect(visusFetchStructuredToolDefinition.description).toContain('BEFORE being returned to the LLM');
+    });
+  });
+
+  // Note: visus_read tool definition tests moved to tests/reader.test.ts
+  // to avoid jsdom ESM parsing issues in this file
 });

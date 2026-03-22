@@ -8,6 +8,7 @@
 
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
+import { truncateContent } from '../utils/truncate.js';
 import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -43,10 +44,14 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     // This step CANNOT be skipped or bypassed
     const sanitizationResult = sanitize(rawContent, url);
 
-    // Step 3: Build output
+    // Step 3: Apply token ceiling truncation (AFTER sanitization)
+    // Anthropic MCP Directory enforces 25,000 token response limit
+    const truncationResult = truncateContent(sanitizationResult.content);
+
+    // Step 4: Build output
     const output: VisusFetchOutput = {
       url,
-      content: sanitizationResult.content,
+      content: truncationResult.content,
       sanitization: {
         patterns_detected: sanitizationResult.sanitization.patterns_detected,
         pii_types_redacted: sanitizationResult.sanitization.pii_types_redacted,
@@ -57,7 +62,11 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
         title: title || 'Untitled',
         fetched_at: new Date().toISOString(),
         content_length_original: sanitizationResult.metadata.original_length,
-        content_length_sanitized: sanitizationResult.metadata.sanitized_length
+        content_length_sanitized: sanitizationResult.metadata.sanitized_length,
+        ...(truncationResult.truncated && {
+          truncated: true,
+          truncated_at_chars: truncationResult.truncated_at_chars
+        })
       }
     };
 
@@ -84,7 +93,8 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
  */
 export const visusFetchToolDefinition = {
   name: 'visus_fetch',
-  description: 'Fetch and sanitize web page content. Returns clean, injection-free content in markdown or text format. All content is automatically scanned for prompt injection patterns and PII before being returned.',
+  title: 'Fetch Web Page (Sanitized)',
+  description: 'Fetch and sanitize web page content. Returns clean, injection-free content in markdown or text format. SECURITY: All content passes through prompt injection sanitization (43 pattern categories) and PII redaction BEFORE reaching the LLM. This ensures safe consumption of untrusted web content.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -105,5 +115,9 @@ export const visusFetchToolDefinition = {
       }
     },
     required: ['url']
-  }
+  },
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true
 };

@@ -313,7 +313,7 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
   {
     name: 'code_execution_requests',
     description: 'Requests code execution or contains dangerous code patterns',
-    regex: /\b(execute|run\s+the\s+following|eval\(|exec\(|os\.system|subprocess|__import__|shell\s+command|bash\s+-c)\b/gi,
+    regex: /\b(execute(?!-api\.)|run\s+the\s+following|eval\(|exec\(|os\.system|subprocess|__import__|shell\s+command|bash\s+-c)\b/gi,
     severity: 'high',
     action: 'redact'
   },

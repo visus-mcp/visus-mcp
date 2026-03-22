@@ -10,6 +10,7 @@
 import * as cheerio from 'cheerio';
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
+import { truncateContent } from '../utils/truncate.js';
 import type { VisusFetchStructuredInput, VisusFetchStructuredOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -151,10 +152,42 @@ export async function visusFetchStructured(
       }
     }
 
-    // Step 4: Build output
+    // Step 4: Apply token ceiling truncation to combined data (AFTER sanitization)
+    // Combine all field values to check total content size
+    const combinedData = Object.entries(sanitizedData)
+      .map(([key, value]) => `${key}: ${value || 'null'}`)
+      .join('\n');
+
+    const truncationResult = truncateContent(combinedData);
+
+    // If truncated, we need to reconstruct sanitizedData from truncated content
+    let finalData = sanitizedData;
+    if (truncationResult.truncated) {
+      // Parse truncated content back into fields
+      // This is a simple approach - in production you might want more sophisticated handling
+      const lines = truncationResult.content.split('\n');
+      finalData = {};
+      for (const line of lines) {
+        if (line.includes(':')) {
+          const [key, ...valueParts] = line.split(':');
+          const value = valueParts.join(':').trim();
+          if (key.trim() in sanitizedData) {
+            finalData[key.trim()] = value === 'null' ? null : value;
+          }
+        }
+      }
+      // Preserve any missing fields as null
+      for (const key of Object.keys(sanitizedData)) {
+        if (!(key in finalData)) {
+          finalData[key] = null;
+        }
+      }
+    }
+
+    // Step 5: Build output
     const output: VisusFetchStructuredOutput = {
       url,
-      data: sanitizedData,
+      data: finalData,
       sanitization: {
         patterns_detected: Array.from(allPatternsDetected),
         pii_types_redacted: Array.from(allPIITypesRedacted),
@@ -168,7 +201,11 @@ export async function visusFetchStructured(
         content_length_sanitized: Object.values(sanitizedData)
           .filter(v => v !== null)
           .join(' ')
-          .length
+          .length,
+        ...(truncationResult.truncated && {
+          truncated: true,
+          truncated_at_chars: truncationResult.truncated_at_chars
+        })
       }
     };
 
@@ -195,7 +232,8 @@ export async function visusFetchStructured(
  */
 export const visusFetchStructuredToolDefinition = {
   name: 'visus_fetch_structured',
-  description: 'Fetch a web page and extract structured data according to a schema. All extracted fields are automatically sanitized for prompt injection and PII before being returned.',
+  title: 'Fetch Structured Data (Sanitized)',
+  description: 'Fetch a web page and extract structured data according to a schema. SECURITY: All extracted fields pass through prompt injection sanitization (43 pattern categories) and PII redaction BEFORE being returned to the LLM. Each field is independently sanitized to ensure safe consumption of untrusted web content.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -217,5 +255,9 @@ export const visusFetchStructuredToolDefinition = {
       }
     },
     required: ['url', 'schema']
-  }
+  },
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true
 };

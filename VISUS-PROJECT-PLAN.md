@@ -1,3 +1,10 @@
+---
+**Status:** Original Specification — Superseded
+This document captures the original design intent written before development began. Phases 1 and 2 are complete. For the current living roadmap, see ROADMAP.md.
+**Archived:** 2026-03-22
+
+---
+
 # Visus — Project Plan
 **Lateos Feature: Secure AI-Connected Browser via MCP**
 *"What the web shows you, Lateos reads safely."*

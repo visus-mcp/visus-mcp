@@ -27,6 +27,7 @@ import {
 
 import { visusFetch, visusFetchToolDefinition } from './tools/fetch.js';
 import { visusFetchStructured, visusFetchStructuredToolDefinition } from './tools/fetch-structured.js';
+import { visusRead, visusReadToolDefinition } from './tools/read.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 
@@ -52,7 +53,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       visusFetchToolDefinition,
-      visusFetchStructuredToolDefinition
+      visusFetchStructuredToolDefinition,
+      visusReadToolDefinition
     ]
   };
 });
@@ -105,6 +107,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'visus_read': {
+        const result = await visusRead(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_read failed: ${result.error.message}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,
@@ -138,7 +160,7 @@ async function startMcpServer() {
     event: 'mcp_server_started',
     name: 'visus-mcp',
     version: '0.2.0',
-    tools: ['visus_fetch', 'visus_fetch_structured']
+    tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read']
   }));
 
   // Graceful shutdown
@@ -188,9 +210,9 @@ async function main() {
   }
 }
 
-// Export Lambda handlers (for AWS deployment)
-// These are only used when the file is imported as a module by Lambda runtime
-export { handler, healthCheck } from './lambda-handler.js';
+// Export Lambda handler (for AWS deployment)
+// This is only used when the file is imported as a module by Lambda runtime
+export { handler } from './lambda-handler.js';
 
 // Run stdio MCP server when executed directly (not in Lambda)
 if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {

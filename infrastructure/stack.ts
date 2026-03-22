@@ -19,6 +19,7 @@
 
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -69,6 +70,7 @@ export class VisusStack extends cdk.Stack {
       removalPolicy: environment === 'prod'
         ? cdk.RemovalPolicy.RETAIN
         : cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: 'ttl', // Auto-delete audit logs after 30 days
     });
 
     // Global Secondary Index for querying by request_id
@@ -142,12 +144,12 @@ export class VisusStack extends cdk.Stack {
     // Grant KMS decrypt access (for reading encrypted DynamoDB data if needed)
     kmsKey.grantEncryptDecrypt(lambdaRole);
 
-    // Lambda function
-    const visusFn = new lambda.Function(this, 'VisusFunction', {
+    // Lambda function (NodejsFunction with automatic bundling)
+    const visusFn = new lambdaNodejs.NodejsFunction(this, 'VisusFunction', {
       functionName: `visus-mcp-${environment}`,
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('dist'), // Build output directory (relative to project root)
+      entry: 'src/lambda-handler.ts', // Entry point for bundler
+      handler: 'handler', // Export name in the entry file
       timeout: cdk.Duration.seconds(30), // Playwright page loads can take time
       memorySize: 1024, // Chromium requires significant memory
       reservedConcurrentExecutions: environment === 'prod' ? 100 : 10, // RULE 7: Cost protection
@@ -155,12 +157,21 @@ export class VisusStack extends cdk.Stack {
       environment: {
         AUDIT_TABLE_NAME: auditTable.tableName,
         ENVIRONMENT: environment,
+        ALLOWED_ORIGINS: 'https://claude.ai,https://app.claude.ai,http://localhost:3000',
         NODE_OPTIONS: '--enable-source-maps', // For debugging
       },
       logRetention: environment === 'prod'
         ? logs.RetentionDays.ONE_MONTH
         : logs.RetentionDays.ONE_WEEK,
       description: `Visus MCP sanitization service (${environment})`,
+      bundling: {
+        minify: false, // Keep readable for debugging
+        sourceMap: true,
+        externalModules: [
+          'playwright-core', // Playwright is huge, will be added via layer
+          '@sparticuz/chromium', // Chromium binary
+        ],
+      },
     });
 
     // ========================================
@@ -178,11 +189,43 @@ export class VisusStack extends cdk.Stack {
         metricsEnabled: true,
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS, // Phase 2: Open. Phase 3: Restrict to Lateos
-        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: [
+          'https://claude.ai',
+          'https://app.claude.ai',
+          'http://localhost:3000',  // local dev only
+        ],
+        allowMethods: ['POST', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
+
+    // Usage plan with rate limiting and quota
+    const usagePlan = api.addUsagePlan('VisusUsagePlan', {
+      name: `visus-usage-plan-${environment}`,
+      description: 'Rate limiting and quota management for Visus API',
+      throttle: {
+        rateLimit: 10,      // 10 requests per second
+        burstLimit: 20,     // 20 request burst
+      },
+      quota: {
+        limit: 1000,        // 1000 requests per day
+        period: apigateway.Period.DAY,
+      },
+    });
+
+    // Add deployment stage to usage plan
+    usagePlan.addApiStage({
+      stage: api.deploymentStage,
+    });
+
+    // Create API key for the usage plan
+    const apiKey = api.addApiKey('VisusApiKey', {
+      apiKeyName: `visus-api-key-${environment}`,
+      description: `API key for Visus ${environment} environment`,
+    });
+
+    // Associate API key with usage plan
+    usagePlan.addApiKey(apiKey);
 
     // Cognito authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'VisusAuthorizer', {
@@ -243,6 +286,12 @@ export class VisusStack extends cdk.Stack {
       value: visusFn.functionArn,
       description: 'Lambda function ARN',
       exportName: `visus-lambda-arn-${environment}`,
+    });
+
+    new cdk.CfnOutput(this, 'ApiKeyId', {
+      value: apiKey.keyId,
+      description: 'API Gateway API Key ID (use aws apigateway get-api-key to retrieve value)',
+      exportName: `visus-api-key-id-${environment}`,
     });
   }
 }

@@ -28,6 +28,8 @@ export interface VisusFetchOutput {
     fetched_at: string;
     content_length_original: number;
     content_length_sanitized: number;
+    truncated?: boolean;
+    truncated_at_chars?: number;
   };
 }
 
@@ -37,6 +39,14 @@ export interface VisusFetchOutput {
 export interface VisusFetchStructuredInput {
   url: string;
   schema: Record<string, string>; // field name → description
+  timeout_ms?: number;
+}
+
+/**
+ * Input for visus_read tool
+ */
+export interface VisusReadInput {
+  url: string;
   timeout_ms?: number;
 }
 
@@ -57,6 +67,28 @@ export interface VisusFetchStructuredOutput {
     fetched_at: string;
     content_length_original: number;
     content_length_sanitized: number;
+    truncated?: boolean;
+    truncated_at_chars?: number;
+  };
+}
+
+/**
+ * Output from visus_read tool
+ */
+export interface VisusReadOutput {
+  url: string;
+  content: string;
+  metadata: {
+    title: string;
+    author: string | null;
+    published: string | null;
+    word_count: number;
+    reader_mode_available: boolean;
+    sanitized: true;
+    injections_removed: number;
+    pii_redacted: number;
+    truncated: boolean;
+    fetched_at?: string;
   };
 }
 

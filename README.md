@@ -149,11 +149,14 @@ Restart Claude Desktop. Visus tools are now available to Claude.
 
 Fetch and sanitize a web page.
 
+### `visus_read`
+
+Extract clean article content from a web page using Mozilla Readability (reader mode).
+
 **Input:**
 ```json
 {
-  "url": "https://example.com",
-  "format": "markdown",  // or "text"
+  "url": "https://example.com/article",
   "timeout_ms": 10000    // optional
 }
 ```
@@ -161,18 +164,19 @@ Fetch and sanitize a web page.
 **Output:**
 ```json
 {
-  "url": "https://example.com",
-  "content": "# Page Title\n\nSanitized page content...",
-  "sanitization": {
-    "patterns_detected": ["direct_instruction_injection"],
-    "pii_types_redacted": ["email", "phone"],
-    "content_modified": true
-  },
+  "url": "https://example.com/article",
+  "content": "This is the main article content, stripped of navigation, ads, and boilerplate...",
   "metadata": {
-    "title": "Example Domain",
-    "fetched_at": "2024-01-15T10:30:00.000Z",
-    "content_length_original": 5000,
-    "content_length_sanitized": 4800
+    "title": "Article Title",
+    "author": "Jane Doe",
+    "published": "2024-01-15T10:00:00Z",
+    "word_count": 1250,
+    "reader_mode_available": true,
+    "sanitized": true,
+    "injections_removed": 0,
+    "pii_redacted": 1,
+    "truncated": false,
+    "fetched_at": "2024-01-15T10:30:00.000Z"
   }
 }
 ```
@@ -221,6 +225,170 @@ All extracted fields are individually sanitized.
 
 ---
 
+## Examples
+
+### Example 1: Public Health Page with PII Allowlist
+
+Fetching a MedlinePlus health information page demonstrates both injection pattern detection and the domain-scoped PII allowlist feature.
+
+**Tool Call:**
+```json
+{
+  "url": "https://medlineplus.gov/poisoning.html",
+  "format": "markdown"
+}
+```
+
+**Sanitized Output (excerpt):**
+```json
+{
+  "url": "https://medlineplus.gov/poisoning.html",
+  "content": "# Poisoning\n\n**Call 1-800-222-1222** for immediate help...\n\n**Contact:** [REDACTED:EMAIL] for general inquiries...",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": ["email"],
+    "pii_allowlisted": [
+      {
+        "type": "phone",
+        "value": "1-800-222-1222",
+        "reason": "Trusted health authority number on medlineplus.gov (Poison Control)"
+      }
+    ],
+    "content_modified": true
+  },
+  "metadata": {
+    "title": "Poisoning: MedlinePlus",
+    "content_length_original": 15234,
+    "content_length_sanitized": 15180
+  }
+}
+```
+
+**What Visus caught:** Regular email addresses were redacted (`[REDACTED:EMAIL]`), but the Poison Control hotline number was preserved because it appears on a trusted `.gov` health domain. This demonstrates the PII allowlist in action — critical health resources remain accessible while general contact info is scrubbed.
+
+---
+
+### Example 2: Structured Data Extraction from Documentation
+
+Extract navigation links and headings from a documentation page.
+
+**Tool Call:**
+```json
+{
+  "url": "https://docs.github.com/en",
+  "schema": {
+    "main_heading": "h1",
+    "first_link": "link url",
+    "first_link_text": "link text",
+    "description": "paragraph text"
+  }
+}
+```
+
+**Sanitized Output:**
+```json
+{
+  "url": "https://docs.github.com/en",
+  "data": {
+    "main_heading": "GitHub Docs",
+    "first_link": "/en/get-started",
+    "first_link_text": "Get started",
+    "description": "Help for wherever you are on your GitHub journey."
+  },
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": [],
+    "pii_allowlisted": [],
+    "content_modified": false
+  },
+  "metadata": {
+    "title": "GitHub Docs",
+    "content_length_original": 45123,
+    "content_length_sanitized": 45123
+  }
+}
+```
+
+**What Visus caught:** This page was clean — no injection patterns or PII detected. The structured extraction returned all requested fields with `content_modified: false`, indicating the sanitizer validated the content but made no changes.
+
+---
+
+### Example 3: JavaScript-Heavy SPA with Playwright Rendering
+
+Modern single-page applications require JavaScript execution. Visus uses headless Chromium via Playwright to render dynamic content before sanitization.
+
+**Tool Call:**
+```json
+{
+  "url": "https://github.com/anthropics/anthropic-sdk-typescript",
+  "format": "markdown",
+  "timeout_ms": 15000
+}
+```
+
+**Sanitized Output (excerpt):**
+```json
+{
+  "url": "https://github.com/anthropics/anthropic-sdk-typescript",
+  "content": "# anthropic-sdk-typescript\n\n**Repository:** anthropics/anthropic-sdk-typescript\n\n**Description:** TypeScript SDK for Anthropic's Claude API...\n\n**Latest commit:** [REDACTED:COMMIT_HASH] by [REDACTED:EMAIL]...",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": ["email"],
+    "pii_allowlisted": [],
+    "content_modified": true
+  },
+  "metadata": {
+    "title": "GitHub - anthropics/anthropic-sdk-typescript",
+    "content_length_original": 23456,
+    "content_length_sanitized": 23401
+  }
+}
+```
+
+**What Visus caught:** The page rendered completely via Playwright (including React components, lazy-loaded content, and dynamic navigation). Email addresses in commit author fields were redacted. No injection patterns were detected in this legitimate repository page.
+
+**Key difference from static fetchers:** Tools like `curl` or basic HTTP clients would return an empty `<div id="root">` for SPAs. Visus renders the full JavaScript application before sanitization, ensuring you get the actual page content Claude sees.
+
+---
+
+### Example 4: Reader Mode for Context-Efficient Article Reading
+
+When you need clean article content without navigation clutter, use `visus_read` to extract the main text using Mozilla Readability.
+
+**Tool Call:**
+```json
+{
+  "url": "https://en.wikipedia.org/wiki/Prompt_injection",
+  "timeout_ms": 15000
+}
+```
+
+**Sanitized Output (excerpt):**
+```json
+{
+  "url": "https://en.wikipedia.org/wiki/Prompt_injection",
+  "content": "Prompt injection is a type of cyberattack that involves adding malicious instructions to a prompt for an AI system...\n\n[Main article content continues, stripped of navigation, sidebars, and Wikipedia UI elements]\n\nSee also:\n- AI safety\n- Adversarial machine learning\n- Computer security...",
+  "metadata": {
+    "title": "Prompt injection - Wikipedia",
+    "author": null,
+    "published": null,
+    "word_count": 892,
+    "reader_mode_available": true,
+    "sanitized": true,
+    "injections_removed": 0,
+    "pii_redacted": 0,
+    "truncated": false,
+    "fetched_at": "2024-01-15T14:22:00.000Z"
+  }
+}
+```
+
+**What Visus caught:** Readability successfully extracted the main article content, removing Wikipedia's navigation sidebar, footer links, and UI chrome. The extracted text is ~70% smaller than the full page HTML, saving tokens while preserving all essential information. No injection patterns or PII were detected in this educational content.
+
+**Use case:** Reader mode is ideal for documentation pages, news articles, blog posts, and any content-heavy page where you want the text without the surrounding UI. The `word_count` field helps you estimate token usage before processing.
+
+---
+
 ## Environment Variables
 
 ```bash
@@ -243,7 +411,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 43 injection patterns, 73/73 passing tests
+- **Validated Patterns**: 43 injection patterns, 122/122 passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
@@ -251,6 +419,26 @@ Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
 ---
 
 ## Development
+
+### Prerequisites
+
+**macOS / Windows:** No additional setup required.
+
+**Linux:** Playwright requires the following system libraries. Install them before running `npm install`:
+
+```bash
+# Ubuntu / Debian
+sudo apt-get install -y \
+  libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+  libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+  libxrandr2 libgbm1 libnss3 libxss1 libasound2
+
+# Fedora / RHEL
+sudo dnf install -y atk at-spi2-atk libXrandr libgbm \
+  nss alsa-lib libXss cups-libs libdrm libxkbcommon
+```
+
+> If `npm test` fails with a Chromium launch error on Linux, see [TROUBLESHOOT-PLAYWRIGHT.md](./TROUBLESHOOT-PLAYWRIGHT-20260321-1549.md) for detailed troubleshooting steps.
 
 ```bash
 # Clone repo
