@@ -1,0 +1,43 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.leochong/visus-mcp",
+  "description": "Security-first web access for Claude. Sanitizes pages, blocks injection, redacts PII.",
+  "repository": {
+    "url": "https://github.com/visus-mcp/visus-mcp",
+    "source": "github"
+  },
+  "version": "0.6.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "visus-mcp",
+      "version": "0.6.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "Optional timeout in milliseconds for page fetching (default: 10000)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false,
+          "name": "VISUS_TIMEOUT_MS"
+        },
+        {
+          "description": "Optional maximum content size in KB before truncation (default: 512)",
+          "isRequired": false,
+          "format": "number",
+          "isSecret": false,
+          "name": "VISUS_MAX_CONTENT_KB"
+        },
+        {
+          "description": "Optional URL for managed Lambda renderer (Phase 2 - not yet available)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "VISUS_RENDERER_URL"
+        }
+      ]
+    }
+  ]
+}
