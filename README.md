@@ -1,10 +1,23 @@
 # Visus — Secure Web Access for Claude
 
-> **Every MCP browser tool passes raw web content to your LLM. Visus doesn't.**
+[![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-246%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
+[![security](https://img.shields.io/badge/security-NIST%20%7C%20OWASP%20%7C%20MITRE-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 
-Visus is an MCP (Model Context Protocol) tool that provides Claude with secure, sanitized access to web pages. Built by [Lateos](https://lateos.ai), Visus runs **all** fetched content through a comprehensive injection sanitization pipeline before the LLM reads a single character.
+> **Every MCP browser tool passes raw web content to your LLM.**
+> **Visus doesn't. Sanitization is non-negotiable.**
 
-**Tagline:** *"What the web shows you, Lateos reads safely."*
+**Visus-MCP is the only public MCP browser tool that mandatorily sanitizes every webpage before it reaches your LLM** — blocking 43 classes of prompt injection, redacting PII locally (even in cloud mode), and generating structured threat reports aligned to OWASP LLM Top 10, NIST AI 600-1, and MITRE ATLAS.
+
+Unlike Firecrawl, Playwright-MCP, and ScrapeGraphAI — sanitization cannot be bypassed or opted out of. Every tool invocation, every format, every time.
+
+Built for agents handling untrusted web content in healthcare, finance, and enterprise environments.
+```bash
+npx visus-mcp@0.6.0
+```
+
+*"What the web shows you, Lateos reads safely."*
 
 ---
 
@@ -749,17 +762,20 @@ npm start
 
 ## Project Status
 
-**Phase 1** (Current): Open-source MCP tool with local sanitization
+| Version | Status | Highlights |
+|---|---|---|
+| v0.6.0 | ✅ Current | Content-Type detection (JSON/XML/RSS) |
+| v0.5.0 | ✅ Released | TOON threat reports, NIST/OWASP/MITRE |
+| v0.4.0 | ✅ Released | Safe DuckDuckGo search |
+| v0.3.2 | ✅ Released | Reader mode (Mozilla Readability) |
+| v0.3.1 | ✅ Released | Security hardening, 100% compliance |
+| v0.3.0 | ✅ Released | PII allowlist (health authority numbers) |
 
-**Phase 2** (Planned):
-- Lateos cloud integration for audit logging
-- User session relay for authenticated pages
-- Hosted tier with SLA guarantees
+**Phase 3 — Anthropic MCP Directory submission in progress.**
 
-**Phase 3** (Future):
-- Chrome extension for session relay
-- Real-time threat dashboard
-- Custom pattern libraries
+Roadmap: `visus_report` PDF export · ISO/IEC 42001 mapping ·
+Docker image · `visus-file-mcp` (document sanitization) ·
+Chrome extension for authenticated pages
 
 ---
 
