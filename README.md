@@ -179,7 +179,7 @@ Restart Claude Desktop. Visus tools are now available to Claude.
 
 ### `visus_fetch`
 
-Fetch and sanitize a web page with automatic format detection. Supports HTML, JSON, XML, and RSS/Atom feeds. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+Fetch and sanitize a web page with automatic format detection. Supports HTML, JSON, XML, and RSS/Atom feeds. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Supported Formats:**
 - **HTML** (`text/html`, `application/xhtml+xml`) - Standard web pages, returned as-is
@@ -189,7 +189,7 @@ Fetch and sanitize a web page with automatic format detection. Supports HTML, JS
 
 ### `visus_read`
 
-Extract clean article content from a web page using Mozilla Readability (reader mode). Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+Extract clean article content from a web page using Mozilla Readability (reader mode). Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -221,7 +221,7 @@ Extract clean article content from a web page using Mozilla Readability (reader 
 
 ### `visus_search`
 
-Search the web via DuckDuckGo and return sanitized results with prompt injection and PII removed. Use before `visus_fetch` or `visus_read` to safely discover and then read pages. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+Search the web via DuckDuckGo and return sanitized results with prompt injection and PII removed. Use before `visus_fetch` or `visus_read` to safely discover and then read pages. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -254,7 +254,7 @@ All search result titles and snippets are independently sanitized before reachin
 
 ### `visus_fetch_structured`
 
-Extract structured data from a web page according to a schema. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS aligned threat report when injection or PII is detected.
+Extract structured data from a web page according to a schema. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -307,7 +307,7 @@ Findings are encoded using [TOON format](https://toonformat.dev) for token effic
 - Pattern ID and category
 - Severity level (CRITICAL, HIGH, MEDIUM, LOW)
 - Confidence score
-- Framework alignments (OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS)
+- Framework alignments (OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS, ISO/IEC 42001)
 - Remediation status
 
 ### 2. Markdown Compliance Report (Human-Readable)
@@ -383,9 +383,9 @@ When a HIGH severity injection is detected:
 | 🟢 LOW | 0 |
 
 ### Findings Detail
-| # | Category | Severity | Confidence | OWASP | MITRE |
-|---|---|---|---|---|---|
-| 1 | role_hijacking | CRITICAL | 95% | LLM01:2025 | AML.T0051.000 |
+| # | Category | Severity | Confidence | OWASP | MITRE | ISO 42001 |
+|---|---|---|---|---|---|---|
+| 1 | role_hijacking | CRITICAL | 95% | LLM01:2025 | AML.T0051.000 | A.6.1.5 |
 
 ### Remediation Status
 ✅ All findings sanitized. Content delivered clean.
@@ -810,7 +810,8 @@ npm start
 
 | Version | Status | Highlights |
 |---|---|---|
-| v0.6.0 | ✅ Current | Content-Type detection (JSON/XML/RSS) |
+| v0.7.0 | ✅ Complete | HITL Elicitation Bridge for CRITICAL threats |
+| v0.6.0 | ✅ Released | Content-Type detection (JSON/XML/RSS) |
 | v0.5.0 | ✅ Released | TOON threat reports, NIST/OWASP/MITRE/ISO42001 |
 | v0.4.0 | ✅ Released | Safe DuckDuckGo search |
 | v0.3.2 | ✅ Released | Reader mode (Mozilla Readability) |

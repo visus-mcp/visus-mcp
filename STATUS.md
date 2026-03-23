@@ -1,17 +1,17 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-23
-**Version:** 0.7.0 (in development)
+**Generated:** 2026-03-24
+**Version:** 0.7.0
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** 🚧 **v0.7.0 IN DEVELOPMENT** - Human-in-the-Loop Elicitation Bridge
+**Status:** ✅ **v0.7.0 COMPLETE** - Human-in-the-Loop Elicitation Bridge
 
 ---
 
-## v0.7.0 Development - Human-in-the-Loop Elicitation Bridge for CRITICAL Threats
+## v0.7.0 Release - Human-in-the-Loop Elicitation Bridge for CRITICAL Threats
 
-**Status:** 🚧 IN DEVELOPMENT
+**Status:** ✅ COMPLETE (Ready for release)
 **Type:** Security enhancement + UX feature
-**Started:** 2026-03-23
+**Implemented:** 2026-03-24
 
 ### New Features
 
@@ -105,7 +105,7 @@ New test files:
   - Fail-safe: proceeds on timeout
   - Fail-safe: proceeds on unknown action
 
-**Test Results:** 🚧 TBD (full test suite run pending)
+**Test Results:** ✅ 276/276 tests passing (30 new HITL tests added)
 
 **README Documentation:**
 - Added "Human-in-the-Loop Security" section after "When Reports Are Generated"
@@ -1454,10 +1454,9 @@ All Phase 2 features from CLAUDE.md have been completed:
 
 ### Roadmap (Post-Phase 3)
 - WAF protection enhancements (cost-deferred; revisit at scale)
-- `visus_clean` — Format normalization (XML, YAML, CSV, SQL, PDF)
-- `visus_report` — PDF compliance artifact export
-- ISO/IEC 42001 framework mapping
-- GitHub integration (visus-github separate package)
+- `visus_report` PDF export · Docker image ·
+- `visus-file-mcp` (document sanitization) ·
+- Chrome extension for authenticated pages (LinkedIn, X, dashboards)
 
 ---
 
@@ -1465,8 +1464,9 @@ All Phase 2 features from CLAUDE.md have been completed:
 
 ```
 Name:           visus-mcp
-Version:        0.6.0 (published 2026-03-23)
-Previous:       0.5.0 (Threat Reporting)
+Version:        0.7.0 (in development)
+Previous:       0.6.0 (Content-Type Format Detection — published 2026-03-23)
+                0.5.0 (Threat Reporting — NIST/OWASP/MITRE/ISO42001)
                 0.4.0 (Safe Web Search)
                 0.3.2 (Reader Mode Feature)
                 0.3.1 (Security Hardening)
@@ -1491,7 +1491,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ## Conclusion
 
-✅ **Visus v0.6.0 is COMPLETE and PUBLISHED.**
+✅ **Visus v0.7.0 is COMPLETE.** Ready for npm publication.
 
 **Phase 1 Achievements:**
 - ✅ Sanitization engine (43 injection patterns + PII redaction)
@@ -1530,7 +1530,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 **v0.5.0 Achievements:**
 - ✅ **Threat Reporting** — TOON + Markdown dual output layers
-- ✅ **Framework Mappings** — NIST AI 600-1, OWASP LLM Top 10, MITRE ATLAS
+- ✅ **Framework Mappings** — NIST AI 600-1, OWASP LLM Top 10, MITRE ATLAS, **ISO/IEC 42001:2023** (Annex A controls)
 - ✅ **Severity Classification** — All 43 patterns mapped to CRITICAL/HIGH/MEDIUM/LOW
 - ✅ **Zero Overhead** — Reports omitted on clean pages (no findings)
 - ✅ **31 New Tests** - Threat reporting test coverage (232 total tests)
@@ -1549,6 +1549,16 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - ✅ **Security Preserved** — Sanitizer runs on ALL formats unchanged
 - ✅ **Published to npm** - Available as `visus-mcp@0.6.0`
 
+**v0.7.0 Achievements:**
+- ✅ **Human-in-the-Loop Elicitation** — MCP elicitation for CRITICAL threat user confirmation
+- ✅ **Three-Action Response Model** — Accept, decline, cancel with threat report option
+- ✅ **Fail-Safe Behavior** — Elicitation errors always proceed with sanitized content
+- ✅ **Integration in All Tools** — fetch, fetch_structured, read, search
+- ✅ **30 New Tests** - HITL gate and elicit-runner test coverage (276 total tests)
+- ✅ **Zero Regressions** - All existing tests continue to pass
+- ✅ **Security Model Preserved** — Sanitization is the gate, HITL is UX layer
+- ✅ **Ready for npm** - Implementation complete, pending publication
+
 **Technical Challenges Overcome:**
 - Phase 1: iCloud file locks, SSL certificate verification, structured extraction
 - Phase 2: TypeScript DOM types in Node.js context, CDK ESM/CommonJS module conflicts, browser singleton management
@@ -1557,12 +1567,13 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 - v0.4.0: DuckDuckGo API response structure, nested Topics handling, search result aggregation
 - v0.5.0: TOON library Jest ESM compatibility (resolved with manual fallback format)
 - v0.6.0: Content-Type header extraction from undici responses, RSS/Atom feed parsing, format-specific conversion pipeline integration
+- v0.7.0: MCP elicitation API integration, flat primitive schema constraints, fail-safe error handling design
 
 **Deployment Complete:**
 - ✅ CDK stack deployed successfully to us-east-1
 - ✅ Lambda function operational (100% success rate)
 - ✅ API Gateway endpoint live and responding
-- ✅ All smoke tests passing (3/3 Lambda + 232/232 npm tests)
+- ✅ All smoke tests passing (3/3 Lambda + 246/246 npm tests)
 - ✅ Zero regressions from Phase 1/2
 - ✅ Auth enforcement validated (22/22 tests, 2 findings documented)
 
@@ -1573,9 +1584,9 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ---
 
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-03-24
 **Build:** SUCCESS ✅
-**Tests:** 246/246 PASSING ✅
+**Tests:** 276/276 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
@@ -1583,8 +1594,9 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **v0.3.1:** ✅ PUBLISHED TO NPM (Security Hardening - 2 findings resolved)
 **v0.3.2:** ✅ PUBLISHED TO NPM (Reader Mode Feature - 14 tests added)
 **v0.4.0:** ✅ PUBLISHED TO NPM (Safe Web Search Feature - 18 tests added)
-**v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting - 31 tests added)
+**v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting + ISO/IEC 42001 - 31 tests added)
 **v0.6.0:** ✅ PUBLISHED TO NPM (Content-Type Format Detection - 14 tests added)
+**v0.7.0:** ✅ COMPLETE (HITL Elicitation Bridge for CRITICAL threats - 30 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
 **Latest Release:** v0.6.0 (2026-03-23)
