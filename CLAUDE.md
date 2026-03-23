@@ -71,6 +71,9 @@ npm publish --dry-run # Validate package before publishing
 npx visus-mcp         # Start MCP server
 ```
 
+**IMPORTANT: On every npm release, keep `server.json` version in sync with `package.json` version.**
+The MCP registry requires that the version field in `server.json` matches the published npm package version.
+
 ## Coding Standards (Lateos Conventions)
 
 - **TypeScript strict mode** - No `any` types allowed
