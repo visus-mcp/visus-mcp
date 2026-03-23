@@ -3,16 +3,19 @@
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
 [![tests](https://img.shields.io/badge/tests-246%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
-[![security](https://img.shields.io/badge/security-NIST%20%7C%20OWASP%20%7C%20MITRE-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
+[![security](https://img.shields.io/badge/frameworks-NIST%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
+[![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 
-> **Every MCP browser tool passes raw web content to your LLM.**
-> **Visus doesn't. Sanitization is non-negotiable.**
+> **Your AI agent shouldn't have to read garbage.**
+> **visus-mcp makes sure it doesn't.**
 
-**Visus-MCP is the only public MCP browser tool that mandatorily sanitizes every webpage before it reaches your LLM** — blocking 43 classes of prompt injection, redacting PII locally (even in cloud mode), and generating structured threat reports aligned to OWASP LLM Top 10, NIST AI 600-1, and MITRE ATLAS.
+When your agent fetches a webpage it reads everything — nav bars, cookie banners, tracking scripts, ads, SEO spam. Every token costs money. Some pages also embed hidden instructions designed to manipulate your agent's behaviour.
 
-Unlike Firecrawl, Playwright-MCP, and ScrapeGraphAI — sanitization cannot be bypassed or opted out of. Every tool invocation, every format, every time.
+Claude handles most of it. But it still has to read all of it first. You still pay for every token.
 
-Built for agents handling untrusted web content in healthcare, finance, and enterprise environments.
+**visus-mcp is a pre-filter.** It strips the noise before a single character enters Claude's context window — reducing token consumption on bloated pages by up to 70%, redacting PII before it enters conversation history, and producing a compliance-grade audit log when it finds something worth flagging.
+
+Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
 npx visus-mcp@0.6.0
 ```
@@ -21,23 +24,30 @@ npx visus-mcp@0.6.0
 
 ---
 
-## The Problem with Other Tools
+## Why Your Agent Is Reading Too Much
 
-Popular MCP browser tools like Firecrawl, Playwright MCP, and ScrapeGraphAI pass untrusted web content directly to your LLM without sanitization. This creates a **critical security vulnerability**:
+A typical news article: **12,000 tokens** of raw HTML.
+The actual article content: **~800 tokens**.
 
-- **Prompt injection attacks** can manipulate AI behavior
-- **Personal identifiable information (PII)** can leak into conversation logs
-- **Malicious instructions** hidden in web pages can compromise your AI agent
+You're paying for the nav bar. The footer. The cookie banner. The analytics scripts. The related articles sidebar. The ads.
 
-Visus solves this by treating **every web page as untrusted input** and sanitizing it before your LLM sees it.
+visus-mcp fetches the same page and delivers:
+- **visus_read** — article content only via Mozilla Readability (~70% token reduction on content-heavy pages)
+- **visus_fetch** — full page with noise stripped and format-converted (JSON/XML/RSS auto-detected)
+- **visus_search** — sanitized DuckDuckGo results, SEO spam removed before it hits context
+
+**Real example from today:** fetching npmjs.com/package/visus-mcp returned 149,589 bytes raw. visus-mcp delivered 44,129 bytes to Claude. Same information. 70% fewer tokens.
+
+**And when a page is actively trying to manipulate your agent** — hidden instructions, obfuscated scripts, role hijacking attempts — visus strips those too and logs them in a structured compliance report. Not because Claude can't handle them. Because your agent shouldn't have to spend tokens reading attack attempts in the first place.
 
 ---
 
 ## How Visus Works
 
 ```
-User provides URL → Playwright Fetch → Injection Sanitizer (43 patterns) →
-PII Redactor → Clean Content → Claude via MCP
+URL → Playwright Render → Format Detection (HTML/JSON/XML/RSS)
+→ Reader Extraction (optional) → Injection Sanitizer (43 patterns)
+→ PII Redactor → Token Ceiling (24k cap) → Clean Content → Claude
 ```
 
 ### Security Pipeline
@@ -45,9 +55,9 @@ PII Redactor → Clean Content → Claude via MCP
 1. **Browser Rendering**: Headless Chromium via Playwright fetches the page
 2. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
 3. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
-4. **Clean Delivery**: Only sanitized content reaches your LLM
+4. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a compliance report attached if anything was flagged
 
-**This pipeline cannot be bypassed.** Every tool invocation runs content through the full sanitizer.
+**This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, and generating audit logs when injection patterns are detected.
 
 ---
 
@@ -303,11 +313,12 @@ A formatted Markdown table renders cleanly in Claude Desktop and GitHub, showing
 
 ### Framework Alignments
 
-Every detected threat is mapped to three compliance frameworks:
+Every detected threat is mapped to four compliance frameworks:
 
 - **[OWASP LLM Top 10 (2025)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)**: Industry-standard LLM security risks
 - **[NIST AI 600-1](https://csrc.nist.gov/pubs/ai/600/1/final)**: Generative AI Profile for risk management
 - **[MITRE ATLAS](https://atlas.mitre.org/)**: Adversarial Threat Landscape for AI Systems
+- **[ISO/IEC 42001:2023](https://www.iso.org/standard/81230.html)**: International AI Management System standard — Annex A controls for AI system security, data quality, and responsible AI governance. Globally recognized for enterprise and regulatory procurement.
 
 ### When Reports Are Generated
 
@@ -315,6 +326,32 @@ Threat reports are included in tool responses **only when findings exist**:
 - ✅ Injections detected → Report included
 - ✅ PII redacted → Report included
 - ❌ Clean content → Report omitted (zero overhead)
+
+### Human-in-the-Loop Security
+
+When Visus detects a **CRITICAL** severity threat, it pauses execution and surfaces a confirmation dialog before returning content:
+
+```
+⚠️ Visus blocked a CRITICAL threat on this page.
+
+2 injection attempt(s) detected on: https://malicious.example.com
+
+Highest severity finding: role_hijacking
+(LLM01:2025 | AML.T0051.000)
+
+Content has been sanitized. Proceed with clean version?
+
+[ ✓ Proceed with sanitized content ]  [ ✓ Include threat report ]
+```
+
+**Three outcomes:**
+- **Accept** → Sanitized content delivered, threat report attached if requested
+- **Decline** → Request blocked, threat details returned for review
+- **No response / timeout** → Sanitized content delivered (fail-safe)
+
+**Important:** HITL triggers only on CRITICAL findings. HIGH/MEDIUM/LOW findings are sanitized silently with threat report attached — no interruption to workflow.
+
+**Security model:** Sanitization is the security gate. HITL is UX. Content is ALWAYS sanitized before reaching the LLM, whether or not you accept the elicitation prompt.
 
 ### Example Threat Report
 
@@ -326,7 +363,7 @@ When a HIGH severity injection is detected:
 **Generated:** 2026-03-23T14:30:00.000Z
 **Source:** https://malicious.example.com
 **Overall Severity:** HIGH
-**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS
+**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS | ISO/IEC 42001
 
 ### Findings Summary
 | Severity | Count |
@@ -711,7 +748,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 43 injection patterns, 122/122 passing tests
+- **Validated Patterns**: 43 injection patterns, 274/274 passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
@@ -765,7 +802,7 @@ npm start
 | Version | Status | Highlights |
 |---|---|---|
 | v0.6.0 | ✅ Current | Content-Type detection (JSON/XML/RSS) |
-| v0.5.0 | ✅ Released | TOON threat reports, NIST/OWASP/MITRE |
+| v0.5.0 | ✅ Released | TOON threat reports, NIST/OWASP/MITRE/ISO42001 |
 | v0.4.0 | ✅ Released | Safe DuckDuckGo search |
 | v0.3.2 | ✅ Released | Reader mode (Mozilla Readability) |
 | v0.3.1 | ✅ Released | Security hardening, 100% compliance |
@@ -773,9 +810,9 @@ npm start
 
 **Phase 3 — Anthropic MCP Directory submission in progress.**
 
-Roadmap: `visus_report` PDF export · ISO/IEC 42001 mapping ·
-Docker image · `visus-file-mcp` (document sanitization) ·
-Chrome extension for authenticated pages
+Roadmap: `visus_report` PDF export · Docker image ·
+`visus-file-mcp` (document sanitization) ·
+Chrome extension for authenticated pages (LinkedIn, X, dashboards)
 
 ---
 
@@ -793,7 +830,7 @@ Report vulnerabilities: **security@lateos.ai** or [GitHub Security](https://gith
 
 MIT License
 
-Copyright (c) 2024 Lateos (Leo Chongolnee)
+Copyright (c) 2026 Lateos (Leo Chongolnee)
 
 ---
 
@@ -806,6 +843,9 @@ Inspired by the MCP ecosystem and informed by CISSP/CEH security principles.
 ---
 
 ## FAQ
+
+**Q: Does visus-mcp replace Claude's own safety features?**
+A: No — and it's not trying to. Claude handles most injection attempts natively through its safety training. visus-mcp is a pre-filter that runs before content enters Claude's context window. The benefit is efficiency: your agent doesn't spend tokens processing noise, ads, tracking scripts, or known injection patterns that would be stripped anyway. Think of it as a pre-processor, not a replacement for model-level safety. The two layers together are more robust than either alone.
 
 **Q: Does Visus slow down web fetching?**
 A: Minimal overhead. Sanitization adds ~50-200ms per page.
