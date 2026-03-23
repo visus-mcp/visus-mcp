@@ -1,9 +1,131 @@
 # Visus MCP - Project Status
 
 **Generated:** 2026-03-23
-**Version:** 0.6.0
+**Version:** 0.7.0 (in development)
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** ✅ **v0.6.0 PUBLISHED** - Content-Type Format Detection
+**Status:** 🚧 **v0.7.0 IN DEVELOPMENT** - Human-in-the-Loop Elicitation Bridge
+
+---
+
+## v0.7.0 Development - Human-in-the-Loop Elicitation Bridge for CRITICAL Threats
+
+**Status:** 🚧 IN DEVELOPMENT
+**Type:** Security enhancement + UX feature
+**Started:** 2026-03-23
+
+### New Features
+
+**🎯 HITL (Human-in-the-Loop) Elicitation for CRITICAL Threats**
+
+Adds user confirmation dialogs via MCP elicitation when CRITICAL severity threats are detected, turning silent sanitization events into active security gates.
+
+**Key Features:**
+- ✅ MCP elicitation integration using `server.elicitInput()`
+- ✅ Triggers only on CRITICAL severity findings (HIGH/MEDIUM/LOW silent)
+- ✅ Three-action response model: accept, decline, cancel
+- ✅ Fail-safe behavior: elicitation errors always proceed with sanitized content
+- ✅ User choice to include/exclude threat report in response
+- ✅ Flat primitive schema (no nested objects per MCP spec)
+- ✅ Comprehensive test coverage (2 new test files)
+
+**HITL Trigger Conditions:**
+- Overall severity must be CRITICAL
+- Total findings must be > 0
+- Only ONE elicitation per tool call (MCP spec constraint)
+
+**User Experience:**
+When a CRITICAL threat is detected:
+```
+⚠️ Visus blocked a CRITICAL threat on this page.
+
+2 injection attempt(s) detected on: https://malicious.example.com
+
+Highest severity finding: role_hijacking
+(LLM01:2025 | AML.T0051.000)
+
+Content has been sanitized. Proceed with clean version?
+
+[ Proceed with sanitized content ] [ Include threat report ]
+```
+
+**Three Outcomes:**
+1. **Accept** → Sanitized content delivered, threat report included if requested
+2. **Decline** → Request blocked, `blocked: true` response with threat details for review
+3. **Timeout / Error** → Sanitized content delivered (fail-safe)
+
+**Security Model:**
+- Sanitization is the security gate (content ALWAYS sanitized)
+- HITL is UX (provides visibility and user choice)
+- Fail-safe behavior ensures content never blocked due to elicitation failure
+- No sensitive data requested via elicitation (MCP best practice)
+
+**Technical Implementation:**
+
+**New Components:**
+1. **src/sanitizer/hitl-gate.ts** - Decision logic and message builder
+   - `shouldElicit(threatReport)` - Returns true only for CRITICAL severity
+   - `buildElicitMessage(threatReport, url)` - Generates user-facing message
+   - `ElicitSchema` - Flat primitive schema for MCP elicitation
+
+2. **src/sanitizer/elicit-runner.ts** - Elicitation execution with fail-safe
+   - `runElicitation(server, threatReport, url)` - Executes MCP elicitation
+   - Comprehensive error handling (timeout, unsupported client, network errors)
+   - Returns `{ proceed: boolean, includeReport: boolean }`
+
+**Modified Files:**
+- `src/index.ts` - Added `handleCriticalThreatElicitation()` helper
+  - Integrated into all four tool handlers (fetch, fetch_structured, read, search)
+  - Elicitation runs AFTER tool completion, BEFORE response to client
+  - For `visus_search`, uses query as "URL" in elicitation message
+
+**Test Coverage:**
+
+New test files:
+- `tests/hitl-gate.test.ts` - 15 tests covering:
+  - `shouldElicit` returns true for CRITICAL with findings
+  - `shouldElicit` returns false for HIGH, MEDIUM, LOW, CLEAN
+  - `shouldElicit` returns false for null report
+  - `shouldElicit` returns false for CRITICAL with zero findings
+  - `buildElicitMessage` contains URL and finding count
+  - `buildElicitMessage` is under 300 characters
+  - `buildElicitMessage` contains top category and framework IDs
+  - `buildElicitMessage` handles empty findings gracefully
+  - `ElicitSchema` has flat primitive properties only
+  - `ElicitSchema` required array contains 'proceed'
+
+- `tests/elicit-runner.test.ts` - 15 tests covering:
+  - Returns proceed:true when user accepts with proceed:true
+  - Returns proceed:false when user accepts with proceed:false
+  - Returns proceed:false on decline action
+  - Returns proceed:false on cancel action
+  - Includes report when user checks view_report
+  - Excludes report when user unchecks view_report
+  - Defaults to including report when view_report undefined
+  - Fail-safe: proceeds on elicitation error
+  - Fail-safe: proceeds on timeout
+  - Fail-safe: proceeds on unknown action
+
+**Test Results:** 🚧 TBD (full test suite run pending)
+
+**README Documentation:**
+- Added "Human-in-the-Loop Security" section after "When Reports Are Generated"
+- Documented three outcomes (accept, decline, timeout)
+- Clarified security model (sanitization is the gate, HITL is UX)
+- Included example elicitation dialog
+
+**Dependencies:**
+- No new dependencies added (uses existing @modelcontextprotocol/sdk@^1.27.1)
+
+**SDK Elicitation API Used:**
+- `server.elicitInput(params, options)` returns `Promise<ElicitResult>`
+- `ElicitResult.action`: "accept" | "decline" | "cancel"
+- `ElicitResult.content`: Optional<Record<string, primitive>>
+- CRITICAL constraint: Only ONE elicitation per tool call (spec limit)
+
+**Future Enhancements:**
+- Task-augmented elicitation for long-running flows (experimental feature)
+- URL-based elicitation mode for external auth flows
+- Multi-step elicitation for complex user decisions
 
 ---
 
@@ -144,10 +266,11 @@ When prompt injection or PII is detected, Visus now automatically generates stru
 **Key Features:**
 - ✅ TOON-formatted findings array (token-efficient, machine-readable)
 - ✅ Markdown compliance report (human-readable, renders in Claude Desktop)
-- ✅ Three framework alignments: OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS
+- ✅ Four framework alignments: OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS, ISO/IEC 42001
 - ✅ Severity classification (CRITICAL, HIGH, MEDIUM, LOW, CLEAN)
 - ✅ Zero overhead for clean pages (report omitted when no findings)
 - ✅ Aggregated reporting across multiple results (search, structured extraction)
+- ✅ ISO/IEC 42001:2023 Annex A framework mapping added
 - ✅ 31 new tests (232 total, all passing)
 - ✅ Zero regressions - all existing tests continue to pass
 
@@ -170,6 +293,7 @@ When prompt injection or PII is detected, Visus now automatically generates stru
 - **OWASP LLM Top 10 (2025)**: Industry-standard LLM security risks
 - **NIST AI 600-1**: Generative AI Profile for risk management
 - **MITRE ATLAS**: Adversarial Threat Landscape for AI Systems
+- **ISO/IEC 42001:2023**: International AI Management System standard (Annex A controls)
 
 **Severity Classification:**
 All 43 injection patterns mapped to severity levels:

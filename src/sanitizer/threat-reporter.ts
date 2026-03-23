@@ -35,6 +35,7 @@ export interface ThreatFinding {
   owasp_llm: string;
   nist_ai_600_1: string;
   mitre_atlas: string;
+  iso_42001: string;
   remediation: string;
 }
 
@@ -103,6 +104,7 @@ function buildFindings(patternsDetected: string[]): ThreatFinding[] {
       owasp_llm: frameworks.owasp_llm,
       nist_ai_600_1: frameworks.nist_ai_600_1,
       mitre_atlas: frameworks.mitre_atlas,
+      iso_42001: frameworks.iso_42001,
       remediation: `Content sanitized. ${category.replace(/_/g, ' ')} removed.`
     };
   });
@@ -124,9 +126,9 @@ function generateToonFindings(findings: ThreatFinding[]): string {
  * Fallback manual TOON format generation
  */
 function generateManualToonFormat(findings: ThreatFinding[]): string {
-  const header = `findings[${findings.length}]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,mitre_atlas,remediation}:`;
+  const header = `findings[${findings.length}]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,mitre_atlas,iso_42001,remediation}:`;
   const rows = findings.map(f =>
-    `${f.id},${f.pattern_id},${f.category},${f.severity},${f.confidence},${f.owasp_llm},${f.nist_ai_600_1},${f.mitre_atlas},${f.remediation}`
+    `${f.id},${f.pattern_id},${f.category},${f.severity},${f.confidence},${f.owasp_llm},${f.nist_ai_600_1},${f.mitre_atlas},${f.iso_42001},${f.remediation}`
   );
   return `${header}\n${rows.join('\n')}`;
 }
@@ -149,7 +151,7 @@ function generateMarkdownReport(
   markdown += `**Generated:** ${timestamp}\n`;
   markdown += `**Source:** ${sourceUrl}\n`;
   markdown += `**Overall Severity:** ${overallSeverity}\n`;
-  markdown += `**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS\n\n`;
+  markdown += `**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS | ISO/IEC 42001\n\n`;
 
   // Findings Summary
   markdown += '### Findings Summary\n';
@@ -163,15 +165,16 @@ function generateMarkdownReport(
   // Findings Detail (only if we have findings)
   if (findings.length > 0) {
     markdown += '### Findings Detail\n';
-    markdown += '| # | Category | Severity | Confidence | OWASP | MITRE |\n';
-    markdown += '|---|---|---|---|---|---|\n';
+    markdown += '| # | Category | Severity | Confidence | OWASP | MITRE | ISO 42001 |\n';
+    markdown += '|---|---|---|---|---|---|---|\n';
 
     for (const finding of findings.slice(0, 10)) { // Limit to first 10 for readability
       const confidencePct = Math.round(finding.confidence * 100);
       const owaspShort = finding.owasp_llm.split(' - ')[0]; // e.g., "LLM01:2025"
       const mitreShort = finding.mitre_atlas.split(' - ')[0]; // e.g., "AML.T0051.000"
+      const isoShort = finding.iso_42001.split(' - ')[0]; // e.g., "A.6.1.5"
 
-      markdown += `| ${finding.id} | ${finding.category} | ${finding.severity} | ${confidencePct}% | ${owaspShort} | ${mitreShort} |\n`;
+      markdown += `| ${finding.id} | ${finding.category} | ${finding.severity} | ${confidencePct}% | ${owaspShort} | ${mitreShort} | ${isoShort} |\n`;
     }
 
     if (findings.length > 10) {
@@ -253,7 +256,8 @@ export function generateThreatReport(input: ThreatReportInput): ThreatReport | n
     frameworks: [
       'OWASP LLM Top 10',
       'NIST AI 600-1',
-      'MITRE ATLAS'
+      'MITRE ATLAS',
+      'ISO/IEC 42001'
     ],
     findings_toon: toonFindings,
     report_markdown: markdownReport

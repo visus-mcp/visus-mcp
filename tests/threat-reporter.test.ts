@@ -134,7 +134,7 @@ describe('Threat Reporter', () => {
       }
     });
 
-    it('should include all three frameworks', () => {
+    it('should include all four frameworks', () => {
       const result = generateThreatReport({
         patterns_detected: ['role_hijacking'],
         pii_redacted: 0,
@@ -146,6 +146,7 @@ describe('Threat Reporter', () => {
         expect(result.frameworks).toContain('OWASP LLM Top 10');
         expect(result.frameworks).toContain('NIST AI 600-1');
         expect(result.frameworks).toContain('MITRE ATLAS');
+        expect(result.frameworks).toContain('ISO/IEC 42001');
       }
     });
 
@@ -247,6 +248,7 @@ describe('Threat Reporter', () => {
       expect(mappings.owasp_llm).toContain('LLM01:2025');
       expect(mappings.nist_ai_600_1).toContain('MS-2.5');
       expect(mappings.mitre_atlas).toContain('AML.T0051');
+      expect(mappings.iso_42001).toBe('A.6.1.5 - AI System Security (Adversarial Input)');
     });
 
     it('should map data_exfiltration to correct frameworks', () => {
@@ -254,6 +256,7 @@ describe('Threat Reporter', () => {
       expect(mappings.owasp_llm).toContain('LLM02:2025');
       expect(mappings.nist_ai_600_1).toContain('MS-2.6');
       expect(mappings.mitre_atlas).toContain('AML.T0048');
+      expect(mappings.iso_42001).toContain('A.7.5');
     });
 
     it('should return default mappings for unknown pattern', () => {
@@ -261,6 +264,71 @@ describe('Threat Reporter', () => {
       expect(mappings.owasp_llm).toContain('LLM01:2025');
       expect(mappings.nist_ai_600_1).toContain('MS-2.5');
       expect(mappings.mitre_atlas).toContain('AML.T0051');
+      expect(mappings.iso_42001).toBe('A.6.1.5 - AI System Security');
+    });
+
+    it('should have ISO 42001 mapping for all 43 patterns', () => {
+      // List of all 43 patterns from injection corpus
+      const allPatterns = [
+        'direct_instruction_injection', 'role_hijacking', 'system_prompt_extraction',
+        'privilege_escalation', 'context_poisoning', 'data_exfiltration',
+        'base64_obfuscation', 'unicode_lookalikes', 'zero_width_characters',
+        'html_script_injection', 'data_uri_injection', 'markdown_link_injection',
+        'url_fragment_hashjack', 'social_engineering_urgency', 'instruction_delimiter_injection',
+        'multi_language_obfuscation', 'reverse_text_obfuscation', 'leetspeak_obfuscation',
+        'jailbreak_keywords', 'token_smuggling', 'system_message_injection',
+        'conversation_reset', 'memory_manipulation', 'capability_probing',
+        'chain_of_thought_manipulation', 'hypothetical_scenario_injection', 'ethical_override',
+        'output_format_manipulation', 'negative_instruction', 'credential_harvesting',
+        'time_based_triggers', 'code_execution_requests', 'file_system_access',
+        'training_data_extraction', 'simulator_mode', 'nested_encoding',
+        'payload_splitting', 'css_hiding', 'authority_impersonation',
+        'testing_debugging_claims', 'callback_url_injection', 'whitespace_steganography',
+        'comment_injection'
+      ];
+
+      for (const pattern of allPatterns) {
+        const mappings = getFrameworkMappings(pattern);
+        expect(mappings.iso_42001).toBeTruthy();
+        expect(mappings.iso_42001.length).toBeGreaterThan(0);
+        expect(mappings.iso_42001).toMatch(/^A\.\d+/); // Should start with A.X (Annex A format)
+      }
+    });
+
+    it('should include ISO 42001 column in Markdown report', () => {
+      const result = generateThreatReport({
+        patterns_detected: ['role_hijacking'],
+        pii_redacted: 0,
+        source_url: 'https://test.example.com'
+      });
+
+      expect(result).not.toBeNull();
+      if (result) {
+        const md = result.report_markdown;
+        expect(md).toContain('ISO 42001');
+        expect(md).toContain('ISO/IEC 42001');
+      }
+    });
+
+    it('should have 10 fields in TOON header', () => {
+      const result = generateThreatReport({
+        patterns_detected: ['role_hijacking'],
+        pii_redacted: 0,
+        source_url: 'https://test.example.com'
+      });
+
+      expect(result).not.toBeNull();
+      if (result) {
+        const toon = result.findings_toon;
+        // TOON header should have 10 fields: id, pattern_id, category, severity, confidence, owasp_llm, nist_ai_600_1, mitre_atlas, iso_42001, remediation
+        expect(toon).toMatch(/findings\[\d+\]\{[^}]+\}/);
+        const headerMatch = toon.match(/findings\[\d+\]\{([^}]+)\}/);
+        if (headerMatch) {
+          const fields = headerMatch[1].split(',');
+          expect(fields.length).toBe(10);
+          expect(fields).toContain('iso_42001');
+        }
+      }
     });
   });
 });

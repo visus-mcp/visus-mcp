@@ -31,6 +31,9 @@ import { visusRead, visusReadToolDefinition } from './tools/read.js';
 import { visusSearch, visusSearchToolDefinition } from './tools/search.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
+import { shouldElicit } from './sanitizer/hitl-gate.js';
+import { runElicitation } from './sanitizer/elicit-runner.js';
+import type { ThreatReport } from './sanitizer/threat-reporter.js';
 
 /**
  * Create and configure the MCP server
@@ -38,7 +41,7 @@ import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.2.0'
+    version: '0.6.0'
   },
   {
     capabilities: {
@@ -62,6 +65,50 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 /**
+ * Helper function to handle HITL elicitation for CRITICAL threats
+ *
+ * Returns modified output with threat_report removed if user declined,
+ * or blocked response if user declined to proceed.
+ */
+async function handleCriticalThreatElicitation(
+  output: any,
+  url: string
+): Promise<{ output: any; blocked: boolean }> {
+  const threatReport = output.threat_report as ThreatReport | undefined;
+
+  // Check if elicitation is needed
+  if (shouldElicit(threatReport ?? null)) {
+    const { proceed, includeReport } = await runElicitation(
+      server,
+      threatReport!,
+      url
+    );
+
+    if (!proceed) {
+      // User declined — return blocked response with threat report
+      return {
+        output: {
+          url,
+          blocked: true,
+          reason: 'User declined to proceed after CRITICAL threat detected',
+          threat_report: threatReport
+        },
+        blocked: true
+      };
+    }
+
+    // User accepted — proceed with sanitized content
+    // Remove threat_report if user didn't request it
+    if (!includeReport && output.threat_report) {
+      const { threat_report, ...outputWithoutReport } = output;
+      return { output: outputWithoutReport, blocked: false };
+    }
+  }
+
+  return { output, blocked: false };
+}
+
+/**
  * Handle tool execution requests
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -79,11 +126,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
 
+        // Handle HITL elicitation for CRITICAL threats
+        const { output } = await handleCriticalThreatElicitation(
+          result.value,
+          (args as any).url
+        );
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result.value, null, 2)
+              text: JSON.stringify(output, null, 2)
             }
           ]
         };
@@ -99,11 +152,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
 
+        // Handle HITL elicitation for CRITICAL threats
+        const { output } = await handleCriticalThreatElicitation(
+          result.value,
+          (args as any).url
+        );
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result.value, null, 2)
+              text: JSON.stringify(output, null, 2)
             }
           ]
         };
@@ -119,11 +178,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
 
+        // Handle HITL elicitation for CRITICAL threats
+        const { output } = await handleCriticalThreatElicitation(
+          result.value,
+          (args as any).url
+        );
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result.value, null, 2)
+              text: JSON.stringify(output, null, 2)
             }
           ]
         };
@@ -139,11 +204,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           );
         }
 
+        // Handle HITL elicitation for CRITICAL threats
+        // For search, use the query as the "URL" in the elicitation message
+        const { output } = await handleCriticalThreatElicitation(
+          result.value,
+          `search: ${(args as any).query}`
+        );
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result.value, null, 2)
+              text: JSON.stringify(output, null, 2)
             }
           ]
         };
@@ -181,7 +253,7 @@ async function startMcpServer() {
     timestamp: new Date().toISOString(),
     event: 'mcp_server_started',
     name: 'visus-mcp',
-    version: '0.2.0',
+    version: '0.6.0',
     tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
   }));
 

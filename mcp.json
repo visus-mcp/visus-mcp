@@ -1,0 +1,44 @@
+{
+  "name": "visus-mcp",
+  "displayName": "Visus — Secure Web Access",
+  "version": "0.6.0",
+  "status": "active",
+  "tier": "open-source",
+  "phase": "1",
+  "description": "Security-first web access for Claude. Strips prompt injection attacks, redacts PII, and reduces token consumption by up to 70% before content enters your context window.",
+  "longDescription": "Visus is a pre-filter MCP server that sanitizes web content before it reaches Claude. It detects 43 categories of prompt injection patterns (mapped to OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS, and ISO/IEC 42001:2023), redacts PII (email, phone, SSN, CC, IP), and uses Mozilla Readability to strip nav bars, ads, and boilerplate — reducing token consumption by up to 70% on content-heavy pages.",
+  "author": "Leo Chongolnee",
+  "license": "MIT",
+  "homepage": "https://github.com/visus-mcp/visus-mcp",
+  "repository": "https://github.com/visus-mcp/visus-mcp",
+  "categories": ["web-fetch", "security", "search", "productivity"],
+  "tags": ["prompt-injection", "pii-redaction", "web-scraping", "token-optimization", "security", "duckduckgo"],
+  "install": {
+    "type": "npx",
+    "command": "npx visus-mcp",
+    "note": "No API key required. Open-source tier is fully functional out of the box."
+  },
+  "tools": [
+    {
+      "name": "visus_fetch",
+      "description": "Fetch and sanitize a web page with automatic format detection (HTML/JSON/XML/RSS). Includes threat report when injection or PII is detected."
+    },
+    {
+      "name": "visus_read",
+      "description": "Extract clean article content using Mozilla Readability (~70% token reduction). Strips nav, ads, and boilerplate."
+    },
+    {
+      "name": "visus_search",
+      "description": "Search the web via DuckDuckGo with injection and PII sanitization applied to all results before they reach the LLM."
+    },
+    {
+      "name": "visus_fetch_structured",
+      "description": "Extract structured data from a web page according to a user-defined schema. All fields are independently sanitized."
+    }
+  ],
+  "security": {
+    "frameworks": ["OWASP LLM Top 10 2025", "NIST AI 600-1", "MITRE ATLAS", "ISO/IEC 42001:2023"],
+    "injectionPatterns": 43,
+    "piiTypes": ["email", "phone", "ssn", "creditCard", "ipAddress"]
+  }
+}

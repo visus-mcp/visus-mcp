@@ -1,7 +1,7 @@
 {
   "name": "visus-mcp",
   "version": "0.6.0",
-  "description": "Secure, sanitized web access for Claude. Detects prompt injection (43 patterns), redacts PII, renders JavaScript pages, generates NIST AI 600-1 / OWASP / MITRE ATLAS threat reports, and auto-detects JSON/XML/RSS content types.",
+  "description": "Security-first MCP server. Sanitizes web content before it reaches your LLM — strips prompt injection, redacts PII, and reduces token consumption by up to 70%.",
   "main": "dist/index.js",
   "bin": {
     "visus-mcp": "dist/index.js"
@@ -25,15 +25,14 @@
   "keywords": [
     "mcp",
     "claude",
-    "web-scraping",
+    "web-fetch",
     "security",
     "prompt-injection",
-    "ai-safety",
-    "lateos",
-    "sanitization",
-    "pii-redaction"
+    "pii-redaction",
+    "anthropic"
   ],
-  "author": "Leo Chongolnee (Lateos)",
+  "author": "Roongrunchai Chongolnee <contact@lateos.ai>",
+  "homepage": "https://github.com/visus-mcp/visus-mcp",
   "license": "MIT",
   "engines": {
     "node": ">=18"

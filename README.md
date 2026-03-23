@@ -2,6 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
 [![tests](https://img.shields.io/badge/tests-246%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-4-blue)](https://github.com/visus-mcp/visus-mcp)
+[![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
 [![security](https://img.shields.io/badge/frameworks-NIST%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
@@ -103,11 +105,16 @@ npx visus-mcp
 
 ### Claude Desktop Configuration
 
-Visus supports three rendering backends:
+> [!NOTE]
+> **No API key required.** The open-source tier works out of the box with `npx visus-mcp`.
+> Sanitization always runs locally — web content never reaches Lateos infrastructure
+> unless you explicitly configure the managed renderer URL.
 
-**Example 1 — Phase 1 (Default, No Lambda):**
+Visus supports three deployment tiers:
 
-Basic configuration using undici HTTP fetch (no JavaScript execution):
+**Tier 1 — Open Source / Default (No env vars required):**
+
+Uses Playwright locally with full JavaScript support. Works immediately, zero configuration:
 
 ```json
 {
@@ -120,9 +127,11 @@ Basic configuration using undici HTTP fetch (no JavaScript execution):
 }
 ```
 
-**Example 2 — Managed Tier (Lateos Endpoint):**
+**Tier 2 — Managed / Lateos (Hosted renderer) — Coming Phase 2:**
 
-Use Lateos managed Lambda renderer with Playwright (supports JavaScript, SPAs):
+> [!NOTE]
+> The hosted Lateos renderer is part of Phase 2 and is not yet publicly available.
+> Sign up for early access at [lateos.ai](https://lateos.ai).
 
 ```json
 {
@@ -131,15 +140,16 @@ Use Lateos managed Lambda renderer with Playwright (supports JavaScript, SPAs):
       "command": "npx",
       "args": ["visus-mcp"],
       "env": {
-        "VISUS_RENDERER_URL": "https://renderer.lateos.ai",
-        "NODE_EXTRA_CA_CERTS": "/path/to/system-ca-bundle.pem"
+        "VISUS_RENDERER_URL": "https://renderer.lateos.ai"
       }
     }
   }
 }
 ```
 
-**Example 3 — BYOC (Your Own Lambda):**
+The sanitization pipeline always runs locally. This config simply routes page rendering (JavaScript execution) through a hosted Playwright Lambda instead of local Playwright. Available Phase 2.
+
+**Tier 3 — BYOC (Bring Your Own Cloud):**
 
 Deploy your own Lambda renderer (see [visus-mcp-renderer](https://github.com/visus-mcp/visus-mcp-renderer)):
 
@@ -150,8 +160,7 @@ Deploy your own Lambda renderer (see [visus-mcp-renderer](https://github.com/vis
       "command": "npx",
       "args": ["visus-mcp"],
       "env": {
-        "VISUS_RENDERER_URL": "https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com",
-        "NODE_EXTRA_CA_CERTS": "/path/to/system-ca-bundle.pem"
+        "VISUS_RENDERER_URL": "https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com"
       }
     }
   }
@@ -160,7 +169,7 @@ Deploy your own Lambda renderer (see [visus-mcp-renderer](https://github.com/vis
 
 Replace `YOUR_API_ID` and `YOUR_REGION` with values from your CDK deployment output.
 
-**CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which renderer you use. Rendered HTML is returned to your local visus-mcp process before Claude sees it. PHI never touches Lateos infrastructure (even when using the managed tier).
+**CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which tier you use. Rendered HTML is returned to your local visus-mcp process before Claude sees it. Web content never touches Lateos infrastructure unless you explicitly configure the managed renderer URL.
 
 Restart Claude Desktop. Visus tools are now available to Claude.
 
