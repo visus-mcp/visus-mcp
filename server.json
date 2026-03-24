@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.leochong/visus-mcp",
+  "name": "io.github.visus-mcp/visus-mcp",
   "description": "Security-first web access for Claude. Sanitizes pages, blocks injection, redacts PII.",
   "repository": {
     "url": "https://github.com/visus-mcp/visus-mcp",
