@@ -170,6 +170,7 @@ export class VisusStack extends cdk.Stack {
         externalModules: [
           'playwright-core', // Playwright is huge, will be added via layer
           '@sparticuz/chromium', // Chromium binary
+          '@modelcontextprotocol/sdk', // MCP SDK only needed for stdio mode, not Lambda
         ],
       },
     });

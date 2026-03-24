@@ -106,6 +106,8 @@ All tests must pass before Phase 1 is complete.
 - 43 injection payloads (one per pattern category)
 - 10 clean pages/content samples (should produce no detections)
 
+---
+
 ## Standard Troubleshooting Protocol
 
 Whenever you encounter an error, blocked deployment, or multi-step recovery task, you MUST generate a structured troubleshooting log automatically. This is not optional — it applies to every build, fix, and diagnostic task in this project.
@@ -121,6 +123,62 @@ Save to project root. Examples:
 - `TROUBLESHOOT-LAMBDA-20260314-0900.md`
 - `TROUBLESHOOT-SLIM-20260314-0629.md`
 
+### Log Structure
+
+Every troubleshooting log MUST follow this three-phase structure:
+
+#### Phase 1: Investigation (read-only)
+No changes to code or infrastructure. Gather facts, reproduce the error, read logs.
+Only advance to Phase 2 after root cause is confirmed or a clear hypothesis is formed.
+
+#### Phase 2: Fix Plan
+Write out the proposed fix and alternatives considered. Do NOT execute yet.
+If root cause shifts during Phase 2, return to Phase 1.
+
+#### Phase 3: Execution
+Implement the fix. Log every action. Update the SUMMARY at the end.
+
+---
+
+### Stop Conditions (mandatory — check before every action)
+
+If any of the following are true, **STOP immediately**, log the blocker, and wait for user input:
+
+| Condition | Action |
+|-----------|--------|
+| Deployment or build hangs >10 minutes | Kill process, document, ask user for direction |
+| Same error appears >2 times in a row | Stop retrying, propose alternative approach |
+| Root cause shifts away from original task | Re-confirm scope with user before continuing |
+| A tool or service is unavailable (Docker, AWS, etc.) | Document and present options — do not loop |
+| Success criteria cannot be verified | Stop and ask user how to validate |
+
+---
+
+### Environment Pre-flight
+
+Run this checklist before ANY deployment or infrastructure task. Log each result.
+
+```bash
+# AWS credentials
+aws sts get-caller-identity
+
+# Docker health (required for CDK bundling)
+docker info
+
+# Disk space (ENOSPC will cause silent failures)
+df -h /
+
+# CDK version
+npx cdk --version
+
+# Node/npm
+node --version && npm --version
+```
+
+If Docker is unavailable or disk space is low, use the manual Lambda deploy path (see Lambda Deployment below) rather than attempting CDK.
+
+---
+
 ### Entry Format (append after EVERY action)
 
 ```markdown
@@ -133,6 +191,24 @@ Save to project root. Examples:
 **Status:** ✅ Success / ❌ Failed / ⚠️ Partial
 ```
 
+### Ruled Out (maintain throughout session)
+
+Append to this section whenever a suspected cause is eliminated. Prevents re-investigation.
+
+```markdown
+## Ruled Out
+- ❌ <Component>: <one-line reason> — confirmed <date/time>
+```
+
+Example:
+```markdown
+## Ruled Out
+- ❌ Cognito JWT: Auth correctly returns 401 on unauthenticated requests — not the issue
+- ❌ API Gateway routing: Routes confirmed correct in stack outputs — not the issue
+```
+
+---
+
 ### Rules
 
 1. **Log BEFORE executing, not after** — write Goal and Reasoning first
@@ -140,6 +216,25 @@ Save to project root. Examples:
 3. **On failure:** log the full error, state your revised reasoning, attempt one alternative, log that too
 4. **Do not summarize or clean up errors** — paste raw output verbatim
 5. **End every log with a SUMMARY section:** root cause, resolution, lessons learned, and open issues
+6. **Populate "Ruled Out" in real time** — do not re-investigate eliminated causes
+7. **Complete Phase 1 fully before making any changes** — no exceptions
+
+---
+
+### CLAUDE.md Updates Required
+
+At the end of every troubleshooting session, before closing, check whether any findings should be promoted to this file. Add a section to the troubleshoot doc:
+
+```markdown
+## CLAUDE.md Updates Required
+- [ ] <Finding that should become a permanent convention>
+- [ ] <New known error to add to the registry>
+- [ ] <New deployment step or warning>
+```
+
+Then apply those updates to CLAUDE.md as the final step of the session.
+
+---
 
 ### Purpose
 
@@ -155,6 +250,8 @@ Goal: Restore MCP handler Lambda with proper dependency packaging
 
 ---
 
+## Phase 1: Investigation
+
 ## [06:02:18] Step 1 - Locate MCP Handler Source
 
 **Goal:** Find the mcp_handler.py source file in the project
@@ -166,13 +263,106 @@ Goal: Restore MCP handler Lambda with proper dependency packaging
 
 ---
 
+## Ruled Out
+- ❌ IAM permissions: Lambda execution role has correct policies — not the issue
+
+---
+
+## Phase 2: Fix Plan
+...
+
+## Phase 3: Execution
+...
+
+---
+
 # RECOVERY SUMMARY
 
 Final Status: ✅ RESTORED
 Root Cause: Lambda package missing runtime dependencies
 Resolution: Installed aws_lambda_powertools + aws_xray_sdk
 Lessons Learned: Always verify dependencies in Lambda packages
+
+## CLAUDE.md Updates Required
+- [ ] Add aws_lambda_powertools to standard Lambda dependency checklist
 ```
+
+---
+
+## Known Errors Registry
+
+When a root cause is confirmed, add it here. Future sessions check this list first before investigating.
+
+| Error | Root Cause | Fix | Date Confirmed |
+|-------|-----------|-----|----------------|
+| `ERR_MODULE_NOT_FOUND: @modelcontextprotocol/sdk` in Lambda | `index.js` (MCP stdio server) included in Lambda bundle via `package.json` `"main"` field; SDK not bundled | Add `@modelcontextprotocol/sdk` to `externalModules` in `infrastructure/stack.ts` | 2026-03-24 |
+| CDK `docker buildx` hangs indefinitely | Docker resource contention or disk pressure on Apple Silicon Mac | Use manual Lambda deploy script (see below); fix Docker separately | 2026-03-24 |
+| `ENOSPC` on Claude Code startup | Mac disk full; `~/.claude/debug/` write fails | Free disk space; `rm -rf ~/.claude/debug/`; restart | 2026-03-24 |
+
+---
+
+## Lambda Deployment
+
+### Bundling Conventions
+
+**CRITICAL: Always use `--format=cjs` for Lambda bundles.**
+AWS SDK v3 uses dynamic `require()` internally. ESM output from esbuild will fail at Lambda runtime with `ERR_REQUIRE_ESM` or similar. CommonJS is the correct format for all Lambda deployments.
+
+**Always externalize these packages:**
+- `playwright-core` — added via Lambda layer
+- `@sparticuz/chromium` — added via Lambda layer
+- `@modelcontextprotocol/sdk` — only needed for stdio mode, not Lambda
+
+**Entry point must always be `src/lambda-handler.ts`, NOT `src/index.ts`.**
+`index.ts` is the MCP stdio server and imports packages that must not be in the Lambda bundle.
+
+### Manual Deploy Script (use when CDK/Docker is unavailable)
+
+```bash
+#!/bin/bash
+# scripts/deploy-lambda.sh
+# Use this when CDK Docker bundling is blocked
+
+set -e
+
+echo "Building Lambda bundle..."
+npm run build
+
+npx esbuild src/lambda-handler.ts \
+  --bundle \
+  --platform=node \
+  --target=node20 \
+  --format=cjs \
+  --outfile=dist/lambda-bundle.js \
+  --external:playwright-core \
+  --external:@sparticuz/chromium \
+  --external:@modelcontextprotocol/sdk \
+  --sourcemap
+
+echo "Zipping..."
+cd dist && zip -r ../lambda.zip lambda-bundle.js lambda-bundle.js.map && cd ..
+
+echo "Getting function name..."
+FUNCTION_NAME=$(aws cloudformation describe-stacks \
+  --stack-name VisusStack-dev \
+  --query "Stacks[0].Outputs[?OutputKey=='LambdaFunctionName'].OutputValue" \
+  --output text)
+
+echo "Deploying to Lambda: $FUNCTION_NAME"
+aws lambda update-function-code \
+  --function-name "$FUNCTION_NAME" \
+  --zip-file fileb://lambda.zip
+
+echo "Waiting for update..."
+aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+echo "Testing health endpoint..."
+curl -s https://3lsush2fx0.execute-api.us-east-1.amazonaws.com/dev/health | jq .
+
+echo "Done. Check CloudWatch for ERR_MODULE_NOT_FOUND — should be gone."
+```
+
+After using manual deploy, run a full `cdk deploy` when Docker is restored to keep CloudFormation state in sync with live infrastructure.
 
 ---
 
@@ -243,6 +433,8 @@ lateos-visus/
 │   ├── browser/
 │   │   └── playwright-renderer.ts  # Headless Chromium page fetcher
 │   └── types.ts                    # Shared TypeScript interfaces
+├── scripts/
+│   └── deploy-lambda.sh            # Manual Lambda deploy (bypasses CDK/Docker)
 └── tests/
     ├── sanitizer.test.ts
     ├── fetch-tool.test.ts
