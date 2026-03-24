@@ -383,7 +383,7 @@ aws apigateway create-deployment --rest-api-id 3lsush2fx0 --stage-name dev \
 
 # RECOVERY SUMMARY
 
-Final Status: ⚠️ PARTIALLY RESOLVED
+Final Status: ✅ RESOLVED
 Root Cause: Two separate issues
 1. API Gateway stage not redeployed after CDK updates
 2. undici library in Lambda failing SSL certificate validation
@@ -402,11 +402,14 @@ Lessons Learned:
 Verification Status:
 - ✅ Health endpoint working
 - ✅ Lambda function updated with native fetch()
-- ✅ API Gateway redeployed twice (after both fixes)
-- ⚠️ End-to-end authenticated request NOT YET VERIFIED (blocked on token generation)
+- ✅ API Gateway redeployed three times (after both fixes)
+- ✅ **End-to-end authenticated request VERIFIED** - Successfully fetched and sanitized https://www.google.com
+- ✅ Sanitization pipeline working correctly (detected SSN, phone, nested encoding patterns)
+- ✅ DynamoDB audit logging (fire-and-forget pattern working)
 
 ## CLAUDE.md Updates Required
 - [x] Add known error: API Gateway deployment staleness after CDK deploy
 - [x] Document manual redeploy requirement: `aws apigateway create-deployment --rest-api-id <id> --stage-name <stage>`
-- [ ] Add troubleshooting pattern: Always redeploy API Gateway after Lambda updates
-- [ ] Document undici → native fetch migration for Lambda environments
+- [x] Add troubleshooting pattern: Always redeploy API Gateway after Lambda updates
+- [x] Document undici → native fetch migration for Lambda environments
+- [x] Committed all changes with detailed commit message
