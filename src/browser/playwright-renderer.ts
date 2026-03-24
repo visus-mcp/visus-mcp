@@ -9,7 +9,6 @@
  * Lambda to the local process before Claude sees it. PHI never touches Lateos infrastructure.
  */
 
-import { request } from 'undici';
 import type { BrowserRenderResult, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
@@ -99,22 +98,28 @@ async function renderWithLambda(
   try {
     // Retry Lambda calls with exponential backoff (3 attempts)
     const response = await retryWithBackoff(async () => {
-      return await request(`${RENDERER_URL}/render`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url,
-          timeout_ms,
-          content_limit_bytes: 512000, // 500KB default
-        }),
-        bodyTimeout: timeout_ms + 5000, // Add 5s buffer for network overhead
-        headersTimeout: timeout_ms + 5000,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout_ms + 5000);
+
+      try {
+        return await fetch(`${RENDERER_URL}/render`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url,
+            timeout_ms,
+            content_limit_bytes: 512000, // 500KB default
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }, 3, 1000); // 3 retries, starting with 1s delay
 
-    const body = await response.body.json() as LambdaRenderSuccess | LambdaRenderError;
+    const body = await response.json() as LambdaRenderSuccess | LambdaRenderError;
 
     // Check if response is an error
     if ('error' in body) {
@@ -145,7 +150,7 @@ async function renderWithLambda(
 }
 
 /**
- * Render a page using undici fetch (fallback)
+ * Render a page using native fetch (fallback)
  */
 async function renderWithFetch(
   url: string,
@@ -154,39 +159,51 @@ async function renderWithFetch(
   logRenderer('fetch', url);
 
   try {
-    const response = await request(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Visus-MCP/0.2.0 (Security-focused web content fetcher; +https://github.com/visus-mcp/visus-mcp)',
-      },
-      bodyTimeout: timeout_ms,
-      headersTimeout: timeout_ms,
-    });
+    // Use AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout_ms);
 
-    const html = await response.body.text();
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Visus-MCP/0.3.1 (Security-focused web content fetcher; +https://github.com/lateos/visus-mcp)',
+        },
+        signal: controller.signal,
+      });
 
-    // Capture Content-Type header
-    const contentTypeHeader = response.headers['content-type'];
-    const contentType = typeof contentTypeHeader === 'string'
-      ? contentTypeHeader.split(';')[0].trim()  // Remove charset and other params
-      : 'text/html'; // Default to HTML if missing
+      if (!response.ok) {
+        return Err(new Error(`HTTP ${response.status}: ${response.statusText}`));
+      }
 
-    // Extract title using regex (simple fallback)
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].trim() : '';
+      const html = await response.text();
 
-    return Ok({
-      html,
-      title,
-      url,
-      contentType,
-      text: undefined,
-    });
+      // Capture Content-Type header
+      const contentTypeHeader = response.headers.get('content-type');
+      const contentType = contentTypeHeader
+        ? contentTypeHeader.split(';')[0].trim()  // Remove charset and other params
+        : 'text/html'; // Default to HTML if missing
+
+      // Extract title using regex (simple fallback)
+      const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].trim() : '';
+
+      return Ok({
+        html,
+        title,
+        url,
+        contentType,
+        text: undefined,
+      });
+
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
   } catch (error) {
     if (error instanceof Error) {
-      // Handle timeout errors
-      if (error.message.includes('timeout') || error.message.includes('UND_ERR')) {
+      // Handle abort/timeout errors
+      if (error.name === 'AbortError') {
         return Err(new Error(`Navigation timeout after ${timeout_ms}ms`));
       }
 
@@ -256,17 +273,23 @@ export async function checkUrl(
   timeout_ms = 5000
 ): Promise<Result<boolean, Error>> {
   try {
-    const response = await request(url, {
-      method: 'HEAD',
-      headersTimeout: timeout_ms,
-      bodyTimeout: timeout_ms,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout_ms);
 
-    // Consider 2xx and 3xx status codes as accessible
-    const statusCode = response.statusCode;
-    const isAccessible = (statusCode >= 200 && statusCode < 400);
+    try {
+      const response = await fetch(url, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
 
-    return Ok(isAccessible);
+      // Consider 2xx and 3xx status codes as accessible
+      const isAccessible = (response.status >= 200 && response.status < 400);
+
+      return Ok(isAccessible);
+
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
   } catch (error) {
     // URL is not accessible

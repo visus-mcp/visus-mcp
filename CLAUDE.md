@@ -298,6 +298,8 @@ When a root cause is confirmed, add it here. Future sessions check this list fir
 | `ERR_MODULE_NOT_FOUND: @modelcontextprotocol/sdk` in Lambda | `index.js` (MCP stdio server) included in Lambda bundle via `package.json` `"main"` field; SDK not bundled | Add `@modelcontextprotocol/sdk` to `externalModules` in `infrastructure/stack.ts` | 2026-03-24 |
 | CDK `docker buildx` hangs indefinitely | Docker resource contention or disk pressure on Apple Silicon Mac | Use manual Lambda deploy script (see below); fix Docker separately | 2026-03-24 |
 | `ENOSPC` on Claude Code startup | Mac disk full; `~/.claude/debug/` write fails | Free disk space; `rm -rf ~/.claude/debug/`; restart | 2026-03-24 |
+| 401 Unauthorized after `cdk deploy` | CDK does NOT automatically redeploy API Gateway stages when Lambda code or authorizer config changes | After every `cdk deploy`, run: `aws apigateway create-deployment --rest-api-id <api-id> --stage-name <stage>` | 2026-03-24 |
+| `unable to get local issuer certificate` in Lambda | undici HTTP client in AWS Lambda Node.js 20 runtime lacks proper CA certificate configuration | Replace undici with Node.js native `fetch()` API (available in Node 18+) which has proper CA handling in Lambda | 2026-03-24 |
 
 ---
 
