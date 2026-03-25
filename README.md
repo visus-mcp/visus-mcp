@@ -848,6 +848,8 @@ Copyright (c) 2026 Lateos (Leo Chongolnee)
 
 Built by [Leo Chongolnee](https://github.com/leochong) (@leochong) as part of the Lateos platform.
 
+**Repository:** https://github.com/visus-mcp/visus-mcp
+
 Inspired by the MCP ecosystem and informed by CISSP/CEH security principles.
 
 ---

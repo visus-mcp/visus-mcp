@@ -2,6 +2,8 @@
 
 This document describes the threat model, security guarantees, and honest limitations of Visus.
 
+**Repository:** https://github.com/visus-mcp/visus-mcp
+
 ---
 
 ## Threat Model

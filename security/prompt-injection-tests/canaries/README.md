@@ -181,4 +181,6 @@ See [`SECURITY.md`](../../../SECURITY.md) for details.
 ---
 
 *Visus-MCP — "What the web shows you, Lateos reads safely."*
-*Built by [@leochong](https://github.com/leochong) · [visus-mcp.github.io](https://visus-mcp.github.io)*
+
+**Repository:** https://github.com/visus-mcp/visus-mcp
+**Built by:** [@leochong](https://github.com/leochong)

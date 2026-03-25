@@ -2,6 +2,8 @@
 
 Thank you for considering contributing to Visus! This project is security-first — all contributions must maintain the sanitization guarantees that protect users. Visus is engineered, not vibe-coded. We expect rigorous testing, clear documentation, and adherence to security best practices.
 
+**Repository:** https://github.com/visus-mcp/visus-mcp
+
 ---
 
 ## What We're Looking For

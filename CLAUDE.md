@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Repository:** https://github.com/visus-mcp/visus-mcp
+
 ## Project Overview
 
 **Visus** (`visus-mcp`) is an MCP tool that provides Claude with secure, sanitized access to web pages. Unlike other MCP browser tools (Firecrawl, Playwright MCP, ScrapeGraphAI), Visus runs ALL fetched content through an injection sanitization pipeline before the LLM reads it.
@@ -519,3 +521,4 @@ Both README.md and SECURITY.md must lead with the security narrative, not featur
 - PII redaction types and format
 - Honest limitations (novel obfuscation, AI-generated benign-looking instructions)
 - Vulnerability reporting: security@lateos.ai or GitHub Security tab
+- remember that my gitHub repo is located at https://github.com/visus-mcp/visus-mcp
