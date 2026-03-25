@@ -1,7 +1,9 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.visus-mcp/visus-mcp",
-  "description": "Security-first web access for Claude. Sanitizes pages, blocks injection, redacts PII.",
+  "description": "Security-first web access. Sanitizes pages, blocks injection, redacts PII. Now with PDF/JSON/SVG.",
+  "status": "active",
+  "website_url": "https://github.com/visus-mcp/visus-mcp",
   "repository": {
     "url": "https://github.com/visus-mcp/visus-mcp",
     "source": "github"
@@ -10,34 +12,43 @@
   "packages": [
     {
       "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "visus-mcp",
       "version": "0.8.0",
+      "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
+          "name": "VISUS_TIMEOUT_MS",
           "description": "Optional timeout in milliseconds for page fetching (default: 10000)",
-          "isRequired": false,
           "format": "number",
-          "isSecret": false,
-          "name": "VISUS_TIMEOUT_MS"
+          "isRequired": false
         },
         {
+          "name": "VISUS_MAX_CONTENT_KB",
           "description": "Optional maximum content size in KB before truncation (default: 512)",
-          "isRequired": false,
           "format": "number",
-          "isSecret": false,
-          "name": "VISUS_MAX_CONTENT_KB"
+          "isRequired": false
         },
         {
+          "name": "VISUS_RENDERER_URL",
           "description": "Optional URL for managed Lambda renderer (Phase 2 - not yet available)",
-          "isRequired": false,
           "format": "string",
-          "isSecret": false,
-          "name": "VISUS_RENDERER_URL"
+          "isRequired": false
         }
       ]
     }
-  ]
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "tool": "mcp-publisher",
+      "version": "0.8.0",
+      "build_info": {
+        "timestamp": "2026-03-25T11:27:00Z",
+        "release": "v0.8.0 — PDF text extraction, recursive JSON sanitization, SVG element stripping, content-type routing dispatcher"
+      }
+    }
+  }
 }
