@@ -213,7 +213,9 @@ describe('visus_fetch Tool', () => {
       if (result.ok) {
         expect(result.value.metadata.format_detected).toBe('json');
         expect(result.value.metadata.content_type).toBe('application/json');
-        expect(result.value.content).toContain('JSON Response:');
+        // New JSON handler returns sanitized JSON directly (not prefixed with "JSON Response:")
+        expect(result.value.content).toContain('"message"');
+        expect(result.value.content).toContain('"count"');
       }
     });
 

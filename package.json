@@ -48,6 +48,7 @@
     "cheerio": "^1.2.0",
     "fast-xml-parser": "^5.5.8",
     "jsdom": "^29.0.1",
+    "pdf-parse": "^2.4.5",
     "playwright": "^1.58.2",
     "undici": "^7.24.5"
   },

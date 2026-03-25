@@ -10,6 +10,7 @@ import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
 import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
+import { routeContentHandler, normalizeMimeType } from '../content-handlers/index.js';
 import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -41,8 +42,72 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     const { html, title, contentType } = renderResult.value;
     const rawContent = html || '';
 
-    // Step 2: Detect format and apply format-appropriate conversion
+    // Step 2: Detect content type and route to specialized handlers if applicable
     const detectedContentType = contentType || 'text/html';
+    const normalizedMime = normalizeMimeType(detectedContentType);
+
+    // Check if content requires specialized handler (PDF, JSON, SVG)
+    if (normalizedMime === 'application/pdf' ||
+        normalizedMime === 'application/json' ||
+        normalizedMime === 'text/json' ||
+        normalizedMime === 'image/svg+xml') {
+
+      // Route to specialized content handler
+      const handlerResult = await routeContentHandler(rawContent, detectedContentType);
+
+      // Handle unsupported or error cases
+      if (handlerResult.status === 'rejected' || handlerResult.status === 'error') {
+        return Err(new Error(handlerResult.message));
+      }
+
+      // Type guard: ensure we have a success result
+      if (handlerResult.status !== 'sanitized') {
+        return Err(new Error('Unexpected handler result status'));
+      }
+
+      // Handler success - use the already-sanitized content
+      const sanitizedContent = handlerResult.sanitized_content;
+      const sanitization = handlerResult.sanitization;
+      const truncationResult = truncateContent(sanitizedContent);
+
+      // Determine format_detected based on MIME type
+      let formatDetected: 'html' | 'json' | 'xml' | 'rss' = 'html';
+      if (normalizedMime === 'application/json' || normalizedMime === 'text/json') {
+        formatDetected = 'json';
+      } else if (normalizedMime === 'image/svg+xml') {
+        formatDetected = 'xml'; // SVG is XML-based
+      } else if (normalizedMime === 'application/pdf') {
+        // PDF doesn't have a format_detected value in the current schema
+        // Leaving as 'html' for now
+      }
+
+      const output: VisusFetchOutput = {
+        url,
+        content: truncationResult.content,
+        sanitization: {
+          patterns_detected: sanitization.patterns_detected,
+          pii_types_redacted: sanitization.pii_types_redacted,
+          pii_allowlisted: sanitization.pii_allowlisted,
+          content_modified: sanitization.sanitized_fields > 0
+        },
+        metadata: {
+          title: title || 'Untitled',
+          fetched_at: new Date().toISOString(),
+          content_length_original: rawContent.length,
+          content_length_sanitized: sanitizedContent.length,
+          format_detected: formatDetected,
+          content_type: detectedContentType,
+          ...(truncationResult.truncated && {
+            truncated: true,
+            truncated_at_chars: truncationResult.truncated_at_chars
+          })
+        }
+      };
+
+      return { ok: true, value: output };
+    }
+
+    // Step 3: For HTML/XML/RSS - use existing format conversion flow
     const formatType = detectFormat(detectedContentType);
 
     let processedContent = rawContent;
@@ -57,15 +122,15 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
     // For 'html' format, processedContent remains as rawContent
 
-    // Step 3: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
+    // Step 4: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
     // This step CANNOT be skipped or bypassed
     const sanitizationResult = sanitize(processedContent, url);
 
-    // Step 3: Apply token ceiling truncation (AFTER sanitization)
+    // Step 5: Apply token ceiling truncation (AFTER sanitization)
     // Anthropic MCP Directory enforces 25,000 token response limit
     const truncationResult = truncateContent(sanitizationResult.content);
 
-    // Step 4: Build output
+    // Step 6: Build output
     const output: VisusFetchOutput = {
       url,
       content: truncationResult.content,

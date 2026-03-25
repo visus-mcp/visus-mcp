@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-246%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-294%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-4-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -47,17 +47,23 @@ visus-mcp fetches the same page and delivers:
 ## How Visus Works
 
 ```
-URL → Playwright Render → Format Detection (HTML/JSON/XML/RSS)
-→ Reader Extraction (optional) → Injection Sanitizer (43 patterns)
-→ PII Redactor → Token Ceiling (24k cap) → Clean Content → Claude
+URL → Playwright Render → Content-Type Detection
+→ Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
+→ Injection Sanitizer (43 patterns) → PII Redactor
+→ Token Ceiling (24k cap) → Clean Content → Claude
 ```
 
 ### Security Pipeline
 
 1. **Browser Rendering**: Headless Chromium via Playwright fetches the page
-2. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
-3. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
-4. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a compliance report attached if anything was flagged
+2. **Content-Type Routing**: Detects MIME type and routes to specialized handlers:
+   - **PDF** (`application/pdf`) — Extracts text and metadata, sanitizes all fields
+   - **JSON** (`application/json`) — Recursively sanitizes all string values, preserves structure
+   - **SVG** (`image/svg+xml`) — Strips dangerous elements (`<script>`, event handlers), scans text
+   - **HTML/XML/RSS** — Uses existing conversion and reader extraction pipeline
+3. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
+4. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
+5. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a compliance report attached if anything was flagged
 
 **This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, and generating audit logs when injection patterns are detected.
 
