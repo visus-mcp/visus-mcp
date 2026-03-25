@@ -1,0 +1,45 @@
+# Build artifacts
+lambda-deploy/
+lambda-package/
+lambda.zip
+
+# Tokens and credentials
+.mcpregistry_*
+
+# Development files
+*.md.backup
+test-output.txt
+
+# CDK
+cdk.out/
+infrastructure/
+cdk.json
+tsconfig.cdk.json
+
+# Tests
+tests/
+jest.config.js
+jest.setup.js
+
+# Git
+.git/
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation that's not needed in npm package
+TROUBLESHOOT-*.md
+VISUS-*.md
+LINKEDIN-STRATEGY.md
+CONTRIBUTING.md
+ROADMAP.md
+SECURITY-AUDIT-*.md
+SUBMISSION.md
+
+# Security test files (these are for development only)
+security/
