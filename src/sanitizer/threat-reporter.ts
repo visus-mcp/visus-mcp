@@ -9,7 +9,10 @@
  * Aligned with:
  * - OWASP LLM Top 10 (2025)
  * - NIST AI 600-1 (Generative AI Profile)
+ * - NIST AI RMF (AI Risk Management Framework)
+ * - NIST CSF 2.0 (Cybersecurity Framework 2.0)
  * - MITRE ATLAS (Adversarial Threat Landscape)
+ * - ISO/IEC 42001:2023 (AI Management System)
  */
 
 import {
@@ -34,6 +37,8 @@ export interface ThreatFinding {
   confidence: number;
   owasp_llm: string;
   nist_ai_600_1: string;
+  nist_ai_rmf: string;
+  nist_csf_2_0: string;
   mitre_atlas: string;
   iso_42001: string;
   remediation: string;
@@ -103,6 +108,8 @@ function buildFindings(patternsDetected: string[]): ThreatFinding[] {
       confidence: 0.95, // Default confidence; can be enhanced later
       owasp_llm: frameworks.owasp_llm,
       nist_ai_600_1: frameworks.nist_ai_600_1,
+      nist_ai_rmf: frameworks.nist_ai_rmf,
+      nist_csf_2_0: frameworks.nist_csf_2_0,
       mitre_atlas: frameworks.mitre_atlas,
       iso_42001: frameworks.iso_42001,
       remediation: `Content sanitized. ${category.replace(/_/g, ' ')} removed.`
@@ -126,9 +133,9 @@ function generateToonFindings(findings: ThreatFinding[]): string {
  * Fallback manual TOON format generation
  */
 function generateManualToonFormat(findings: ThreatFinding[]): string {
-  const header = `findings[${findings.length}]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,mitre_atlas,iso_42001,remediation}:`;
+  const header = `findings[${findings.length}]{id,pattern_id,category,severity,confidence,owasp_llm,nist_ai_600_1,nist_ai_rmf,nist_csf_2_0,mitre_atlas,iso_42001,remediation}:`;
   const rows = findings.map(f =>
-    `${f.id},${f.pattern_id},${f.category},${f.severity},${f.confidence},${f.owasp_llm},${f.nist_ai_600_1},${f.mitre_atlas},${f.iso_42001},${f.remediation}`
+    `${f.id},${f.pattern_id},${f.category},${f.severity},${f.confidence},${f.owasp_llm},${f.nist_ai_600_1},${f.nist_ai_rmf},${f.nist_csf_2_0},${f.mitre_atlas},${f.iso_42001},${f.remediation}`
   );
   return `${header}\n${rows.join('\n')}`;
 }
@@ -151,7 +158,7 @@ function generateMarkdownReport(
   markdown += `**Generated:** ${timestamp}\n`;
   markdown += `**Source:** ${sourceUrl}\n`;
   markdown += `**Overall Severity:** ${overallSeverity}\n`;
-  markdown += `**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS | ISO/IEC 42001\n\n`;
+  markdown += `**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | NIST AI RMF | NIST CSF 2.0 | MITRE ATLAS | ISO/IEC 42001\n\n`;
 
   // Findings Summary
   markdown += '### Findings Summary\n';
@@ -165,16 +172,18 @@ function generateMarkdownReport(
   // Findings Detail (only if we have findings)
   if (findings.length > 0) {
     markdown += '### Findings Detail\n';
-    markdown += '| # | Category | Severity | Confidence | OWASP | MITRE | ISO 42001 |\n';
-    markdown += '|---|---|---|---|---|---|---|\n';
+    markdown += '| # | Category | Severity | Conf | OWASP | AI-RMF | CSF 2.0 | MITRE | ISO |\n';
+    markdown += '|---|---|---|---|---|---|---|---|---|\n';
 
     for (const finding of findings.slice(0, 10)) { // Limit to first 10 for readability
       const confidencePct = Math.round(finding.confidence * 100);
       const owaspShort = finding.owasp_llm.split(' - ')[0]; // e.g., "LLM01:2025"
+      const nistRmfShort = finding.nist_ai_rmf.split(' - ')[0]; // e.g., "MEASURE-2.7"
+      const nistCsfShort = finding.nist_csf_2_0.split(' - ')[0]; // e.g., "DE.CM-01"
       const mitreShort = finding.mitre_atlas.split(' - ')[0]; // e.g., "AML.T0051.000"
       const isoShort = finding.iso_42001.split(' - ')[0]; // e.g., "A.6.1.5"
 
-      markdown += `| ${finding.id} | ${finding.category} | ${finding.severity} | ${confidencePct}% | ${owaspShort} | ${mitreShort} | ${isoShort} |\n`;
+      markdown += `| ${finding.id} | ${finding.category} | ${finding.severity} | ${confidencePct}% | ${owaspShort} | ${nistRmfShort} | ${nistCsfShort} | ${mitreShort} | ${isoShort} |\n`;
     }
 
     if (findings.length > 10) {
@@ -256,6 +265,8 @@ export function generateThreatReport(input: ThreatReportInput): ThreatReport | n
     frameworks: [
       'OWASP LLM Top 10',
       'NIST AI 600-1',
+      'NIST AI RMF',
+      'NIST CSF 2.0',
       'MITRE ATLAS',
       'ISO/IEC 42001'
     ],

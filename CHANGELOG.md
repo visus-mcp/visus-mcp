@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-26
+
+### Added
+
+- **NIST AI RMF Framework Mappings** (`src/sanitizer/framework-mapper.ts`)
+  - Added NIST AI Risk Management Framework (AI 100-1) mappings for all 43 injection patterns
+  - Maps threats to four core functions: GOVERN, MAP, MEASURE, and MANAGE
+  - Examples: GOVERN-1.1 (Legal Requirements), MEASURE-2.7 (AI System Security), MANAGE-2.3 (Respond to Unknown Risks)
+  - Provides comprehensive risk management alignment for federal/government users
+
+- **NIST CSF 2.0 Framework Mappings** (`src/sanitizer/framework-mapper.ts`)
+  - Added NIST Cybersecurity Framework 2.0 mappings for all 43 injection patterns
+  - Maps threats to six core functions: IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER, and GOVERN
+  - Examples: DE.CM-01 (Network Monitoring), PR.DS-01 (Data at Rest Protection), PR.AC-04 (Access Control)
+  - Widely adopted enterprise cybersecurity framework for compliance and audit requirements
+
+- **Enhanced Threat Reporting** (`src/sanitizer/threat-reporter.ts`)
+  - Expanded framework coverage from 4 to 6 compliance frameworks
+  - Updated TOON format from 10 fields to 12 fields (added nist_ai_rmf, nist_csf_2_0)
+  - Enhanced Markdown threat report table with new AI-RMF and CSF 2.0 columns
+  - All threat reports now include comprehensive 6-framework alignment
+
+### Changed
+
+- **Framework Badge** (README.md) - Updated security badge to highlight NIST AI RMF and CSF 2.0
+- **Tool Descriptions** (README.md) - All 4 MCP tools now reference 6 frameworks in their descriptions
+- **Framework Alignments Section** (README.md) - Expanded to document all 6 frameworks with descriptions
+- **Test Coverage** (tests/threat-reporter.test.ts) - Updated to verify 6 frameworks and 12 TOON fields
+
+### Fixed
+
+- **server.json Version Sync** - Ensured server.json version matches package.json per MCP Registry requirements
+
+## [0.8.1] - 2026-03-25
+
 ### Added
 
 - **PDF Content Handler** (`src/content-handlers/pdf-handler.ts`)
@@ -56,9 +91,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests for error handling (corrupt/invalid content)
   - Tests for edge cases (nested structures, arrays, malformed input)
 
+### Fixed
+
+- **PDF Text Extraction** - Fixed critical bug where PDF content was passed as corrupted UTF-8 strings instead of binary data
+  - Root cause: `response.text()` in `playwright-renderer.ts` converted all response bodies to strings, mangling binary PDFs
+  - Fix: Use `response.arrayBuffer()` for binary content types (`application/pdf`, `image/*`, `application/octet-stream`)
+  - Impact: PDF handler now receives proper binary data, text extraction works correctly
+  - Files modified: `src/types.ts`, `src/browser/playwright-renderer.ts`, `src/tools/fetch.ts`, `src/tools/read.ts`, `src/tools/fetch-structured.ts`
+  - Note: Some complex PDFs may fail with "Invalid Root reference" error - this is a limitation of the pdf-parse library, not Visus
+
 ### Changed
 
 - Added `pdf-parse` dependency (v2.4.5) for PDF text extraction
+- Updated `BrowserRenderResult.html` type to `string | Buffer` to support binary content
 
 ## [0.6.2] - 2026-03-14
 

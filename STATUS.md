@@ -1,9 +1,120 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-25
-**Version:** 0.8.0
+**Generated:** 2026-03-26
+**Version:** 0.9.0
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** ✅ **v0.8.0 COMPLETE** - PDF/JSON/SVG Content Handlers
+**Status:** ✅ **v0.9.0 COMPLETE** - NIST AI RMF & CSF 2.0 Framework Mappings
+
+---
+
+## v0.9.0 Release - NIST AI RMF & CSF 2.0 Framework Mappings
+
+**Status:** ✅ COMPLETE (Ready for release)
+**Type:** Feature enhancement - Expanded compliance framework support
+**Implemented:** 2026-03-26
+**Tests:** 294/294 passing (100%)
+
+### Features Added
+
+**NIST AI Risk Management Framework (AI RMF / AI 100-1) Mappings**
+- Added comprehensive mappings for all 43 injection patterns to NIST AI RMF controls
+- Maps threats to four core functions: GOVERN, MAP, MEASURE, and MANAGE
+- Examples:
+  - GOVERN-1.1: Legal and Regulatory Requirements
+  - MAP-4.1: Risk Mapping for AI Components
+  - MEASURE-2.7: AI System Security and Resilience
+  - MANAGE-2.3: Respond to Unknown Risks
+- Provides federal/government compliance alignment for procurement
+
+**NIST Cybersecurity Framework 2.0 (CSF 2.0) Mappings**
+- Added comprehensive mappings for all 43 injection patterns to CSF 2.0 controls
+- Maps threats to six core functions: IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER, and GOVERN
+- Examples:
+  - DE.CM-01: Network Monitoring
+  - PR.DS-01: Data at Rest Protection
+  - PR.AC-04: Access Control Enforcement
+  - DE.AE-02: Anomaly Detection
+- Widely adopted enterprise cybersecurity framework for audit requirements
+
+**Enhanced Threat Reporting**
+- Expanded framework coverage from 4 to 6 compliance frameworks
+- Updated TOON format from 10 fields to 12 fields (added nist_ai_rmf, nist_csf_2_0)
+- Enhanced Markdown threat report table with new AI-RMF and CSF 2.0 columns
+- All threat reports now include comprehensive 6-framework alignment
+
+### Documentation Updates
+- Updated security badge to highlight NIST AI RMF and CSF 2.0
+- Updated all 4 MCP tool descriptions to reference 6 frameworks
+- Expanded "Framework Alignments" section with NIST AI RMF and CSF 2.0 descriptions
+- Updated example threat reports to show 9-column table format
+
+### Files Modified
+- `src/sanitizer/framework-mapper.ts` - Added nist_ai_rmf and nist_csf_2_0 fields, mappings for all 43 patterns
+- `src/sanitizer/threat-reporter.ts` - Updated ThreatFinding interface, TOON format, Markdown report
+- `README.md` - Updated badges, tool descriptions, framework alignments section, examples
+- `tests/threat-reporter.test.ts` - Updated to verify 6 frameworks and 12 TOON fields
+- `CHANGELOG.md` - Added v0.9.0 release notes
+
+### Why This Matters
+- **Federal/Government Procurement**: NIST AI RMF is widely adopted by U.S. federal agencies
+- **Enterprise Compliance**: CSF 2.0 is the de facto standard for cybersecurity audit requirements
+- **Natural Extension**: Builds on existing NIST AI 600-1 mapping infrastructure
+- **High Value, Easy Implementation**: Leveraged existing framework mapping system
+
+---
+
+## v0.8.1 Release - PDF Extraction Bug Fix
+
+**Status:** ✅ COMPLETE (Ready for release)
+**Type:** Critical bug fix
+**Implemented:** 2026-03-25
+**Tests:** 294/294 passing (100%)
+
+### Bug Fixed
+
+**PDF Text Extraction Returning Binary Data Instead of Text**
+
+**Root Cause:** `response.text()` in `src/browser/playwright-renderer.ts` was converting ALL response bodies to UTF-8 strings, including binary PDFs. This corrupted the binary data before it reached the pdf-parse library, causing the PDF handler to receive mangled strings instead of proper binary content.
+
+**Impact:** All PDF extractions failed, returning raw binary garbage like "%PDF-1.7..." instead of extracted text.
+
+**Fix:** Implemented content-type detection in the renderer to use `response.arrayBuffer()` for binary types and `response.text()` for text types.
+
+### Technical Details
+
+**Files Modified:**
+1. **src/types.ts** - Updated `BrowserRenderResult.html` from `string` to `string | Buffer`
+   - Added JSDoc explaining when Buffer is used (PDFs, images, binary content)
+
+2. **src/browser/playwright-renderer.ts** - Added binary content detection
+   - Checks Content-Type: `application/pdf`, `image/*`, `application/octet-stream`
+   - Binary types: `response.arrayBuffer()` → `Buffer.from(arrayBuffer)`
+   - Text types: `response.text()` → string (existing behavior)
+
+3. **src/tools/fetch.ts** - Added Buffer type guard
+   - Ensures Buffer content doesn't reach HTML/XML/RSS path (would cause errors)
+
+4. **src/tools/fetch-structured.ts** - Added Buffer rejection
+   - Structured extraction doesn't support binary types - returns clear error message
+
+5. **src/tools/read.ts** - Added Buffer rejection
+   - Reader mode (Readability) doesn't support binary types - returns clear error message
+
+**Verification:**
+- ✅ All 294 tests passing - zero regressions
+- ✅ Manual test with WAI dummy PDF: Text extraction working correctly
+- ✅ Metadata extraction working (Author, Creator, Producer fields)
+- ✅ Content is readable English, not binary garbage
+
+**Known Limitations:**
+- Some complex PDFs may fail with "Invalid Root reference" error
+- This is a limitation of the pdf-parse library (v2.4.5), not Visus
+- Simple to moderately complex PDFs work correctly
+
+**Documentation:**
+- Updated CHANGELOG.md with bug fix entry
+- Created TROUBLESHOOT-PDF-EXTRACTION-20260325-2040.md with full investigation log
+- Added inline comments explaining Buffer handling in all modified files
 
 ---
 
@@ -458,7 +569,7 @@ When prompt injection or PII is detected, Visus now automatically generates stru
 **Key Features:**
 - ✅ TOON-formatted findings array (token-efficient, machine-readable)
 - ✅ Markdown compliance report (human-readable, renders in Claude Desktop)
-- ✅ Four framework alignments: OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS, ISO/IEC 42001
+- ✅ Six framework alignments: OWASP LLM Top 10, NIST AI 600-1, NIST AI RMF, NIST CSF 2.0, MITRE ATLAS, ISO/IEC 42001
 - ✅ Severity classification (CRITICAL, HIGH, MEDIUM, LOW, CLEAN)
 - ✅ Zero overhead for clean pages (report omitted when no findings)
 - ✅ Aggregated reporting across multiple results (search, structured extraction)
@@ -484,6 +595,8 @@ When prompt injection or PII is detected, Visus now automatically generates stru
 **Framework Alignments:**
 - **OWASP LLM Top 10 (2025)**: Industry-standard LLM security risks
 - **NIST AI 600-1**: Generative AI Profile for risk management
+- **NIST AI RMF**: AI Risk Management Framework (AI 100-1) with GOVERN, MAP, MEASURE, MANAGE functions
+- **NIST CSF 2.0**: Cybersecurity Framework 2.0 with IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER, GOVERN functions
 - **MITRE ATLAS**: Adversarial Threat Landscape for AI Systems
 - **ISO/IEC 42001:2023**: International AI Management System standard (Annex A controls)
 
@@ -1773,7 +1886,7 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **Contact:** security@lateos.ai
 **Repository:** https://github.com/visus-mcp/visus-mcp
 **npm Package:** https://www.npmjs.com/package/visus-mcp
-**Installation:** `npm install -g visus-mcp@0.6.0` or `npx visus-mcp@0.6.0`
+**Installation:** `npm install -g visus-mcp@0.8.1` or `npx visus-mcp@0.8.1`
 
 ---
 
@@ -1790,7 +1903,8 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **v0.5.0:** ✅ PUBLISHED TO NPM (Threat Reporting + ISO/IEC 42001 - 31 tests added)
 **v0.6.0:** ✅ PUBLISHED TO NPM (Content-Type Format Detection - 14 tests added)
 **v0.7.0:** ✅ COMPLETE (HITL Elicitation Bridge for CRITICAL threats - 30 tests added)
-**v0.8.0:** ✅ COMPLETE (PDF/JSON/SVG Content Handlers - 48 tests added)
+**v0.8.0:** ✅ PUBLISHED TO NPM (PDF/JSON/SVG Content Handlers - 48 tests added)
+**v0.8.1:** ✅ COMPLETE (PDF Extraction Bug Fix - binary content handling)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
-**Latest Release:** v0.6.0 (2026-03-23)
+**Latest Release:** v0.8.0 (2026-03-25)

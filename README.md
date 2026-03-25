@@ -5,7 +5,7 @@
 [![tools](https://img.shields.io/badge/MCP%20tools-4-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
-[![security](https://img.shields.io/badge/frameworks-NIST%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
+[![security](https://img.shields.io/badge/frameworks-NIST%20AI%20RMF%20%7C%20CSF%202.0%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 
 > **Your AI agent shouldn't have to read garbage.**
@@ -19,7 +19,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.6.0
+npx visus-mcp@0.9.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -185,7 +185,7 @@ Restart Claude Desktop. Visus tools are now available to Claude.
 
 ### `visus_fetch`
 
-Fetch and sanitize a web page with automatic format detection. Supports HTML, JSON, XML, and RSS/Atom feeds. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
+Fetch and sanitize a web page with automatic format detection. Supports HTML, JSON, XML, and RSS/Atom feeds. Includes NIST AI RMF / CSF 2.0 / AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Supported Formats:**
 - **HTML** (`text/html`, `application/xhtml+xml`) - Standard web pages, returned as-is
@@ -195,7 +195,7 @@ Fetch and sanitize a web page with automatic format detection. Supports HTML, JS
 
 ### `visus_read`
 
-Extract clean article content from a web page using Mozilla Readability (reader mode). Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
+Extract clean article content from a web page using Mozilla Readability (reader mode). Includes NIST AI RMF / CSF 2.0 / AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -227,7 +227,7 @@ Extract clean article content from a web page using Mozilla Readability (reader 
 
 ### `visus_search`
 
-Search the web via DuckDuckGo and return sanitized results with prompt injection and PII removed. Use before `visus_fetch` or `visus_read` to safely discover and then read pages. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
+Search the web via DuckDuckGo and return sanitized results with prompt injection and PII removed. Use before `visus_fetch` or `visus_read` to safely discover and then read pages. Includes NIST AI RMF / CSF 2.0 / AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -260,7 +260,7 @@ All search result titles and snippets are independently sanitized before reachin
 
 ### `visus_fetch_structured`
 
-Extract structured data from a web page according to a schema. Includes NIST AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
+Extract structured data from a web page according to a schema. Includes NIST AI RMF / CSF 2.0 / AI 600-1 / OWASP LLM / MITRE ATLAS / ISO/IEC 42001 aligned threat report when injection or PII is detected.
 
 **Input:**
 ```json
@@ -313,7 +313,7 @@ Findings are encoded using [TOON format](https://toonformat.dev) for token effic
 - Pattern ID and category
 - Severity level (CRITICAL, HIGH, MEDIUM, LOW)
 - Confidence score
-- Framework alignments (OWASP LLM Top 10, NIST AI 600-1, MITRE ATLAS, ISO/IEC 42001)
+- Framework alignments (OWASP LLM Top 10, NIST AI 600-1, NIST AI RMF, NIST CSF 2.0, MITRE ATLAS, ISO/IEC 42001)
 - Remediation status
 
 ### 2. Markdown Compliance Report (Human-Readable)
@@ -328,10 +328,12 @@ A formatted Markdown table renders cleanly in Claude Desktop and GitHub, showing
 
 ### Framework Alignments
 
-Every detected threat is mapped to four compliance frameworks:
+Every detected threat is mapped to six compliance frameworks:
 
 - **[OWASP LLM Top 10 (2025)](https://owasp.org/www-project-top-10-for-large-language-model-applications/)**: Industry-standard LLM security risks
 - **[NIST AI 600-1](https://csrc.nist.gov/pubs/ai/600/1/final)**: Generative AI Profile for risk management
+- **[NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)**: AI Risk Management Framework (AI 100-1) with GOVERN, MAP, MEASURE, and MANAGE functions
+- **[NIST CSF 2.0](https://www.nist.gov/cyberframework)**: Cybersecurity Framework 2.0 with IDENTIFY, PROTECT, DETECT, RESPOND, RECOVER, and GOVERN functions
 - **[MITRE ATLAS](https://atlas.mitre.org/)**: Adversarial Threat Landscape for AI Systems
 - **[ISO/IEC 42001:2023](https://www.iso.org/standard/81230.html)**: International AI Management System standard — Annex A controls for AI system security, data quality, and responsible AI governance. Globally recognized for enterprise and regulatory procurement.
 
@@ -378,7 +380,7 @@ When a HIGH severity injection is detected:
 **Generated:** 2026-03-23T14:30:00.000Z
 **Source:** https://malicious.example.com
 **Overall Severity:** HIGH
-**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | MITRE ATLAS | ISO/IEC 42001
+**Framework:** OWASP LLM Top 10 | NIST AI 600-1 | NIST AI RMF | NIST CSF 2.0 | MITRE ATLAS | ISO/IEC 42001
 
 ### Findings Summary
 | Severity | Count |
@@ -389,9 +391,9 @@ When a HIGH severity injection is detected:
 | 🟢 LOW | 0 |
 
 ### Findings Detail
-| # | Category | Severity | Confidence | OWASP | MITRE | ISO 42001 |
-|---|---|---|---|---|---|---|
-| 1 | role_hijacking | CRITICAL | 95% | LLM01:2025 | AML.T0051.000 | A.6.1.5 |
+| # | Category | Severity | Conf | OWASP | AI-RMF | CSF 2.0 | MITRE | ISO |
+|---|---|---|---|---|---|---|---|---|
+| 1 | role_hijacking | CRITICAL | 95% | LLM01:2025 | MEASURE-2.7 | DE.CM-01 | AML.T0051.000 | A.6.1.5 |
 
 ### Remediation Status
 ✅ All findings sanitized. Content delivered clean.

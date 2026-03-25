@@ -145,6 +145,8 @@ describe('Threat Reporter', () => {
       if (result) {
         expect(result.frameworks).toContain('OWASP LLM Top 10');
         expect(result.frameworks).toContain('NIST AI 600-1');
+        expect(result.frameworks).toContain('NIST AI RMF');
+        expect(result.frameworks).toContain('NIST CSF 2.0');
         expect(result.frameworks).toContain('MITRE ATLAS');
         expect(result.frameworks).toContain('ISO/IEC 42001');
       }
@@ -305,12 +307,12 @@ describe('Threat Reporter', () => {
       expect(result).not.toBeNull();
       if (result) {
         const md = result.report_markdown;
-        expect(md).toContain('ISO 42001');
+        expect(md).toContain('| ISO |');
         expect(md).toContain('ISO/IEC 42001');
       }
     });
 
-    it('should have 10 fields in TOON header', () => {
+    it('should have 12 fields in TOON header', () => {
       const result = generateThreatReport({
         patterns_detected: ['role_hijacking'],
         pii_redacted: 0,
@@ -320,12 +322,12 @@ describe('Threat Reporter', () => {
       expect(result).not.toBeNull();
       if (result) {
         const toon = result.findings_toon;
-        // TOON header should have 10 fields: id, pattern_id, category, severity, confidence, owasp_llm, nist_ai_600_1, mitre_atlas, iso_42001, remediation
+        // TOON header should have 12 fields: id, pattern_id, category, severity, confidence, owasp_llm, nist_ai_600_1, nist_ai_rmf, nist_csf_2_0, mitre_atlas, iso_42001, remediation
         expect(toon).toMatch(/findings\[\d+\]\{[^}]+\}/);
         const headerMatch = toon.match(/findings\[\d+\]\{([^}]+)\}/);
         if (headerMatch) {
           const fields = headerMatch[1].split(',');
-          expect(fields.length).toBe(10);
+          expect(fields.length).toBe(12);
           expect(fields).toContain('iso_42001');
         }
       }
