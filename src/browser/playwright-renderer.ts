@@ -127,6 +127,8 @@ async function renderWithLambda(
     }
 
     // Success response
+    // TODO: Lambda renderer needs PDF support - should return binary content as base64
+    // for application/pdf responses instead of always converting to HTML string
     return Ok({
       html: body.html,
       title: body.title,
@@ -176,17 +178,38 @@ async function renderWithFetch(
         return Err(new Error(`HTTP ${response.status}: ${response.statusText}`));
       }
 
-      const html = await response.text();
-
-      // Capture Content-Type header
+      // Capture Content-Type header before reading body
       const contentTypeHeader = response.headers.get('content-type');
       const contentType = contentTypeHeader
         ? contentTypeHeader.split(';')[0].trim()  // Remove charset and other params
         : 'text/html'; // Default to HTML if missing
 
-      // Extract title using regex (simple fallback)
-      const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
-      const title = titleMatch ? titleMatch[1].trim() : '';
+      // Read response body - use arrayBuffer() for binary types, text() for text types
+      // CRITICAL: pdf-parse requires original binary bytes, not UTF-8 string conversion
+      const isBinary = contentType === 'application/pdf' ||
+                      contentType.startsWith('image/') ||
+                      contentType.startsWith('application/octet-stream');
+
+      let html: string | Buffer;
+      let title = '';
+
+      if (isBinary) {
+        // Binary content (PDF, images, etc.) - preserve byte integrity
+        const arrayBuffer = await response.arrayBuffer();
+        html = Buffer.from(arrayBuffer);
+        // Title extraction not meaningful for binary content
+        title = '';
+      } else {
+        // Text content (HTML, JSON, etc.) - read as UTF-8 string
+        const textContent = await response.text();
+        html = textContent;
+
+        // Extract title using regex (HTML only)
+        if (contentType.includes('html')) {
+          const titleMatch = textContent.match(/<title[^>]*>(.*?)<\/title>/i);
+          title = titleMatch ? titleMatch[1].trim() : '';
+        }
+      }
 
       return Ok({
         html,

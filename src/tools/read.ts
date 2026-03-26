@@ -48,6 +48,11 @@ export async function visusRead(input: VisusReadInput): Promise<Result<VisusRead
 
     const { html, title: pageTitle } = renderResult.value;
 
+    // Type guard: visus_read only works with HTML (string), not binary content
+    if (Buffer.isBuffer(html)) {
+      return Err(new Error('visus_read does not support binary content types (PDFs, images). Use visus_fetch instead.'));
+    }
+
     // Step 2: Extract article content using Readability
     const readerResult = extractArticle(html, url);
 

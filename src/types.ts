@@ -130,9 +130,17 @@ export interface VisusSearchOutput {
 
 /**
  * Result from browser rendering
+ *
+ * @property html - Response content as string (for text) or Buffer (for binary like PDFs)
+ *                  Use Buffer for application/pdf, image/*, and other binary types
+ * @property title - Page title extracted from response
+ * @property url - Final URL after redirects
+ * @property contentType - Content-Type header value (e.g., "application/pdf", "text/html")
+ * @property text - Optional text content (when available)
+ * @property error - Error message if rendering failed
  */
 export interface BrowserRenderResult {
-  html: string;
+  html: string | Buffer;
   title: string;
   url: string;
   contentType?: string;

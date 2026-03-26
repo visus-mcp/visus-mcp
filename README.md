@@ -884,4 +884,49 @@ A: Yes! Open-source tier is free forever. Phase 2 will introduce a hosted tier w
 
 ---
 
+## EU Regulatory Compliance
+
+Visus-MCP is designed with EU AI Act and GDPR principles as first-class architectural constraints, not afterthoughts. This section provides a mapping between Visus features and the specific regulatory articles they address, enabling integrators to build toward **presumption of conformity** via the EU AI Act Code of Practice and harmonised standards under CEN/CENELEC JTC 21.
+
+### Feature → Regulation Mapping
+
+| Visus-MCP Feature | EU AI Act Article | GDPR Article | Regulatory Rationale |
+|---|---|---|---|
+| Prompt injection sanitization (43 validated patterns) | Art. 9 — Risk Management System | Art. 32 — Security of Processing | Mandatory technical measures to prevent adversarial manipulation of AI outputs |
+| Untrusted-by-default web content model | Art. 9 — Risk Management System | Art. 5(1)(f) — Integrity & Confidentiality | Treats all external input as hostile; maps to adversarial robustness requirement in Code of Practice Measure 2.5 |
+| No raw external content forwarded to LLM | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 5(1)(c) — Data Minimisation | Only sanitized, stripped content reaches the model; reduces attack surface and unnecessary data exposure |
+| Content sanitization before AI processing | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 25 — Data Protection by Design | Sanitization is enforced at ingestion, not as an optional post-processing step |
+| Stateless fetch architecture (no session persistence) | Art. 10 — Data & Data Governance | Art. 5(1)(e) — Storage Limitation | No user browsing data retained beyond the immediate request |
+| Open-source, auditable codebase | Art. 13 — Transparency & Provision of Information | Art. 5(2) — Accountability | Full auditability for conformity assessment bodies and data protection authorities |
+| SECURITY-AUDIT-v1.md (planned red team disclosure) | Art. 9 — Risk Management + Code of Practice §4 Adversarial Testing | Art. 32(1)(d) — Regular Testing | Aligns with EDPS guidance on AI risk management: document threats, test mitigations, publish findings |
+| MCP endpoint scoped permissions | Art. 9 — Risk Management System | Art. 25 — Data Protection by Design | Least-privilege access model; each tool call scoped to minimum required capability |
+
+### EU AI Act Code of Practice Alignment
+
+The EU AI Act Code of Practice (General-Purpose AI, published 2025) identifies adversarial testing and mitigation documentation as key obligations for AI system providers. Visus-MCP addresses these through:
+
+- **Measure 2.5 (Adversarial Robustness):** Prompt injection defense is the primary threat model. The 43-pattern detection library directly addresses adversarial input manipulation.
+- **Measure 4.1 (Incident Reporting Preparedness):** The planned `SECURITY-AUDIT-v1.md` constitutes a pre-emptive disclosure document that regulators can use to assess risk management maturity.
+- **Measure 1.2 (Capability Transparency):** The open-source architecture and this compliance mapping serve as the transparency artifact required under Art. 13.
+
+### EDPS Guidance on AI Risk Management
+
+The European Data Protection Supervisor's *Guidelines on AI and Data Protection* (2022, updated 2024) require that AI systems processing content on behalf of users implement:
+
+1. **Risk identification at ingestion** — Visus sanitizes at the fetch layer before any data reaches the AI model.
+2. **Technical measures proportionate to risk** — Stateless architecture and data minimisation limit blast radius of any breach.
+3. **Accountability documentation** — This mapping table, combined with `SECURITY.md` and `STATUS.md`, constitutes the technical documentation required under GDPR Art. 30 (Records of Processing) for AI-assisted data handling.
+
+### Presumption of Conformity Path
+
+Integrators deploying Visus-MCP in EU contexts can reference this mapping to support conformity claims under:
+
+- **EN ISO/IEC 42001** (AI Management Systems) — risk management and data governance controls
+- **ETSI EN 303 645** (Cyber Security for Consumer IoT, applicable by analogy to AI agents)
+- **EU AI Act Annex IV** (Technical Documentation) — this section, `SECURITY.md`, and `STATUS.md` together form a substantive portion of the required technical file
+
+> **Note:** Visus-MCP is an open-source tool. Conformity assessment obligations apply to the deploying organisation, not to the upstream open-source component. This documentation is provided to assist deployers in meeting their obligations.
+
+---
+
 **Built with by Lateos**

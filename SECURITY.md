@@ -357,6 +357,49 @@ We take security seriously. If you discover a vulnerability in Visus:
 
 ---
 
+## EU AI Act & GDPR Compliance Mapping
+
+### Threat Model → Regulatory Mapping
+
+The Visus-MCP security architecture is explicitly mapped to EU AI Act and GDPR obligations. The following table cross-references each security control with its regulatory basis.
+
+| Security Control | Threat Mitigated | EU AI Act Article | GDPR Article |
+|---|---|---|---|
+| Prompt injection sanitization | Adversarial manipulation of AI reasoning | Art. 9 — Risk Management | Art. 32 — Security of Processing |
+| Untrusted-by-default content model | Supply chain / web content injection | Art. 15 — Robustness & Cybersecurity | Art. 5(1)(f) — Integrity & Confidentiality |
+| Stateless fetch (no session storage) | Persistent tracking / data leakage | Art. 10 — Data Governance | Art. 5(1)(e) — Storage Limitation |
+| Minimal data forwarding to LLM | Unnecessary PII exposure to AI model | Art. 15 — Accuracy & Data Quality | Art. 5(1)(c) — Data Minimisation |
+| Open audit trail (this document) | Opacity / unverifiable security claims | Art. 13 — Transparency | Art. 5(2) — Accountability |
+| Scoped MCP permissions | Privilege escalation via tool calls | Art. 9 — Risk Management | Art. 25 — Data Protection by Design |
+
+### EU AI Act Code of Practice: Adversarial Testing Requirements
+
+Under the EU AI Act Code of Practice for General-Purpose AI Models (2025), providers are expected to conduct and document adversarial testing. For Visus-MCP this means:
+
+**What we test:**
+- Prompt injection via crafted web page content (direct and indirect)
+- Instruction smuggling via HTML comments, meta tags, and hidden DOM elements
+- Encoding-based evasion (Base64, Unicode normalization attacks, homoglyph substitution)
+- Multi-turn injection via session context manipulation
+
+**How we document it:**
+- `SECURITY-AUDIT-v1.md` (planned): A public red team disclosure document covering methodology, findings, and mitigations. This directly satisfies Code of Practice Measure 4.1 (incident and vulnerability disclosure preparedness).
+
+**EDPS AI Risk Management Guidance:**
+The European Data Protection Supervisor recommends that AI systems document the following for each data processing operation:
+1. The AI capability being exercised (fetch + sanitize + forward)
+2. The data flows involved (external URL → sanitization layer → LLM context)
+3. The risk mitigations applied (stateless, no persistence, injection filtering)
+4. The residual risk and monitoring approach (open-source auditability, community disclosure)
+
+Visus-MCP addresses all four points through this document, `README.md`, and `STATUS.md`.
+
+### Reporting Security Issues
+
+See the main [Vulnerability Disclosure](#vulnerability-disclosure) section above for responsible disclosure procedures. For EU-specific regulatory concerns (e.g., potential GDPR Art. 33 notification obligations arising from a Visus-MCP vulnerability), please include "EU-REGULATORY" in the subject line of your disclosure.
+
+---
+
 **Built with by Lateos**
 
 For questions: **security@lateos.ai**

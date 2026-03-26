@@ -71,7 +71,7 @@ function logAuditEvent(
   }
 
   const now = new Date();
-  const ttl = Math.floor(now.getTime() / 1000) + (30 * 24 * 60 * 60); // 30 days from now
+  const ttl = Math.floor(now.getTime() / 1000) + (90 * 24 * 60 * 60); // 90 days from now (EU AI Act Code of Practice)
 
   const item = {
     user_id: userId,

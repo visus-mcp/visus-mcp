@@ -40,6 +40,7 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
 
     const { html, title, contentType } = renderResult.value;
+    // rawContent can be string (HTML/JSON/SVG) or Buffer (PDF, binary)
     const rawContent = html || '';
 
     // Step 2: Detect content type and route to specialized handlers if applicable
@@ -53,6 +54,7 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
         normalizedMime === 'image/svg+xml') {
 
       // Route to specialized content handler
+      // Note: rawContent may be Buffer for PDFs, string for JSON/SVG
       const handlerResult = await routeContentHandler(rawContent, detectedContentType);
 
       // Handle unsupported or error cases
@@ -108,6 +110,11 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
 
     // Step 3: For HTML/XML/RSS - use existing format conversion flow
+    // Type guard: rawContent should be string for non-binary types
+    if (Buffer.isBuffer(rawContent)) {
+      return Err(new Error('Unexpected binary content in HTML/XML/RSS path'));
+    }
+
     const formatType = detectFormat(detectedContentType);
 
     let processedContent = rawContent;

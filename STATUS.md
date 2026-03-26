@@ -1908,3 +1908,47 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
 **Latest Release:** v0.8.0 (2026-03-25)
+
+---
+
+## EU Regulatory Compliance Status
+
+This section tracks the implementation status of EU AI Act and GDPR-mapped security controls. It is updated alongside the main project changelog.
+
+### Control Implementation Status
+
+| Control | Regulatory Basis | Status | Notes |
+|---|---|---|---|
+| Prompt injection sanitization (43 patterns) | AI Act Art. 9 / GDPR Art. 32 | ✅ Implemented | 73/73 tests passing |
+| Untrusted-by-default content ingestion | AI Act Art. 15 / GDPR Art. 5(1)(f) | ✅ Implemented | Core architectural principle |
+| Stateless fetch (no session persistence) | AI Act Art. 10 / GDPR Art. 5(1)(e) | ✅ Implemented | No user data retained beyond request |
+| Data minimisation before LLM forwarding | AI Act Art. 15 / GDPR Art. 5(1)(c) | ✅ Implemented | Only sanitized content forwarded |
+| Data Protection by Design (sanitization at ingestion) | AI Act Art. 15 / GDPR Art. 25 | ✅ Implemented | Enforced at architecture level, not optional |
+| Transparency documentation (this mapping) | AI Act Art. 13 / GDPR Art. 5(2) | ✅ Implemented | README.md, SECURITY.md, STATUS.md |
+| SECURITY-AUDIT-v1.md (public red team disclosure) | AI Act Code of Practice §4 / GDPR Art. 32(1)(d) | 🔄 Planned | Scheduled for v1.0 release milestone |
+| EN ISO/IEC 42001 alignment review | AI Act Annex IV technical documentation | 🔄 Planned | Post-v1.0 |
+| Formal GDPR Art. 30 Records of Processing | GDPR Art. 30 | 🔄 Planned for deployers | Template to be provided for deploying organisations |
+
+### Regulatory Reference Index
+
+| Regulation | Specific Article | How Visus-MCP Addresses It |
+|---|---|---|
+| EU AI Act (2024/1689) | Art. 9 — Risk Management System | Prompt injection defense, adversarial testing, documented threat model |
+| EU AI Act (2024/1689) | Art. 10 — Data & Data Governance | Stateless architecture, no training data collection, no session storage |
+| EU AI Act (2024/1689) | Art. 13 — Transparency | Open-source codebase, public documentation, this compliance mapping |
+| EU AI Act (2024/1689) | Art. 15 — Robustness, Accuracy & Cybersecurity | Untrusted-by-default model, sanitization pipeline, minimal data forwarding |
+| EU AI Act Code of Practice (2025) | Measure 2.5 — Adversarial Robustness | 43-pattern injection detection library |
+| EU AI Act Code of Practice (2025) | Measure 4.1 — Incident Disclosure | Planned SECURITY-AUDIT-v1.md |
+| GDPR (2016/679) | Art. 5(1)(c) — Data Minimisation | Only sanitized, stripped content reaches AI model |
+| GDPR (2016/679) | Art. 5(1)(e) — Storage Limitation | Stateless fetch; no persistence beyond request lifecycle |
+| GDPR (2016/679) | Art. 5(1)(f) — Integrity & Confidentiality | Untrusted-by-default; injection filtering at ingestion |
+| GDPR (2016/679) | Art. 5(2) — Accountability | Auditable codebase; this document as accountability artifact |
+| GDPR (2016/679) | Art. 25 — Data Protection by Design | Sanitization enforced architecturally, not as optional feature |
+| GDPR (2016/679) | Art. 32 — Security of Processing | Technical measures: injection filtering, stateless design, scoped permissions |
+| EDPS AI Guidelines (2022/2024) | Risk identification at ingestion | Sanitization layer precedes all AI processing |
+
+### Next Compliance Milestones
+
+- [ ] **v1.0**: Publish `SECURITY-AUDIT-v1.md` with red team methodology and findings
+- [ ] **v1.1**: Provide GDPR Art. 30 Records of Processing template for Visus-MCP deployers
+- [ ] **v1.2**: EN ISO/IEC 42001 gap analysis against Visus-MCP architecture

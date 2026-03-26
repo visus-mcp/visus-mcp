@@ -119,6 +119,11 @@ export async function visusFetchStructured(
 
     const { title, html } = renderResult.value;
 
+    // Type guard: fetch-structured only works with HTML (string), not binary content
+    if (Buffer.isBuffer(html)) {
+      return Err(new Error('fetch-structured does not support binary content types (PDFs, images). Use visus_fetch instead.'));
+    }
+
     // Step 2: Extract structured data from HTML using cheerio
     const extractedData = extractStructuredData(html, schema);
 
