@@ -11,6 +11,10 @@
 import { detectAndNeutralize, getSeverityScore, hasCriticalThreats } from './injection-detector.js';
 import { redactPII } from './pii-redactor.js';
 import { generateThreatReport, type ThreatReport } from './threat-reporter.js';
+import { generateRequestId } from '../crypto/proof-builder.js';
+import { buildProof, proofToResponseHeader } from '../crypto/proof-builder.js';
+import type { SanitizationProofRecord } from '../crypto/primitives.js';
+import { getAllPatternNames } from './patterns.js';
 
 export interface SanitizationResult {
   content: string;
@@ -33,6 +37,14 @@ export interface SanitizationResult {
     };
   };
   threat_report?: ThreatReport;
+}
+
+/**
+ * Extended result with cryptographic proof
+ */
+export interface SanitizationResultWithProof extends SanitizationResult {
+  proof: SanitizationProofRecord;
+  proofHeader: Record<string, unknown>;
 }
 
 /**
@@ -139,6 +151,63 @@ function logSanitization(event: {
 export function needsSanitization(_content: string): boolean {
   // Always sanitize - this is just a helper for metrics
   return true;
+}
+
+/**
+ * Sanitize content with cryptographic proof generation
+ *
+ * This is the primary entry point for MCP tools. It wraps the standard
+ * sanitize() function and generates a tamper-evident cryptographic proof
+ * that the sanitization pipeline executed before content was forwarded.
+ *
+ * EU AI Act Art. 9 (Risk Management) + Art. 13 (Transparency) compliance.
+ *
+ * @param rawContent Raw content from web page
+ * @param sourceUrl Optional source URL for domain-scoped PII allowlisting
+ * @param toolName Name of the calling MCP tool (for audit trail)
+ * @param pipelineVersion Sanitization library version
+ * @returns Sanitized content with cryptographic proof
+ */
+export async function sanitizeWithProof(
+  rawContent: string,
+  sourceUrl?: string,
+  _toolName: string = 'unknown',
+  pipelineVersion: string = '1.0.0'
+): Promise<SanitizationResultWithProof> {
+  // Generate request ID and timestamp BEFORE sanitization
+  const requestId = generateRequestId();
+  const timestampUtc = new Date().toISOString();
+  const startMs = Date.now();
+
+  // Run existing sanitization pipeline (unmodified)
+  const sanitizationResult = sanitize(rawContent, sourceUrl);
+
+  const processingDurationMs = Date.now() - startMs;
+
+  // Count total redactions (injection patterns + PII)
+  const redactionCount =
+    sanitizationResult.sanitization.patterns_detected.length +
+    sanitizationResult.sanitization.pii_types_redacted.length;
+
+  // Build cryptographic proof
+  const proof = buildProof({
+    requestId,
+    timestampUtc,
+    rawContent,
+    sanitizedContent: sanitizationResult.content,
+    triggeredPatternIds: sanitizationResult.sanitization.patterns_detected,
+    patternsEvaluated: getAllPatternNames().length,
+    sanitizationApplied: sanitizationResult.sanitization.content_modified,
+    pipelineVersion,
+    processingDurationMs,
+    redactionCount,
+  });
+
+  return {
+    ...sanitizationResult,
+    proof,
+    proofHeader: proofToResponseHeader(proof),
+  };
 }
 
 /**

@@ -400,6 +400,56 @@ See the main [Vulnerability Disclosure](#vulnerability-disclosure) section above
 
 ---
 
+## HMAC Signing Key Management (VISUS_HMAC_SECRET)
+
+The `VISUS_HMAC_SECRET` is used to sign all sanitization proof records.
+It must be treated as a high-value secret.
+
+### Generation
+
+```bash
+# Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Python (if applicable)
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### Storage
+
+Use AWS Secrets Manager, not .env files in production.
+
+### Rotation triggers
+
+- Personnel change with access to the secret
+- Suspected compromise
+- Annual audit cycle (recommended)
+- Any infrastructure credential rotation event
+
+### On rotation
+
+Old proof_signatures will no longer verify against the new key.
+Retain the old key (in Secrets Manager, versioned) for audit purposes during
+the 90-day record retention window.
+
+### Disclosure to auditors
+
+Share under NDA with conformity assessment bodies
+or DPAs requiring full cryptographic verification of proof records.
+GDPR Art. 32 requires "appropriate technical measures" — the HMAC key is
+a controlled measure and its disclosure is governed by your data sharing agreements.
+
+### Compromise response
+
+If the HMAC key is compromised:
+1. Immediately rotate to a new key
+2. Audit all proof records signed with the compromised key
+3. Determine if any proofs were forged (check against original audit logs)
+4. Notify affected parties if required under GDPR Art. 33 / 34
+5. Document incident in security log
+
+---
+
 **Built with by Lateos**
 
 For questions: **security@lateos.ai**

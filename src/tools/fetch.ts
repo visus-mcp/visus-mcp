@@ -7,7 +7,7 @@
  */
 
 import { renderPage } from '../browser/playwright-renderer.js';
-import { sanitize } from '../sanitizer/index.js';
+import { sanitizeWithProof } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
 import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
 import { routeContentHandler, normalizeMimeType } from '../content-handlers/index.js';
@@ -129,15 +129,16 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
     // For 'html' format, processedContent remains as rawContent
 
-    // Step 4: CRITICAL - Sanitize content (injection detection + PII redaction with allowlisting)
+    // Step 4: CRITICAL - Sanitize content with cryptographic proof
+    // (injection detection + PII redaction with allowlisting)
     // This step CANNOT be skipped or bypassed
-    const sanitizationResult = sanitize(processedContent, url);
+    const sanitizationResult = await sanitizeWithProof(processedContent, url, 'visus_fetch', '1.0.0');
 
     // Step 5: Apply token ceiling truncation (AFTER sanitization)
     // Anthropic MCP Directory enforces 25,000 token response limit
     const truncationResult = truncateContent(sanitizationResult.content);
 
-    // Step 6: Build output
+    // Step 6: Build output with cryptographic proof
     const output: VisusFetchOutput = {
       url,
       content: truncationResult.content,
@@ -160,7 +161,9 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
         })
       },
       // Include threat_report only if findings exist
-      ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report })
+      ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report }),
+      // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
+      ...sanitizationResult.proofHeader
     };
 
     // Log to stderr if critical threats detected

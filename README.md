@@ -1,12 +1,13 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-294%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
-[![tools](https://img.shields.io/badge/MCP%20tools-4-blue)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-323%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-5-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
 [![security](https://img.shields.io/badge/frameworks-NIST%20AI%20RMF%20%7C%20CSF%202.0%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
+[![euaiact](https://img.shields.io/badge/EU%20AI%20Act-Art.%209%2F13%2F15-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/CRYPTO-PROOF-SPEC.md)
 
 > **Your AI agent shouldn't have to read garbage.**
 > **visus-mcp makes sure it doesn't.**
@@ -19,7 +20,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.9.0
+npx visus-mcp@0.10.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -50,7 +51,8 @@ visus-mcp fetches the same page and delivers:
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
 → Injection Sanitizer (43 patterns) → PII Redactor
-→ Token Ceiling (24k cap) → Clean Content → Claude
+→ Cryptographic Proof Generation → Token Ceiling (24k cap)
+→ Clean Content + Proof → Claude
 ```
 
 ### Security Pipeline
@@ -63,9 +65,10 @@ URL → Playwright Render → Content-Type Detection
    - **HTML/XML/RSS** — Uses existing conversion and reader extraction pipeline
 3. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
 4. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
-5. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a compliance report attached if anything was flagged
+5. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
+6. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header and compliance report attached if anything was flagged
 
-**This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, and generating audit logs when injection patterns are detected.
+**This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, generating audit logs when injection patterns are detected, and producing tamper-evident cryptographic proofs that sanitization executed.
 
 ---
 
@@ -299,6 +302,114 @@ Extract structured data from a web page according to a schema. Includes NIST AI 
 ```
 
 All extracted fields are individually sanitized.
+
+### `visus_verify`
+
+**NEW in v0.10.0:** Verify a Visus-MCP sanitization proof record. Confirms that a specific request was processed by the Visus injection detection pipeline before content reached the LLM. Produces a compliance statement suitable for EU AI Act Art. 9/13 documentation and GDPR Art. 32 security evidence.
+
+**Input:**
+```json
+{
+  "proof": {
+    "request_id": "abc123...",
+    "proof_hash": "9cda5595...",
+    "chain_hash": "977f5566...",
+    "injection_detected": false,
+    "patterns_evaluated": 43,
+    "patterns_triggered": 0,
+    "timestamp_utc": "2026-03-28T12:00:00Z",
+    "pipeline_version": "1.0.0",
+    "schema_version": "1.0.0"
+  },
+  "signingKey": "optional-for-full-verification"
+}
+```
+
+**Output:**
+```json
+{
+  "valid": true,
+  "checks": {
+    "proofHashMatch": true,
+    "signatureMatch": true,
+    "schemaVersionMatch": true
+  },
+  "complianceStatement": "VERIFIED: Request abc123 was processed by Visus-MCP sanitization pipeline v1.0.0 at 2026-03-28T12:00:00Z. Proof hash 9cda5595... recomputed and confirmed. 43 injection patterns evaluated, 0 triggered, 0 redactions applied. Sanitized content reached LLM only after this processing completed. Verified at 2026-03-28T12:30:00Z. EU AI Act Art. 9/13/15 controls confirmed active for this request.",
+  "recomputedProofHash": "9cda5595...",
+  "verifiedAt": "2026-03-28T12:30:00Z",
+  "requestId": "abc123...",
+  "issues": []
+}
+```
+
+**Use Cases:**
+- Regulatory audit responses (DPA, conformity assessment)
+- Internal compliance verification
+- Third-party security assessments
+- Incident investigation and forensics
+
+See [CRYPTO-PROOF-SPEC.md](./CRYPTO-PROOF-SPEC.md) for the complete technical specification.
+
+---
+
+## Cryptographic Proof System
+
+**NEW in v0.10.0:** Every Visus tool response now includes a `visus_proof` object providing tamper-evident cryptographic evidence that sanitization executed. This satisfies EU AI Act Art. 9 (Risk Management), Art. 13 (Transparency), and Art. 15 (Robustness) requirements.
+
+### What's in a Proof?
+
+```json
+{
+  "visus_proof": {
+    "request_id": "0b9564ea943c3909...",
+    "proof_hash": "a7cbc0e4a158dc4e...",
+    "chain_hash": "977f55664549b4b2...",
+    "injection_detected": false,
+    "patterns_evaluated": 43,
+    "patterns_triggered": 0,
+    "redactions": 0,
+    "sanitization_applied": false,
+    "timestamp_utc": "2026-03-28T12:00:00.000Z",
+    "pipeline_version": "1.0.0",
+    "schema_version": "1.0.0",
+    "verify_instruction": "Recompute proof_hash from disclosed fields per visus-mcp/CRYPTO-PROOF-SPEC.md"
+  }
+}
+```
+
+### How It Works
+
+1. **Before sanitization**: Generate unique request ID and timestamp
+2. **During sanitization**: Run full injection detection + PII redaction pipeline
+3. **After sanitization**: Compute cryptographic proof:
+   - `proof_hash` = SHA-256(request_id + input_hash + output_hash + patterns + timestamp + version)
+   - `proof_signature` = HMAC-SHA-256(proof_hash, VISUS_HMAC_SECRET) — stored in audit log only
+   - `chain_hash` = SHA-256(previous_proof_hash + current_proof_hash) — detects deleted records
+
+4. **Verification**: Anyone can verify the proof by recomputing the proof_hash from the disclosed fields
+
+### Security Properties
+
+| Property | Mechanism | Guarantee |
+|----------|-----------|-----------|
+| **Tamper evidence** | SHA-256 over all fields | Any field change invalidates proof_hash |
+| **Authenticity** | HMAC-SHA-256 with secret key | Proves pipeline issued the proof |
+| **Non-repudiation** | Audit log + chain_hash | Deletion of records is detectable |
+| **Privacy preservation** | Hashes only, no raw content | Verification without data exposure |
+
+### For Regulators and Auditors
+
+- **Hash-only verification**: Recompute `proof_hash` from disclosed fields (no key required)
+- **Full cryptographic verification**: Verify `proof_signature` with `VISUS_HMAC_SECRET` (shared under NDA)
+- **Independent verification**: Use the `visus_verify` tool or CLI verifier
+- **Compliance statements**: Automatically generated for DPA submissions
+
+See [CRYPTO-PROOF-SPEC.md](./CRYPTO-PROOF-SPEC.md) for:
+- Complete technical specification
+- Verification procedures
+- Reference implementation test vectors
+- Regulatory mapping (EU AI Act / GDPR)
+- Deployer compliance checklist
 
 ---
 

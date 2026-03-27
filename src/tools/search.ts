@@ -8,7 +8,7 @@
  * sanitization pipeline. This prevents prompt injection via search results.
  */
 
-import { sanitize } from '../sanitizer/index.js';
+import { sanitize, sanitizeWithProof } from '../sanitizer/index.js';
 import { generateThreatReport } from '../sanitizer/threat-reporter.js';
 import type { VisusSearchInput, VisusSearchOutput, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
@@ -135,7 +135,16 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       });
     }
 
-    // Sanitize each result independently
+    // Generate cryptographic proof for the entire search result batch
+    const combinedRawContent = validResults.map(r => `${r.title}\n${r.snippet}`).join('\n\n');
+    const batchProof = await sanitizeWithProof(
+      combinedRawContent,
+      `duckduckgo://search?q=${encodeURIComponent(input.query)}`,
+      'visus_search',
+      '1.0.0'
+    );
+
+    // Sanitize each result individually (for granular detection)
     const sanitizedResults = [];
     const allPatternsDetected = new Set<string>();
     let totalInjectionsRemoved = 0;
@@ -186,7 +195,9 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       results: sanitizedResults,
       total_injections_removed: totalInjectionsRemoved,
       // Include threat_report only if findings exist
-      ...(threatReport && { threat_report: threatReport })
+      ...(threatReport && { threat_report: threatReport }),
+      // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
+      ...batchProof.proofHeader
     });
 
   } catch (error) {

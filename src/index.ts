@@ -30,6 +30,7 @@ import { visusFetchStructured, visusFetchStructuredToolDefinition } from './tool
 import { visusRead, visusReadToolDefinition } from './tools/read.js';
 import { visusSearch, visusSearchToolDefinition } from './tools/search.js';
 import { visusReport, visusReportToolDefinition } from './tools/report.js';
+import { visusVerify, visusVerifyToolDefinition } from './tools/verify.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 import { shouldElicit } from './sanitizer/hitl-gate.js';
@@ -61,7 +62,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       visusFetchStructuredToolDefinition,
       visusReadToolDefinition,
       visusSearchToolDefinition,
-      visusReportToolDefinition
+      visusReportToolDefinition,
+      visusVerifyToolDefinition
     ]
   };
 });
@@ -234,6 +236,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         // No HITL for reports - they are read-only compliance exports
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'visus_verify': {
+        const result = await visusVerify(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_verify failed: ${result.error.message}`
+          );
+        }
+
+        // No HITL for verification - it's a read-only audit operation
         return {
           content: [
             {
