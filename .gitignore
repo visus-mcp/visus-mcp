@@ -9,3 +9,16 @@ cdk.out/
 .vscode/
 .idea/
 system-ca-bundle.pem
+
+# MCP Registry tokens (temporary)
+.mcpregistry_github_token
+.mcpregistry_registry_token
+
+# Troubleshooting logs
+TROUBLESHOOT-*.md
+
+# Lambda deployment artifacts
+lambda-deploy/
+lambda-package/
+lambda.zip
+
