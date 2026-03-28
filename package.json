@@ -32,7 +32,7 @@
     "pii-redaction",
     "anthropic"
   ],
-  "author": "Roongrunchai Chongolnee <contact@lateos.ai>",
+  "author": "Roongrunchai Chongolnee <leo@lateos.ai>",
   "homepage": "https://github.com/visus-mcp/visus-mcp",
   "license": "MIT",
   "engines": {
@@ -41,7 +41,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1014.0",
     "@aws-sdk/lib-dynamodb": "^3.1014.0",
-    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "@mozilla/readability": "^0.6.0",
     "@playwright/test": "^1.58.2",
     "@toon-format/toon": "^2.1.0",
@@ -62,6 +62,7 @@
     "constructs": "^10.5.1",
     "esbuild": "^0.27.4",
     "jest": "^29.7.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"

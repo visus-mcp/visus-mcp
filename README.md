@@ -1072,4 +1072,45 @@ Integrators deploying Visus-MCP in EU contexts can reference this mapping to sup
 
 ---
 
+## Privacy Policy
+
+**Effective Date:** March 28, 2026
+**Last Updated:** March 28, 2026
+
+### What Data Does Visus Collect?
+
+Visus is a **local-first tool** that runs entirely on your machine. It does not transmit data to external servers.
+
+**Data Processing:**
+- Web pages fetched via `visus_fetch`, `visus_read`, `visus_search`, and `visus_fetch_structured` are processed locally using Playwright
+- Content is sanitized in-memory and returned to Claude Desktop via MCP protocol
+- No content, URLs, or user data is logged, stored, or transmitted to external services
+
+**Structured Logging:**
+- Sanitization events are logged to **stderr only** in structured JSON format for debugging
+- Logs contain detection metadata (pattern names, severity scores) but **do not contain original content**
+- Logs remain on your local machine and are never transmitted
+
+**No Third-Party Services:**
+- No analytics, telemetry, or tracking
+- No external API calls (except to fetch the URLs you explicitly request)
+- DuckDuckGo search uses the public search API but sends no identifying information
+
+### Data Retention
+
+Visus does not retain any data. All processing is stateless and ephemeral.
+
+### Third-Party Data Sharing
+
+None. Visus does not share data with any third party.
+
+### Contact
+
+For privacy questions or concerns:
+- Email: leo@lateos.ai
+- GitHub Issues: https://github.com/visus-mcp/visus-mcp/issues
+- Security vulnerabilities: See [SECURITY.md](./SECURITY.md)
+
+---
+
 **Built with by Lateos**
