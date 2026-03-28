@@ -1,0 +1,76 @@
+{
+  "manifest_version": "0.2",
+  "name": "visus-mcp",
+  "display_name": "Visus — Secure Web Access",
+  "version": "0.11.0",
+  "description": "Visus is a security-focused pre-filter that sanitizes web content before it enters Claude's context window. It reduces token usage by up to 70% on content-heavy pages, detects and neutralizes 7 categories of Indirect Prompt Injection attacks, redacts PII, and generates cryptographic proof that sanitization ran — before a single character reaches your conversation.\n\nBuilt on the principle that model safety ≠ pipeline safety.\n\nNo API key required. Sanitization runs locally — web content never reaches external infrastructure.",
+  "long_description": "## Security-First Web Access for Claude\n\nVisus is a pre-filter MCP server that applies defense-in-depth to web content **before** it reaches your conversation. Unlike other MCP web tools that pass raw content directly to the LLM, Visus runs every byte through a multi-stage security pipeline.\n\n### What It Does\n\n- **Threat Detection**: Scans for 7 categories of Indirect Prompt Injection (IPI) attacks mapped to OWASP LLM Top 10, NIST AI RMF, MITRE ATLAS, and ISO/IEC 42001:2023\n- **PII Redaction**: Automatically removes emails, phone numbers, SSNs, credit cards, and IP addresses\n- **Token Efficiency**: Reader mode strips nav bars, ads, and boilerplate — reducing token consumption by up to 70% on content-heavy pages\n- **Cryptographic Proof**: Every response includes a SHA-256 + HMAC proof that sanitization ran, with framework mappings for compliance audits\n\n### The Security Pipeline\n\n1. **Fetch**: Playwright renders the page with full JavaScript execution\n2. **IPI Detection**: 7 specialized detectors scan for instruction override, role hijacking, data exfiltration, tool abuse, context poisoning, encoded payloads, and steganographic attacks\n3. **Pattern Neutralization**: 43 injection patterns are stripped or replaced with `[REDACTED:pattern_name]`\n4. **PII Redaction**: Sensitive data replaced with `[REDACTED:PII_TYPE]`\n5. **Proof Generation**: SHA-256 content hash + HMAC signature with framework compliance metadata\n6. **Token Ceiling**: Content truncated at 24k tokens to prevent context exhaustion\n\n### Trust Model\n\n- Runs locally — no external API calls\n- Open source (MIT License) — audit the code yourself\n- No authentication required for open-source tier\n- Deterministic output — same input always produces same sanitized result\n\n### Known Limitations\n\n- Semantic injection (benign-looking business language) not detected by pattern matching\n- Multi-step cross-call chaining attacks not currently detected\n- Adversarially crafted LLM-generated injection can bypass regex patterns\n- Non-English injection partially covered\n\nSee [SECURITY.md](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md) for full threat model.",
+  "author": {
+    "name": "Leo Chongolnee",
+    "email": "leo@lateos.ai",
+    "url": "https://lateos.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/visus-mcp/visus-mcp"
+  },
+  "homepage": "https://github.com/visus-mcp/visus-mcp",
+  "documentation": "https://github.com/visus-mcp/visus-mcp/blob/main/README.md",
+  "support": "https://github.com/visus-mcp/visus-mcp/issues",
+  "license": "MIT",
+  "icon": "icon.png",
+  "keywords": [
+    "security",
+    "prompt-injection",
+    "pii-redaction",
+    "web-scraping",
+    "token-optimization",
+    "sanitization",
+    "threat-detection",
+    "compliance",
+    "audit"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"]
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "tools": [
+    {
+      "name": "visus_fetch",
+      "description": "Fetches a URL through a security pipeline: strips nav/ads/scripts, runs IPI threat detection (7 attack categories), sanitizes 43 injection patterns, redacts PII, applies 24k token ceiling. Returns clean content with cryptographic proof and threat_summary."
+    },
+    {
+      "name": "visus_fetch_structured",
+      "description": "Fetches a URL and extracts structured data matching a user-defined schema, with full security pipeline applied before extraction."
+    },
+    {
+      "name": "visus_read",
+      "description": "Reader mode — extracts article content only via Mozilla Readability, reducing tokens by ~70% on content-heavy pages. Full security pipeline applies."
+    },
+    {
+      "name": "visus_search",
+      "description": "Sanitized DuckDuckGo web search. SEO spam and injection patterns are removed before results enter context. No API key required."
+    },
+    {
+      "name": "visus_report",
+      "description": "Generates a structured compliance audit report from visus-mcp sanitization logs, including detected threat classifications and framework mappings (NIST AI RMF, OWASP LLM Top 10, ISO/IEC 42001)."
+    },
+    {
+      "name": "visus_verify",
+      "description": "Verify a sanitization proof record. Confirms that a request was processed by the Visus pipeline before content reached the LLM. Produces a compliance statement suitable for EU AI Act Art. 9/13 documentation and GDPR Art. 32 security evidence."
+    }
+  ],
+  "privacy_policies": [
+    "https://github.com/visus-mcp/visus-mcp/blob/main/README.md#privacy-policy"
+  ]
+}

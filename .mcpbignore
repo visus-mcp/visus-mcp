@@ -1,0 +1,65 @@
+# Build artifacts
+lambda-deploy/
+lambda-package/
+lambda.zip
+cdk.out/
+
+# Infrastructure code (not needed in extension)
+infrastructure/
+cdk.json
+tsconfig.cdk.json
+
+# Tokens and credentials
+.mcpregistry_*
+*.token
+
+# Development files
+tests/
+jest.config.js
+jest.setup.js
+tsconfig.json
+*.backup
+test-output.txt
+
+# Source TypeScript (only compiled JS needed)
+src/
+
+# Git and GitHub
+.git/
+.github/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation not needed in bundle
+TROUBLESHOOT-*.md
+VISUS-*.md
+LINKEDIN-STRATEGY.md
+CONTRIBUTING.md
+ROADMAP.md
+SECURITY-AUDIT-*.md
+SUBMISSION.md
+visus-mcp-ipi-plan.md
+
+# Scripts
+scripts/
+
+# Dev dependencies - these are installed via package.json
+node_modules/aws-cdk
+node_modules/aws-cdk-lib
+node_modules/constructs
+node_modules/@jest
+node_modules/jest
+node_modules/jest-*
+node_modules/@types
+node_modules/typescript
+node_modules/ts-jest
+node_modules/ts-node
+node_modules/@typescript-eslint
+node_modules/eslint
+node_modules/@anthropic-ai/mcpb
