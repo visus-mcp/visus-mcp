@@ -1,9 +1,8 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.visus-mcp/visus-mcp",
   "description": "Security-first web access. Sanitizes pages, blocks injection, redacts PII. Now with PDF/JSON/SVG.",
-  "status": "active",
-  "website_url": "https://github.com/visus-mcp/visus-mcp",
+  "websiteUrl": "https://github.com/visus-mcp/visus-mcp",
   "repository": {
     "url": "https://github.com/visus-mcp/visus-mcp",
     "source": "github"
@@ -12,10 +11,8 @@
   "packages": [
     {
       "registryType": "npm",
-      "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "visus-mcp",
       "version": "0.11.0",
-      "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
       },
@@ -45,7 +42,7 @@
     "io.modelcontextprotocol.registry/publisher-provided": {
       "tool": "mcp-publisher",
       "version": "0.11.0",
-      "build_info": {
+      "buildInfo": {
         "timestamp": "2026-03-28T00:00:00Z",
         "release": "v0.11.0 — IPI Protection System with 7 specialized detectors, fine-grained threat annotations, EU AI Act compliance"
       }
