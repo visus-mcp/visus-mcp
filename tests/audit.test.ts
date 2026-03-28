@@ -2,15 +2,14 @@
  * Unit tests for the audit logging system
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createHash } from 'crypto';
 import {
   createAuditLogRecord,
   createSanitizationProof,
   createRedactionRecord,
   createDataFlowRecord,
-  toComplianceReportRow,
-  type AuditLogRecord
+  toComplianceReportRow
 } from '../src/audit/schema.js';
 import { AuditLogger, AUDIT_TTL_SECONDS } from '../src/audit/logger.js';
 
