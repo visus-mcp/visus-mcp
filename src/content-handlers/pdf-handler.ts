@@ -20,6 +20,7 @@
 
 import { PDFParse } from 'pdf-parse';
 import { sanitize } from '../sanitizer/index.js';
+import { ThreatDetector } from '../security/ThreatDetector.js';
 import type { HandlerResult } from './types.js';
 
 /**
@@ -62,6 +63,10 @@ export async function handlePdf(
       }
     }
 
+    // Run IPI threat detection on raw content BEFORE sanitization
+    const detector = new ThreatDetector();
+    const threats = detector.scan(combinedText, 'pdf');
+
     // Pass through injection detection pipeline
     const sanitizationResult = sanitize(combinedText);
 
@@ -77,7 +82,8 @@ export async function handlePdf(
         pii_allowlisted: sanitizationResult.sanitization.pii_allowlisted,
         sanitized_fields: sanitizationResult.sanitization.patterns_detected.length
       },
-      processing_time_ms: processingTime
+      processing_time_ms: processingTime,
+      threats
     };
 
   } catch (error) {

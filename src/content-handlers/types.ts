@@ -4,6 +4,8 @@
  * Shared interfaces for content-type specific handlers.
  */
 
+import type { ThreatAnnotation } from '../security/threats.js';
+
 /**
  * Success result from a content handler
  */
@@ -18,6 +20,10 @@ export interface HandlerSuccessResult {
     sanitized_fields: number;
   };
   processing_time_ms: number;
+  /**
+   * Fine-grained threat annotations from IPI detection system (v0.9.0+)
+   */
+  threats: ThreatAnnotation[];
 }
 
 /**

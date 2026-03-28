@@ -1,10 +1,11 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-323%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-373%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-5-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
+[![security](https://img.shields.io/badge/IPI%20Detection-7%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![security](https://img.shields.io/badge/frameworks-NIST%20AI%20RMF%20%7C%20CSF%202.0%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 [![euaiact](https://img.shields.io/badge/EU%20AI%20Act-Art.%209%2F13%2F15-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/CRYPTO-PROOF-SPEC.md)
@@ -20,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.10.0
+npx visus-mcp@0.11.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -50,9 +51,9 @@ visus-mcp fetches the same page and delivers:
 ```
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
-→ Injection Sanitizer (43 patterns) → PII Redactor
-→ Cryptographic Proof Generation → Token Ceiling (24k cap)
-→ Clean Content + Proof → Claude
+→ IPI Threat Detection (7 categories) → Injection Sanitizer (43 patterns)
+→ PII Redactor → Cryptographic Proof Generation
+→ Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → Claude
 ```
 
 ### Security Pipeline
@@ -63,16 +64,43 @@ URL → Playwright Render → Content-Type Detection
    - **JSON** (`application/json`) — Recursively sanitizes all string values, preserves structure
    - **SVG** (`image/svg+xml`) — Strips dangerous elements (`<script>`, event handlers), scans text
    - **HTML/XML/RSS** — Uses existing conversion and reader extraction pipeline
-3. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
-4. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
-5. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
-6. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header and compliance report attached if anything was flagged
+3. **IPI Threat Detection** (v0.11.0+): 7 specialized detectors scan for Indirect Prompt Injection attempts before sanitization
+   - **IPI-001** — Instruction Override (CRITICAL)
+   - **IPI-002** — Role Hijacking (HIGH)
+   - **IPI-003** — Data Exfiltration (CRITICAL)
+   - **IPI-004** — Tool Abuse (HIGH)
+   - **IPI-005** — Context Poisoning (MEDIUM)
+   - **IPI-006** — Encoded Payload (HIGH)
+   - **IPI-007** — Steganographic (HIGH)
+4. **Injection Detection**: 43 pattern categories scan for prompt injection attempts
+5. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
+6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
+7. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header, `threat_summary`, and compliance report attached if anything was flagged
 
 **This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, generating audit logs when injection patterns are detected, and producing tamper-evident cryptographic proofs that sanitization executed.
 
 ---
 
 ## Security Features
+
+### Fine-Grained IPI Threat Detection (v0.11.0+)
+
+**NEW**: 7 specialized Indirect Prompt Injection (IPI) detectors run **before** sanitization, providing fine-grained threat annotations with:
+- **Threat classification** — 7 distinct IPI attack categories
+- **Severity scoring** — INFO, LOW, MEDIUM, HIGH, CRITICAL
+- **Confidence scores** — 0.0-1.0 detection confidence per annotation
+- **Precise offsets** — Character-level attack location tracking
+- **Content excerpts** — Max 120 chars of detected attack for audit
+- **Mitigation status** — All threats flagged as mitigated after sanitization
+
+Each tool response now includes a `threat_summary` field with:
+```typescript
+threat_summary: {
+  threat_count: number;           // Total IPI threats detected
+  highest_severity: ThreatSeverity | 'NONE';
+  classes_detected: ThreatClass[]; // e.g., ['IPI-001', 'IPI-003']
+}
+```
 
 ### 43 Injection Pattern Categories
 

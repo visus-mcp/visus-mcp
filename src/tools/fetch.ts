@@ -11,7 +11,10 @@ import { sanitizeWithProof } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
 import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
 import { routeContentHandler, normalizeMimeType } from '../content-handlers/index.js';
+import { ThreatDetector } from '../security/ThreatDetector.js';
+import { computeThreatSummary } from '../security/threat-summary.js';
 import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
+import type { ThreatAnnotation } from '../security/threats.js';
 import { Err } from '../types.js';
 
 /**
@@ -70,6 +73,7 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       // Handler success - use the already-sanitized content
       const sanitizedContent = handlerResult.sanitized_content;
       const sanitization = handlerResult.sanitization;
+      const threats = handlerResult.threats;
       const truncationResult = truncateContent(sanitizedContent);
 
       // Determine format_detected based on MIME type
@@ -82,6 +86,9 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
         // PDF doesn't have a format_detected value in the current schema
         // Leaving as 'html' for now
       }
+
+      // Compute threat summary from handler threats
+      const threatSummary = computeThreatSummary(threats);
 
       const output: VisusFetchOutput = {
         url,
@@ -103,7 +110,8 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
             truncated: true,
             truncated_at_chars: truncationResult.truncated_at_chars
           })
-        }
+        },
+        ...(threatSummary.threat_count > 0 && { threat_summary: threatSummary })
       };
 
       return { ok: true, value: output };
@@ -129,6 +137,10 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
     // For 'html' format, processedContent remains as rawContent
 
+    // Step 3.5: Run IPI threat detection on processed content BEFORE sanitization
+    const detector = new ThreatDetector();
+    const threats: ThreatAnnotation[] = detector.scan(processedContent, 'html');
+
     // Step 4: CRITICAL - Sanitize content with cryptographic proof
     // (injection detection + PII redaction with allowlisting)
     // This step CANNOT be skipped or bypassed
@@ -137,6 +149,9 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     // Step 5: Apply token ceiling truncation (AFTER sanitization)
     // Anthropic MCP Directory enforces 25,000 token response limit
     const truncationResult = truncateContent(sanitizationResult.content);
+
+    // Step 5.5: Compute threat summary from IPI detections
+    const threatSummary = computeThreatSummary(threats);
 
     // Step 6: Build output with cryptographic proof
     const output: VisusFetchOutput = {
@@ -162,6 +177,8 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       },
       // Include threat_report only if findings exist
       ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report }),
+      // Include threat_summary only if threats detected
+      ...(threatSummary.threat_count > 0 && { threat_summary: threatSummary }),
       // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
       ...sanitizationResult.proofHeader
     };

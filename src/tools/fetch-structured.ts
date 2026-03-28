@@ -12,6 +12,8 @@ import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitize } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
 import { generateThreatReport } from '../sanitizer/threat-reporter.js';
+import { ThreatDetector } from '../security/ThreatDetector.js';
+import { computeThreatSummary } from '../security/threat-summary.js';
 import type { VisusFetchStructuredInput, VisusFetchStructuredOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -124,6 +126,10 @@ export async function visusFetchStructured(
       return Err(new Error('fetch-structured does not support binary content types (PDFs, images). Use visus_fetch instead.'));
     }
 
+    // Step 1.5: Run IPI threat detection on raw HTML BEFORE extraction
+    const detector = new ThreatDetector();
+    const threats = detector.scan(html, 'html');
+
     // Step 2: Extract structured data from HTML using cheerio
     const extractedData = extractStructuredData(html, schema);
 
@@ -197,6 +203,9 @@ export async function visusFetchStructured(
       source_url: url
     });
 
+    // Step 5.5: Compute threat summary from IPI detections
+    const threatSummary = computeThreatSummary(threats);
+
     // Step 6: Build output
     const output: VisusFetchStructuredOutput = {
       url,
@@ -221,7 +230,9 @@ export async function visusFetchStructured(
         })
       },
       // Include threat_report only if findings exist
-      ...(threatReport && { threat_report: threatReport })
+      ...(threatReport && { threat_report: threatReport }),
+      // Include threat_summary only if threats detected
+      ...(threatSummary.threat_count > 0 && { threat_summary: threatSummary })
     };
 
     // Log to stderr if threats detected

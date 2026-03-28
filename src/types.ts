@@ -3,6 +3,16 @@
  */
 
 import type { ThreatReport } from './sanitizer/threat-reporter.js';
+import type { ThreatClass, ThreatSeverity } from './security/threats.js';
+
+/**
+ * Summary of IPI threats detected in content (v0.9.0+)
+ */
+export interface ThreatSummary {
+  threat_count: number;
+  highest_severity: ThreatSeverity | 'NONE';
+  classes_detected: ThreatClass[];
+}
 
 /**
  * Input options for visus_fetch tool
@@ -36,6 +46,10 @@ export interface VisusFetchOutput {
     truncated_at_chars?: number;
   };
   threat_report?: ThreatReport;
+  /**
+   * IPI threat summary (v0.9.0+)
+   */
+  threat_summary?: ThreatSummary;
 }
 
 /**
@@ -78,6 +92,10 @@ export interface VisusFetchStructuredOutput {
     truncated_at_chars?: number;
   };
   threat_report?: ThreatReport;
+  /**
+   * IPI threat summary (v0.9.0+)
+   */
+  threat_summary?: ThreatSummary;
 }
 
 /**
@@ -99,6 +117,10 @@ export interface VisusReadOutput {
     fetched_at?: string;
   };
   threat_report?: ThreatReport;
+  /**
+   * IPI threat summary (v0.9.0+)
+   */
+  threat_summary?: ThreatSummary;
 }
 
 /**

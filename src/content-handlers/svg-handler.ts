@@ -26,6 +26,7 @@
 
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { sanitize } from '../sanitizer/index.js';
+import { ThreatDetector } from '../security/ThreatDetector.js';
 import type { HandlerResult } from './types.js';
 
 /**
@@ -43,6 +44,10 @@ export function handleSvg(
 
   // Convert Buffer to string if needed
   const svgString = Buffer.isBuffer(content) ? content.toString('utf-8') : content;
+
+  // Run IPI threat detection on raw SVG string BEFORE sanitization
+  const detector = new ThreatDetector();
+  const threats = detector.scan(svgString, 'svg');
 
   try {
     // Parse SVG XML
@@ -97,7 +102,8 @@ export function handleSvg(
         pii_allowlisted: sanitizationResult?.sanitization.pii_allowlisted || [],
         sanitized_fields: sanitizedFieldCount
       },
-      processing_time_ms: processingTime
+      processing_time_ms: processingTime,
+      threats
     };
 
   } catch (error) {
