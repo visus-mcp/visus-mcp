@@ -43,7 +43,7 @@ import type { ThreatReport } from './sanitizer/threat-reporter.js';
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.6.0'
+    version: '0.11.0'
   },
   {
     capabilities: {
@@ -299,7 +299,7 @@ async function startMcpServer() {
     timestamp: new Date().toISOString(),
     event: 'mcp_server_started',
     name: 'visus-mcp',
-    version: '0.6.0',
+    version: '0.11.0',
     tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
   }));
 
@@ -350,11 +350,8 @@ async function main() {
   }
 }
 
-// Export Lambda handler (for AWS deployment)
-// This is only used when the file is imported as a module by Lambda runtime
-export { handler } from './lambda-handler.js';
-
 // Run stdio MCP server when executed directly (not in Lambda)
+// Note: Lambda deployments import from ./lambda-handler.ts directly (see infrastructure/stack.ts)
 if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
   main().catch((error) => {
     console.error(JSON.stringify({

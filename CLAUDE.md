@@ -302,6 +302,7 @@ When a root cause is confirmed, add it here. Future sessions check this list fir
 | `ENOSPC` on Claude Code startup | Mac disk full; `~/.claude/debug/` write fails | Free disk space; `rm -rf ~/.claude/debug/`; restart | 2026-03-24 |
 | 401 Unauthorized after `cdk deploy` | CDK does NOT automatically redeploy API Gateway stages when Lambda code or authorizer config changes | After every `cdk deploy`, run: `aws apigateway create-deployment --rest-api-id <api-id> --stage-name <stage>` | 2026-03-24 |
 | `unable to get local issuer certificate` in Lambda | undici HTTP client in AWS Lambda Node.js 20 runtime lacks proper CA certificate configuration | Replace undici with Node.js native `fetch()` API (available in Node 18+) which has proper CA handling in Lambda | 2026-03-24 |
+| MCP server crashes on startup in claude.ai hosted environment or Claude Desktop | Top-level `export { handler } from './lambda-handler.js'` in index.ts causes AWS SDK instantiation (DynamoDBClient) in stdio mode; crashes in non-AWS environments | Remove top-level export from index.ts; Lambda deployments import from lambda-handler.ts directly (CDK stack already configured correctly) | 2026-03-28 |
 
 ---
 
@@ -319,6 +320,14 @@ AWS SDK v3 uses dynamic `require()` internally. ESM output from esbuild will fai
 
 **Entry point must always be `src/lambda-handler.ts`, NOT `src/index.ts`.**
 `index.ts` is the MCP stdio server and imports packages that must not be in the Lambda bundle.
+
+**CRITICAL: Never export Lambda handler from `index.ts`.**
+- Do NOT add `export { handler } from './lambda-handler.js'` to index.ts
+- Top-level exports execute at module load time in ALL environments (stdio, claude.ai, Claude Desktop)
+- lambda-handler.ts instantiates AWS SDK clients (DynamoDB, etc.) at top level
+- This causes crashes in non-AWS environments before MCP server can start
+- Lambda deployments already import from lambda-handler.ts directly via CDK `entry:` field
+- Keep stdio entry point (index.ts) and Lambda entry point (lambda-handler.ts) completely separate
 
 ### Manual Deploy Script (use when CDK/Docker is unavailable)
 

@@ -92,20 +92,36 @@ export function logRuntimeConfig(config: RuntimeConfig): void {
 /**
  * Validate runtime environment is appropriate for operation
  *
+ * This function logs warnings for unexpected conditions but NEVER throws errors.
+ * This ensures the MCP server can start even in non-standard environments
+ * (e.g., claude.ai hosted MCP runner) by defaulting to stdio mode.
+ *
  * @param config Runtime configuration
- * @throws Error if runtime is unknown or invalid
  */
 export function validateRuntime(config: RuntimeConfig): void {
+  // Log warning for unknown environments, but don't crash
+  // detectRuntime() should default to 'stdio', so this should rarely happen
   if (config.environment === 'unknown') {
-    throw new Error(
-      'Unknown runtime environment. Set VISUS_MCP_MODE=stdio or run in AWS Lambda.'
-    );
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'runtime_validation_warning',
+      level: 'warn',
+      message: 'Unknown runtime environment detected. Defaulting to stdio mode. Set VISUS_MCP_MODE=stdio explicitly if needed.',
+      environment: config.environment
+    }));
   }
 
-  // In Lambda, ensure required environment variables are set
+  // In Lambda, warn if required environment variables are missing
+  // But don't crash - let Lambda itself handle the error
   if (config.isLambda) {
     if (!process.env.AWS_REGION) {
-      throw new Error('AWS_REGION must be set in Lambda environment');
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'runtime_validation_warning',
+        level: 'warn',
+        message: 'AWS_REGION not set in Lambda environment. This may cause AWS SDK calls to fail.',
+        environment: config.environment
+      }));
     }
   }
 }
