@@ -4,7 +4,7 @@
 
 - **Name:** Visus — Secure Web Access for Claude
 - **npm package:** visus-mcp
-- **Current version:** 0.6.0
+- **Current version:** 0.11.0
 - **Install command:** `npx visus-mcp`
 - **License:** MIT
 - **Category:** Web Fetch / Security

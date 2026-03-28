@@ -1,7 +1,7 @@
 {
   "name": "visus-mcp",
   "displayName": "Visus — Secure Web Access",
-  "version": "0.6.0",
+  "version": "0.11.0",
   "status": "active",
   "tier": "open-source",
   "phase": "1",

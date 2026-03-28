@@ -12,7 +12,7 @@
 **Status:** ✅ COMPLETE (Ready for release)
 **Type:** Major security feature - Fine-grained IPI threat detection with 7 specialized detectors
 **Implemented:** 2026-03-28
-**Tests:** 373/373 passing (100%) — Added 50 new IPI detection tests
+**Tests:** 389/389 passing (100%) — Added 66 new tests (50 IPI detection + 16 integration)
 
 ### Features Added
 
@@ -2131,9 +2131,9 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 
 ---
 
-**Last Updated:** 2026-03-25
+**Last Updated:** 2026-03-28
 **Build:** SUCCESS ✅
-**Tests:** 294/294 PASSING ✅
+**Tests:** 389/389 PASSING ✅
 **CDK Deploy:** SUCCESS ✅
 **Phase 1:** ✅ PUBLISHED TO NPM (v0.1.0)
 **Phase 2:** ✅ DEPLOYED TO AWS LAMBDA (us-east-1)
@@ -2146,9 +2146,11 @@ npm URL:        https://www.npmjs.com/package/visus-mcp
 **v0.7.0:** ✅ COMPLETE (HITL Elicitation Bridge for CRITICAL threats - 30 tests added)
 **v0.8.0:** ✅ PUBLISHED TO NPM (PDF/JSON/SVG Content Handlers - 48 tests added)
 **v0.8.1:** ✅ COMPLETE (PDF Extraction Bug Fix - binary content handling)
+**v0.10.0:** ✅ PUBLISHED TO NPM (Cryptographic Proof System - SHA-256 + HMAC, EU AI Act - 29 tests added)
+**v0.11.0:** ✅ PUBLISHED TO NPM (IPI Threat Detection - 7 detectors, threat_summary - 66 tests added)
 **Security Audit:** ✅ COMPLETE + REMEDIATED (24 auth tests, 100% compliance)
 **Lambda Endpoint:** [API_ENDPOINT]
-**Latest Release:** v0.8.0 (2026-03-25)
+**Latest Release:** v0.11.0 (2026-03-28)
 
 ---
 

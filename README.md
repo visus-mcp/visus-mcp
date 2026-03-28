@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-373%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-389%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-5-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -904,7 +904,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 43 injection patterns, 274/274 passing tests
+- **Validated Patterns**: 43 injection patterns, 389/389 passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
@@ -957,6 +957,10 @@ npm start
 
 | Version | Status | Highlights |
 |---|---|---|
+| v0.11.0 | ✅ Released | IPI Threat Detection — 7 specialized detectors, threat_summary in all tools |
+| v0.10.0 | ✅ Released | Cryptographic Proof System (SHA-256 + HMAC, EU AI Act Art. 9/13/15) |
+| v0.8.1 | ✅ Released | PDF extraction bug fix |
+| v0.8.0 | ✅ Released | PDF/JSON/SVG content-type handlers |
 | v0.7.0 | ✅ Complete | HITL Elicitation Bridge for CRITICAL threats |
 | v0.6.0 | ✅ Released | Content-Type detection (JSON/XML/RSS) |
 | v0.5.0 | ✅ Released | TOON threat reports, NIST/OWASP/MITRE/ISO42001 |
