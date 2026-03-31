@@ -243,11 +243,41 @@ async function renderWithFetch(
 }
 
 /**
+ * Check if an error is a network failure that should trigger Playwright fallback
+ */
+function isNetworkError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  const cause = (error as any).cause;
+
+  // Check error message patterns
+  if (message.includes('fetch failed') ||
+      message.includes('enotfound') ||
+      message.includes('econnrefused') ||
+      message.includes('unable to get local issuer certificate') ||
+      message.includes('unable_to_get_issuer_cert') ||
+      message.includes('network error')) {
+    return true;
+  }
+
+  // Check error cause codes (undici errors)
+  if (cause?.code) {
+    const code = cause.code;
+    return code === 'ECONNREFUSED' ||
+           code === 'ENOTFOUND' ||
+           code === 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY' ||
+           code.startsWith('UND_ERR_');
+  }
+
+  return false;
+}
+
+/**
  * Render a web page using the best available renderer
  *
  * Rendering strategy:
  *   1. Lambda renderer (if VISUS_RENDERER_URL is set)
  *   2. Undici fetch() (fallback)
+ *   3. If fetch fails with network error → retry with Lambda (if available)
  *
  * @param url - The URL to fetch
  * @param options - Rendering options
@@ -280,8 +310,31 @@ export async function renderPage(
     }));
   }
 
-  // Strategy 2: Fallback to undici fetch
-  return await renderWithFetch(url, timeout);
+  // Strategy 2: Try fetch (faster for simple pages)
+  const fetchResult = await renderWithFetch(url, timeout);
+
+  // If fetch succeeded, return result
+  if (fetchResult.ok) {
+    return fetchResult;
+  }
+
+  // Strategy 3: If fetch failed with network error AND Lambda available, retry with Lambda
+  if (isNetworkError(fetchResult.error) && RENDERER_URL) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'renderer_fallback',
+      from: 'fetch',
+      to: 'playwright',
+      reason: fetchResult.error.message,
+      url,
+    }));
+
+    // Retry with Lambda Playwright renderer
+    return await renderWithLambda(url, timeout);
+  }
+
+  // No fallback available, return fetch error
+  return fetchResult;
 }
 
 /**

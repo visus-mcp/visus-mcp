@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-389%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-430%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-5-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.11.0
+npx visus-mcp@0.12.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -209,6 +209,58 @@ Replace `YOUR_API_ID` and `YOUR_REGION` with values from your CDK deployment out
 **CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which tier you use. Rendered HTML is returned to your local visus-mcp process before Claude sees it. Web content never touches Lateos infrastructure unless you explicitly configure the managed renderer URL.
 
 Restart Claude Desktop. Visus tools are now available to Claude.
+
+---
+
+## Token Metrics (v0.12.0+)
+
+**Real-time token reduction statistics are now embedded directly in every tool response.**
+
+When you use `visus_fetch`, `visus_read`, `visus_fetch_structured`, or `visus_search`, you'll see a metrics header at the top of the response showing exactly how much token reduction occurred:
+
+```
+╔═ visus-mcp ═══════════════════════════════╗
+║ 4,200 → 890 tokens · 79% reduction        ║
+║ 3 threats blocked · fetch 1.2s            ║
+╚════════════════════════════════════════════╝
+```
+
+**What the metrics show:**
+- **Before/After Tokens** — Token count before and after sanitization (estimated using GPT-family approximation)
+- **Reduction Percentage** — How much bloat was removed from the original content
+- **Threats Blocked** — Number of Indirect Prompt Injection (IPI) patterns detected and neutralized
+- **Elapsed Time** — How long the fetch and sanitization took
+
+**Why this matters:**
+- **Cost visibility** — See exactly how many tokens visus-mcp saved you on each request
+- **Security awareness** — Know immediately if a page contained injection attempts
+- **Performance tracking** — Monitor fetch times to identify slow pages
+
+### Disabling Metrics
+
+If you prefer not to see the metrics header, set the environment variable:
+
+```bash
+export VISUS_SHOW_METRICS=false
+```
+
+Add to your Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "visus": {
+      "command": "npx",
+      "args": ["-y", "visus-mcp@0.12.0"],
+      "env": {
+        "VISUS_SHOW_METRICS": "false"
+      }
+    }
+  }
+}
+```
+
+Metrics are enabled by default.
 
 ---
 
@@ -1024,6 +1076,31 @@ A: Firecrawl is excellent for web scraping but doesn't sanitize for prompt injec
 
 **Q: Is Visus free?**
 A: Yes! Open-source tier is free forever. Phase 2 will introduce a hosted tier with SLA guarantees for enterprise use.
+
+**Q: I'm getting "fetch failed" errors on macOS. How do I fix this?**
+A: This is a known issue with Node.js native `fetch()` in macOS subprocess environments (SSL certificate verification fails). **Fixed in v0.12.0** with automatic fallback to Lambda renderer when configured. Three solutions:
+
+1. **Use a Lambda renderer** (recommended) — Set `VISUS_RENDERER_URL` in your Claude Desktop config:
+   ```json
+   {
+     "mcpServers": {
+       "visus": {
+         "command": "npx",
+         "args": ["visus-mcp"],
+         "env": {
+           "VISUS_RENDERER_URL": "https://YOUR_LAMBDA_URL.amazonaws.com"
+         }
+       }
+     }
+   }
+   ```
+   Deploy your own using [visus-mcp-renderer](https://github.com/visus-mcp/visus-mcp-renderer) or request community access.
+
+2. **Wait for v0.13.0** — Local Playwright fallback will be added (no setup needed).
+
+3. **Use from terminal** — Run `npx visus-mcp` directly (not as MCP subprocess) to bypass the SSL issue.
+
+The v0.12.0 fix adds automatic retry with Lambda Playwright when native fetch fails, logging `{"event":"renderer_fallback","from":"fetch","to":"playwright"}` when fallback occurs.
 
 ---
 

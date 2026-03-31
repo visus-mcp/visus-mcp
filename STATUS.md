@@ -1,9 +1,138 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-03-28
-**Version:** 0.11.0 (in progress)
+**Generated:** 2026-03-31
+**Version:** 0.12.0 (in progress)
 **Phase:** 3 (Anthropic Directory Prep)
-**Status:** ✅ **v0.11.0 COMPLETE** - IPI Threat Detection System
+**Status:** ✅ **v0.12.0 IN PROGRESS** - Network Fallback & Stability Fixes
+
+---
+
+## v0.12.0 Release - Network Fallback & Stability Fixes
+
+**Status:** 🔄 IN PROGRESS (Ready for testing)
+**Type:** Bug fix - Network failure handling with automatic renderer fallback
+**Implemented:** 2026-03-31
+**Tests:** 430/430 passing (100%) — All existing tests pass with new fallback logic
+
+### Issue Fixed
+
+**macOS Subprocess SSL Certificate Failures**
+- Native Node.js `fetch()` fails with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` when run as MCP subprocess on macOS
+- Affects all users running visus-mcp through Claude Desktop on macOS
+- Error manifests as `"error": "visus_fetch failed: fetch failed"` with no detailed cause
+
+### Root Cause
+
+Node.js native `fetch()` (undici) in v22+ has SSL certificate verification issues when:
+1. Running as a subprocess (Claude Desktop spawns MCP servers as child processes)
+2. On macOS (certificate chain validation fails in subprocess environment)
+3. Attempting HTTPS requests without proper CA certificate configuration
+
+The existing code only checked for `ENOTFOUND` and `ECONNREFUSED` errors, missing SSL certificate failures.
+
+### Solution Implemented
+
+**Automatic Fetch-to-Playwright Fallback (Fix A)**
+
+Added intelligent network error detection and automatic fallback to Lambda Playwright renderer:
+
+1. **New `isNetworkError()` function** — Detects SSL errors and network failures:
+   - Checks error message patterns: `"fetch failed"`, `"unable to get local issuer certificate"`, etc.
+   - Checks error cause codes: `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `ECONNREFUSED`, `ENOTFOUND`, `UND_ERR_*`
+   - Returns `true` for any network-level failure that should trigger fallback
+
+2. **Enhanced `renderPage()` strategy** — Three-tier fallback:
+   ```
+   1. Try Lambda renderer (if VISUS_RENDERER_URL set) → success/fail
+   2. Try native fetch → success/fail
+   3. If fetch failed with network error AND Lambda available → retry Lambda
+   4. Otherwise return fetch error
+   ```
+
+3. **Structured logging** — Logs fallback events for debugging:
+   ```json
+   {"event":"renderer_fallback","from":"fetch","to":"playwright","reason":"unable to get local issuer certificate","url":"https://example.com"}
+   ```
+
+### Files Modified (1 file, 57 lines added)
+
+**Renderer Module:**
+- `src/browser/playwright-renderer.ts`
+  - Added `isNetworkError()` helper (28 lines)
+  - Updated `renderPage()` with fallback logic (29 lines)
+  - Updated doc comments to reflect new strategy
+
+### Behavior
+
+**Scenario 1: Lambda configured, fetch fails with SSL error**
+```
+1. Try Lambda → success/fail
+2. Try fetch → SSL error (UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+3. Detect network error → fallback to Lambda ✅
+4. Log: {"event":"renderer_fallback","from":"fetch","to":"playwright"}
+5. Return sanitized content from Lambda
+```
+
+**Scenario 2: No Lambda configured, fetch fails**
+```
+1. Try fetch → SSL error
+2. No fallback available
+3. Return error to caller ❌
+```
+
+**Scenario 3: Fetch succeeds (Linux, Windows, terminal execution)**
+```
+1. Try fetch → success ✅
+2. Return immediately (no Lambda call)
+```
+
+### User Impact
+
+**Before v0.12.0:**
+- macOS users with Claude Desktop: `visus_fetch` fails with "fetch failed" error
+- Workaround: Manually configure `VISUS_RENDERER_URL`
+
+**After v0.12.0:**
+- macOS users with Lambda configured: Automatic fallback ✅
+- macOS users without Lambda: Error persists (documented in README FAQ)
+- Future v0.13.0: Local Playwright fallback will fix for all users
+
+### Testing
+
+**Existing Tests:** 430/430 passing
+- All sanitizer tests pass (no regression)
+- All tool tests pass (fetch/read/search)
+- All content handler tests pass (PDF/JSON/SVG)
+- All integration tests pass
+
+**Manual Testing:**
+- Lambda renderer endpoint verified: `https://wyomy29zd7.execute-api.us-east-1.amazonaws.com`
+- Health check: Successfully fetched example.com via Lambda
+- Claude Desktop config updated with `VISUS_RENDERER_URL`
+- Ready for end-to-end testing in Claude Desktop
+
+### Documentation Updates
+
+**README.md:**
+- Updated test count badge: 389 → 430
+- Added FAQ entry: "I'm getting 'fetch failed' errors on macOS. How do I fix this?"
+- Documents three solutions: Lambda renderer, wait for v0.13.0, use terminal
+- Explains v0.12.0 fix behavior and logging
+
+**CLAUDE.md:**
+- Added to Known Errors Registry:
+  - Error: `Cannot find package .../node_modules/fast-xml-parser/src/fxp.js`
+  - Root cause: `.mcpbignore` pattern `src/` matches ALL src/ dirs recursively
+  - Fix: Change to `/src/` (leading slash = root only)
+  - Date: 2026-03-31
+
+### Next Steps (v0.13.0)
+
+**Local Playwright Fallback:**
+- Add fourth fallback tier: local Playwright (already a dependency)
+- Works completely offline, no Lambda costs
+- ~300MB install size (Chromium), but solves issue for 100% of users
+- Strategy: Lambda → fetch → Lambda retry → local Playwright
 
 ---
 

@@ -22,7 +22,8 @@ tsconfig.json
 test-output.txt
 
 # Source TypeScript (only compiled JS needed)
-src/
+# NOTE: Leading / ensures this only matches ROOT src/, not node_modules/**/src/
+/src/
 
 # Git and GitHub
 .git/
