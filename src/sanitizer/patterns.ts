@@ -111,7 +111,16 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     action: 'strip'
   },
 
-  // 10. HTML script injection
+  // 10. Glassworm malware - Unicode Variation Selector clusters
+  {
+    name: 'glassworm_unicode_clusters',
+    description: 'Glassworm-style steganographic attacks using invisible Unicode Variation Selectors',
+    regex: /[\uFE00-\uFE0F]{3,}/g, // 3+ consecutive variation selectors (basic range)
+    severity: 'high',
+    action: 'strip'
+  },
+
+  // 11. HTML script injection
   {
     name: 'html_script_injection',
     description: 'HTML script tags or event handlers',
@@ -120,7 +129,7 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     action: 'escape'
   },
 
-  // 11. Data URI injection
+  // 12. Data URI injection
   {
     name: 'data_uri_injection',
     description: 'Data URIs that could contain instructions',

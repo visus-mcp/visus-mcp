@@ -6,6 +6,7 @@
  */
 
 import { sanitize, detectAndNeutralize, redactPII, getAllPatternNames } from '../src/sanitizer/index.js';
+import { detectGlassworm, stripUnicodeVariationSelectors } from '../src/sanitizer/injection-detector.js';
 import { INJECTION_PAYLOADS, PII_TEST_CASES, CLEAN_CONTENT_SAMPLES } from './injection-corpus.js';
 
 describe('Injection Detector', () => {
@@ -249,6 +250,185 @@ describe('PII Redactor', () => {
         expect(result.content_modified).toBe(false);
         expect(result.pii_types_redacted).toHaveLength(0);
       });
+    });
+  });
+});
+
+describe('Glassworm Malware Detection', () => {
+  describe('Unicode Variation Selector Clusters', () => {
+    it('should detect 3+ consecutive basic variation selectors', () => {
+      // Basic variation selectors: U+FE00 to U+FE0F
+      const payload = 'Hello\uFE01\uFE02\uFE03World';
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(true);
+      expect(result.clusterCount).toBe(1);
+      expect(result.maxClusterSize).toBe(3);
+      expect(result.severity).toBe('high');
+    });
+
+    it('should detect 10+ consecutive selectors as CRITICAL', () => {
+      // 12 consecutive variation selectors
+      const payload = 'Test\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0BEnd';
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(true);
+      expect(result.maxClusterSize).toBe(12);
+      expect(result.severity).toBe('critical');
+    });
+
+    it('should ignore single variation selectors (legitimate emoji usage)', () => {
+      // Single variation selector (legitimate use)
+      const payload = 'Hello\uFE0FWorld';
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(false);
+      expect(result.clusterCount).toBe(0);
+    });
+
+    it('should ignore 2 consecutive selectors', () => {
+      // Only 2 consecutive - below threshold
+      const payload = 'Test\uFE01\uFE02End';
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(false);
+      expect(result.clusterCount).toBe(0);
+    });
+
+    it('should detect multiple clusters in same content', () => {
+      // Two separate clusters of 3 and 4
+      const payload = 'First\uFE00\uFE01\uFE02Middle\uFE03\uFE04\uFE05\uFE06End';
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(true);
+      expect(result.clusterCount).toBe(2);
+      expect(result.maxClusterSize).toBe(4);
+    });
+  });
+
+  describe('Decoder Pattern Detection', () => {
+    it('should detect .codePointAt() near 0xFE00 hex constant', () => {
+      const payload = `
+        const decode = (str) => {
+          for (let i = 0; i < str.length; i++) {
+            const cp = str.codePointAt(i);
+            if (cp >= 0xFE00 && cp <= 0xFE0F) {
+              // Glassworm decoding logic
+            }
+          }
+        };
+      `;
+      const result = detectGlassworm(payload);
+
+      expect(result.hasDecoderPattern).toBe(true);
+    });
+
+    it('should detect .codePointAt() near 0xE0100 hex constant', () => {
+      const payload = `
+        function extract(text) {
+          let decoded = '';
+          for (let i = 0; i < text.length; i++) {
+            const code = text.codePointAt(i);
+            if (code >= 0xE0100) {
+              decoded += String.fromCodePoint(code - 0xE0100);
+            }
+          }
+          return decoded;
+        }
+      `;
+      const result = detectGlassworm(payload);
+
+      expect(result.hasDecoderPattern).toBe(true);
+    });
+
+    it('should mark decoder pattern + clusters as CRITICAL', () => {
+      // Both decoder pattern and variation selector cluster
+      const payload = `
+        Hidden: \uFE00\uFE01\uFE02\uFE03
+        const cp = str.codePointAt(0);
+        if (cp === 0xFE00) { }
+      `;
+      const result = detectGlassworm(payload);
+
+      expect(result.detected).toBe(true);
+      expect(result.hasDecoderPattern).toBe(true);
+      expect(result.clusterCount).toBeGreaterThan(0);
+      expect(result.severity).toBe('critical');
+    });
+
+    it('should not flag if .codePointAt() is more than 500 chars from hex constant', () => {
+      const filler = 'x'.repeat(600);
+      const payload = `const cp = str.codePointAt(0);${filler}const val = 0xFE00;`;
+      const result = detectGlassworm(payload);
+
+      expect(result.hasDecoderPattern).toBe(false);
+    });
+  });
+
+  describe('Sanitization and Neutralization', () => {
+    it('should strip all variation selectors from infected content', () => {
+      const payload = 'Hello\uFE00\uFE01\uFE02\uFE03World';
+      const sanitized = stripUnicodeVariationSelectors(payload);
+
+      expect(sanitized).toBe('HelloWorld');
+      expect(sanitized).not.toMatch(/[\uFE00-\uFE0F]/);
+    });
+
+    it('should integrate with main detectAndNeutralize pipeline', () => {
+      const payload = 'Clean text with hidden payload\uFE00\uFE01\uFE02\uFE03here';
+      const result = detectAndNeutralize(payload);
+
+      expect(result.content_modified).toBe(true);
+      expect(result.patterns_detected).toContain('glassworm_malware');
+      expect(result.content).not.toMatch(/[\uFE00-\uFE0F]/);
+      expect(result.metadata.detections_by_severity.high).toBeGreaterThan(0);
+    });
+
+    it('should mark large clusters as critical in pipeline', () => {
+      // 15 consecutive variation selectors
+      const payload = '\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B\uFE0C\uFE0D\uFE0E';
+      const result = detectAndNeutralize(payload);
+
+      expect(result.patterns_detected).toContain('glassworm_malware');
+      expect(result.metadata.detections_by_severity.critical).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Real-World Glassworm Scenarios', () => {
+    it('should detect typical Glassworm steganographic payload', () => {
+      // Simulates a real Glassworm attack: hidden payload in variation selectors
+      const payload = `
+        <div>Normal content that looks innocent</div>
+        \uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07\uFE08\uFE09
+        <script>
+          const extract = (s) => {
+            let out = '';
+            for (let i = 0; i < s.length; i++) {
+              const c = s.codePointAt(i);
+              if (c >= 0xFE00 && c <= 0xFE0F) {
+                out += String.fromCharCode(c - 0xFE00 + 65);
+              }
+            }
+            return out;
+          };
+        </script>
+      `;
+
+      const result = sanitize(payload);
+
+      expect(result.sanitization.patterns_detected).toContain('glassworm_malware');
+      expect(result.sanitization.content_modified).toBe(true);
+      expect(result.metadata.has_critical_threats).toBe(true);
+    });
+
+    it('should handle clean code that mentions hex constants without suspicion', () => {
+      // Legitimate code that happens to mention these constants
+      const payload = 'The Unicode range U+FE00 to U+FE0F is for variation selectors.';
+      const result = detectGlassworm(payload);
+
+      // No actual .codePointAt() usage, just documentation
+      expect(result.hasDecoderPattern).toBe(false);
+      expect(result.detected).toBe(false);
     });
   });
 });
