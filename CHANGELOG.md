@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-02
+
+### Added
+
+- **Glassworm Malware Detection** (`src/sanitizer/injection-detector.ts`)
+  - Specialized detection for steganographic attacks using invisible Unicode Variation Selectors
+  - Detects clusters of 3+ consecutive Unicode Variation Selectors (U+FE00-FE0F, U+E0100-E01EF)
+  - Decoder pattern detection: identifies `.codePointAt()` within 500 characters of hex constants (0xFE00, 0xE0100)
+  - Automatic severity escalation: clusters of 10+ characters marked as CRITICAL
+  - Intelligent filtering: ignores single selectors (legitimate emoji usage)
+  - New functions: `detectGlassworm()`, `detectDecoderPattern()`, `stripUnicodeVariationSelectors()`
+  - Full integration into `detectAndNeutralize()` pipeline
+
+- **Glassworm Pattern** (`src/sanitizer/patterns.ts`)
+  - New `glassworm_unicode_clusters` pattern for regex-based detection
+  - Severity: HIGH, Action: STRIP
+  - Prevents steganographic payload injection attacks
+
+### Tests
+
+- Added 14 comprehensive Glassworm detection tests (`tests/sanitizer.test.ts`)
+  - Unicode cluster detection (various sizes)
+  - Decoder pattern proximity detection
+  - Severity classification (HIGH vs CRITICAL)
+  - Real-world Glassworm attack scenarios
+  - False positive prevention (legitimate emoji usage)
+  - Test count increased from 437 to 451 tests
+  - 100% pass rate
+
+### Security
+
+- **Steganographic Attack Prevention**: Blocks Glassworm-style attacks that hide malicious payloads in invisible Unicode characters
+- **Zero False Positives**: Legitimate single variation selector usage (emojis) preserved
+- **Critical Threat Detection**: Large clusters (10+) automatically escalated to CRITICAL severity
+
+## [0.12.0] - 2026-03-30
+
+### Added
+
+- **Token Metrics Feature** (`src/utils/tokenMetrics.ts`)
+  - Real-time token reduction statistics displayed in every tool response
+  - Shows before/after token counts, reduction percentage, threats blocked, and elapsed time
+  - Visual metrics header box using Unicode box-drawing characters for clear visibility
+  - Appears automatically in all content-returning tools: `visus_fetch`, `visus_fetch_structured`, `visus_read`, `visus_search`
+  - Example output: `4,200 → 890 tokens · 79% reduction · 3 threats blocked · fetch 1.2s`
+  - Character-based token estimation using GPT-family approximation (chars / 4)
+  - New optional `content` field in `VisusFetchStructuredOutput` and `VisusSearchOutput` for human-readable display
+
+- **VISUS_SHOW_METRICS Environment Variable**
+  - Set `VISUS_SHOW_METRICS=false` to disable metrics header display
+  - Defaults to `true` (metrics shown by default)
+  - Allows users to opt out of metrics display if preferred
+
+### Changed
+
+- **Tool Response Format** - All content-returning tools now prepend token metrics header when enabled
+- **Type Definitions** (`src/types.ts`)
+  - Added optional `content?: string` field to `VisusFetchStructuredOutput` for human-readable representation
+  - Added optional `content?: string` field to `VisusSearchOutput` for formatted search results with metrics
+
+### Tests
+
+- Added comprehensive unit tests for token estimation, metrics calculation, and header formatting (`src/utils/__tests__/tokenMetrics.test.ts`)
+- Added integration smoke tests verifying metrics appear in all 4 content-returning tools (`tests/token-metrics-integration.test.ts`)
+- Verified `visus_report` and `visus_verify` tools do NOT include metrics (as intended)
+- Test count increased from 391 to 420+ tests
+
 ## [0.9.0] - 2026-03-26
 
 ### Added

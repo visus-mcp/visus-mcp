@@ -1,6 +1,6 @@
 {
   "name": "visus-mcp",
-  "version": "0.11.1",
+  "version": "0.13.0",
   "mcpName": "io.github.visus-mcp/visus-mcp",
   "description": "Security-first MCP server. Sanitizes web content before it reaches your LLM — strips prompt injection, redacts PII, and reduces token consumption by up to 70%.",
   "main": "dist/index.js",
@@ -46,7 +46,7 @@
     "@playwright/test": "^1.58.2",
     "@toon-format/toon": "^2.1.0",
     "cheerio": "^1.2.0",
-    "fast-xml-parser": "^5.5.8",
+    "fast-xml-parser": "4.5.0",
     "jsdom": "^29.0.1",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.58.2",
