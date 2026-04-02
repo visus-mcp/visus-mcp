@@ -1,8 +1,8 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-430%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
-[![tools](https://img.shields.io/badge/MCP%20tools-5-blue)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-451%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-6-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
 [![security](https://img.shields.io/badge/IPI%20Detection-7%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.12.0
+npx visus-mcp@0.13.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -102,6 +102,18 @@ threat_summary: {
 }
 ```
 
+### Glassworm Malware Detection (v0.13.0+)
+
+**NEW**: Specialized detection for steganographic attacks using invisible Unicode Variation Selectors. Glassworm-style attacks hide malicious payloads in invisible characters that bypass traditional pattern matching.
+
+**Detection capabilities:**
+- **Unicode cluster scanning** — Identifies 3+ consecutive Unicode Variation Selectors (U+FE00-FE0F, U+E0100-E01EF)
+- **Decoder pattern detection** — Flags `.codePointAt()` within 500 chars of hex constants (0xFE00, 0xE0100)
+- **Automatic severity escalation** — Clusters of 10+ characters marked as CRITICAL
+- **Zero false positives** — Ignores single selectors (legitimate emoji usage)
+
+When detected, all variation selectors are automatically stripped from content before delivery to Claude.
+
 ### 43 Injection Pattern Categories
 
 Visus detects and neutralizes:
@@ -112,11 +124,12 @@ Visus detects and neutralizes:
 - **Privilege escalation** — "Admin mode enabled"
 - **Data exfiltration** — "Send this to http://attacker.com"
 - **Encoding obfuscation** — Base64, Unicode lookalikes, leetspeak
+- **Glassworm malware** — Steganographic attacks using invisible Unicode Variation Selectors (NEW in v0.13.0)
 - **HTML/script injection** — `<script>`, `<iframe>`, event handlers
 - **Jailbreak keywords** — DAN mode, developer override
 - **Token smuggling** — Special tokens like `<|im_start|>`
 - **Social engineering** — Urgency language to bypass caution
-- ... and 33 more categories
+- ... and 32 more categories
 
 [See full list in SECURITY.md](./SECURITY.md)
 
@@ -139,6 +152,16 @@ Automatically redacts:
 ```bash
 npx visus-mcp
 ```
+
+### First Run Setup
+
+**IMPORTANT:** Visus uses local Playwright as a fallback renderer when native fetch fails (e.g., SSL errors on macOS). On first run, you need to install Playwright's chromium browser:
+
+```bash
+npx playwright install chromium --with-deps
+```
+
+This only needs to be run once. The chromium binary (~300MB) will be downloaded to your system's playwright cache directory.
 
 ### Claude Desktop Configuration
 
@@ -1146,6 +1169,78 @@ Integrators deploying Visus-MCP in EU contexts can reference this mapping to sup
 - **EU AI Act Annex IV** (Technical Documentation) — this section, `SECURITY.md`, and `STATUS.md` together form a substantive portion of the required technical file
 
 > **Note:** Visus-MCP is an open-source tool. Conformity assessment obligations apply to the deploying organisation, not to the upstream open-source component. This documentation is provided to assist deployers in meeting their obligations.
+
+---
+
+## 🇪🇺 EU AI Act Conformity & 2026 Compliance
+
+**2026 Compliance Release — Ready for EU AI Act high-risk system requirements (August 2, 2026 deadline)**
+
+Visus-MCP is architected to reduce downstream deployer obligations under **EU AI Act Article 26** (obligations of deployers of high-risk AI systems). By providing sanitization, PII redaction, and cryptographic audit trails as infrastructure-level controls, Visus-MCP enables organizations to satisfy several high-risk AI system requirements without building these capabilities in-house.
+
+### Key Articles Addressed
+
+| Article | Requirement | How Visus-MCP Helps |
+|---|---|---|
+| **Art. 9** | Risk Management System | Prompt injection sanitization (43 validated patterns) constitutes a documented, tested risk mitigation for adversarial input manipulation — a mandatory control for high-risk AI systems processing untrusted external data |
+| **Art. 13** | Transparency & Information to Deployers | Open-source codebase, public security documentation (this file, SECURITY.md), and cryptographic proof system provide transparency artifacts required for conformity assessment |
+| **Art. 15** | Robustness, Accuracy, Cybersecurity | Stateless architecture, untrusted-by-default content model, and sanitization-at-ingestion enforce robustness against adversarial manipulation before data reaches the AI model |
+| **Art. 29** | Obligations of Deployers — Data Quality & Input Data Management | PII redaction and content sanitization ensure data quality and minimize unnecessary personal data exposure to the AI system (also satisfies GDPR Art. 5(1)(c) data minimisation) |
+| **Art. 53** | AI Regulatory Sandboxes & Testing | Cryptographic proof system (`visus_proof`, `visus_verify`) provides tamper-evident audit logs suitable for regulatory sandbox participation and third-party conformity assessment |
+
+### How Visus-MCP Reduces Deployer Obligations Under Article 26
+
+Article 26 requires deployers of high-risk AI systems to:
+- Use the system according to instructions
+- **Ensure input data is relevant** (Art. 26(3))
+- Monitor operation and report serious incidents (Art. 26(5))
+- Keep logs (Art. 26(6))
+
+**Visus-MCP provides:**
+1. **Input data quality assurance** — Sanitization ensures data fed to the AI model is free from adversarial manipulation and unnecessary PII
+2. **Automated logging** — Cryptographic proofs generate tamper-evident logs for every fetch operation, satisfying log-keeping requirements without custom code
+3. **Incident detection** — Threat reports flag injection attempts and PII exposure in real time, enabling deployers to meet incident monitoring obligations
+
+### Compliance Resources
+
+We provide a complete compliance toolkit in the `/compliance` directory to accelerate conformity assessment:
+
+- **[EU-AI-ACT-MAPPING.md](./compliance/EU-AI-ACT-MAPPING.md)** — Article-by-article mapping of Visus-MCP controls to EU AI Act requirements
+- **[NIST-AI-RMF-PLAYBOOK.md](./compliance/NIST-AI-RMF-PLAYBOOK.md)** — One-click downloadable guide for AI Risk Management Framework alignment
+- **[ISO-42001-CHECKLIST.md](./compliance/ISO-42001-CHECKLIST.md)** — Self-attestation checklist for ISO/IEC 42001:2023 conformity
+- **[US-STATE-LAWS-MATRIX.md](./compliance/US-STATE-LAWS-MATRIX.md)** — Compliance grid for California, Colorado, and Texas AI laws
+- **[templates/](./compliance/templates/)** — Conformity assessment and incident report templates in JSON format
+
+### For Procurement & Legal Teams
+
+**Quick Compliance Check:**
+
+✅ **Is Visus-MCP a "high-risk AI system" under the EU AI Act?**
+No. Visus-MCP is a data sanitization tool, not an AI system. It processes web content before it reaches your AI model.
+
+✅ **Does using Visus-MCP make my deployment high-risk?**
+Not on its own. Risk classification depends on your AI system's use case (see EU AI Act Annex III). Visus-MCP reduces risk, regardless of classification.
+
+✅ **What obligations does Visus-MCP help me satisfy?**
+Input data quality (Art. 26(3)), logging (Art. 26(6)), and risk management documentation (Art. 9) — see full mapping in `/compliance/EU-AI-ACT-MAPPING.md`.
+
+✅ **Is Visus-MCP's cryptographic proof system suitable for audit?**
+Yes. The `visus_proof` and `visus_verify` tools produce tamper-evident records suitable for DPA (Data Protection Authority) submissions and third-party conformity assessment bodies. See [CRYPTO-PROOF-SPEC.md](./CRYPTO-PROOF-SPEC.md) for technical specification.
+
+✅ **Can I self-certify compliance with Visus-MCP?**
+If your AI system is **not** high-risk: yes, self-assessment is sufficient. If high-risk: you need third-party conformity assessment per Art. 43, but Visus-MCP's compliance documentation (in `/compliance`) streamlines that process.
+
+### Downstream Deployer Relief
+
+**Problem:** Building prompt injection defense, PII redaction, and audit logging in-house for every AI deployment is expensive and error-prone.
+
+**Solution:** Visus-MCP provides these as infrastructure-level controls with:
+- **389/389 passing tests** — validated pattern library, not ad-hoc regex
+- **Open-source auditability** — compliance teams can review the entire codebase
+- **Cryptographic audit trails** — tamper-evident proof records without custom logging infrastructure
+- **Regulatory mapping** — pre-built documentation maps Visus-MCP controls to EU AI Act, GDPR, NIST AI RMF, ISO 42001, and US state laws
+
+**Result:** Deployers spend less time building compliance infrastructure and more time on their AI application's core value proposition.
 
 ---
 
