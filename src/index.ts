@@ -1,5 +1,17 @@
 #!/usr/bin/env node
 
+// VISUS-DEBUG: Global error handlers MUST come first
+process.on('uncaughtException', (err) => {
+  console.error('[VISUS-DEBUG] uncaughtException:', err.message, err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[VISUS-DEBUG] unhandledRejection:', reason);
+  process.exit(1);
+});
+console.error('[VISUS-DEBUG] Module loaded');
+
 /**
  * Visus MCP - Dual-Mode Entry Point (Phase 2)
  *
@@ -40,10 +52,11 @@ import type { ThreatReport } from './sanitizer/threat-reporter.js';
 /**
  * Create and configure the MCP server
  */
+console.error('[VISUS-DEBUG] Creating server...');
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.11.0'
+    version: '0.12.0'
   },
   {
     capabilities: {
@@ -51,6 +64,7 @@ const server = new Server(
     }
   }
 );
+console.error('[VISUS-DEBUG] Server created');
 
 /**
  * Handle tool list requests
@@ -289,17 +303,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  * Start the MCP server (stdio mode)
  */
 async function startMcpServer() {
+  console.error('[VISUS-DEBUG] startMcpServer() entered');
+
   const transport = new StdioServerTransport();
 
   // Connect server to transport
+  console.error('[VISUS-DEBUG] Connecting transport...');
   await server.connect(transport);
+  console.error('[VISUS-DEBUG] Transport connected');
 
   // Log startup to stderr (not stdout - MCP uses stdout)
   console.error(JSON.stringify({
     timestamp: new Date().toISOString(),
     event: 'mcp_server_started',
     name: 'visus-mcp',
-    version: '0.11.0',
+    version: '0.12.0',
     tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
   }));
 
@@ -323,12 +341,20 @@ async function startMcpServer() {
     await closeBrowser();
     process.exit(0);
   });
+
+  console.error('[VISUS-DEBUG] About to await infinite promise to keep server alive');
+  // Keep the server running indefinitely
+  // The MCP server is event-driven and will respond to stdin messages
+  // This infinite promise prevents the function from returning and keeps the process alive
+  await new Promise(() => {});
 }
 
 /**
  * Main entry point - Dual-mode detection
  */
 async function main() {
+  console.error('[VISUS-DEBUG] main() entered');
+
   // Detect runtime environment
   const runtime = detectRuntime();
   logRuntimeConfig(runtime);
@@ -336,8 +362,10 @@ async function main() {
 
   // Route to appropriate entry point
   if (runtime.isStdio) {
+    console.error('[VISUS-DEBUG] stdio mode detected, calling startMcpServer()');
     // Open-source tier: stdio MCP server
     await startMcpServer();
+    console.error('[VISUS-DEBUG] startMcpServer() returned (should never happen)');
   } else if (runtime.isLambda) {
     // Hosted tier: Lambda handler
     // In Lambda mode, the handler is exported and invoked by AWS
@@ -353,7 +381,9 @@ async function main() {
 // Run stdio MCP server when executed directly (not in Lambda)
 // Note: Lambda deployments import from ./lambda-handler.ts directly (see infrastructure/stack.ts)
 if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  console.error('[VISUS-DEBUG] Not in Lambda, calling main()');
   main().catch((error) => {
+    console.error('[VISUS-DEBUG] main() threw error:', error);
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
       event: 'startup_error',
@@ -361,4 +391,6 @@ if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
     }));
     process.exit(1);
   });
+} else {
+  console.error('[VISUS-DEBUG] AWS_LAMBDA_FUNCTION_NAME detected, skipping main()');
 }

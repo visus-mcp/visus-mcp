@@ -201,6 +201,8 @@ export async function sanitizeWithProof(
     pipelineVersion,
     processingDurationMs,
     redactionCount,
+    piiDetected: sanitizationResult.sanitization.pii_types_redacted,
+    threatsNeutralized: redactionCount,
   });
 
   return {

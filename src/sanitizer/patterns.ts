@@ -1,7 +1,7 @@
 /**
  * Lateos Injection Pattern Library
  *
- * 43 validated injection pattern categories for detecting and neutralizing
+ * 44 validated injection pattern categories for detecting and neutralizing
  * prompt injection attacks in web content before it reaches the LLM.
  *
  * Each pattern includes:

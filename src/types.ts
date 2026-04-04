@@ -6,6 +6,35 @@ import type { ThreatReport } from './sanitizer/threat-reporter.js';
 import type { ThreatClass, ThreatSeverity } from './security/threats.js';
 
 /**
+ * Compliance framework mappings for regulatory traceability
+ */
+export interface FrameworkMappings {
+  /** EU AI Act article references (e.g., ["Art.9", "Art.15"]) */
+  eu_ai_act: string[];
+  /** NIST AI RMF control identifiers (e.g., ["GV-4.1-002", "MS-2.10-002"]) */
+  nist_ai_rmf: string[];
+}
+
+/**
+ * Extended compliance metadata for cryptographic proofs
+ * Provides regulatory traceability per EU AI Act Art. 9/13/15
+ */
+export interface ComplianceMetadata {
+  /** Version of Visus-MCP that generated this proof */
+  visus_version: string;
+  /** ISO 8601 timestamp of when sanitization completed */
+  sanitization_timestamp: string;
+  /** PII categories detected during processing */
+  pii_detected: string[];
+  /** Number of IPI threats neutralized */
+  threats_neutralized: number;
+  /** Regulatory framework control mappings */
+  framework_mappings: FrameworkMappings;
+  /** Chain of custody verified (tamper-evident chaining) */
+  chain_of_custody: boolean;
+}
+
+/**
  * Summary of IPI threats detected in content (v0.9.0+)
  */
 export interface ThreatSummary {
@@ -75,6 +104,7 @@ export interface VisusReadInput {
 export interface VisusFetchStructuredOutput {
   url: string;
   data: Record<string, string | null>;
+  content?: string; // Human-readable representation with metrics header (v0.12.0+)
   sanitization: {
     patterns_detected: string[];
     pii_types_redacted: string[];
@@ -138,6 +168,7 @@ export interface VisusSearchOutput {
   query: string;
   result_count: number;
   sanitized: true;
+  content?: string; // Human-readable representation with metrics header (v0.12.0+)
   results: Array<{
     title: string;
     url: string;

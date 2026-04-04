@@ -127,6 +127,9 @@ export class ThreatDetector {
     annotations.push(...this.detectIPI005(content, contentType));
     annotations.push(...this.detectIPI006(content, contentType));
     annotations.push(...this.detectIPI007(content, contentType));
+    annotations.push(...this.detectIPI008(content, contentType));
+    annotations.push(...this.detectIPI009(content, contentType));
+    annotations.push(...this.detectIPI010(content, contentType));
 
     return annotations;
   }
@@ -474,6 +477,370 @@ export class ThreatDetector {
 
       // Reset regex
       IPI_007_MARKDOWN_LINK_INJECTION.lastIndex = 0;
+    }
+
+    return annotations;
+  }
+
+  /**
+   * Detect IPI-008: Malicious Infrastructure
+   *
+   * Detects web content that IS attack infrastructure (C2 panels, credential dumps,
+   * phishing kits, bulk PII harvesting layouts).
+   *
+   * @private
+   */
+  private detectIPI008(content: string, contentType: ContentType): ThreatAnnotation[] {
+    const annotations: ThreatAnnotation[] = [];
+
+    // Performance limit: skip very large content (>1MB) to ensure <5ms completion
+    if (content.length > 1_000_000) {
+      return annotations;
+    }
+
+    let signalCount = 0;
+    let detectionOffset = -1;
+
+    // C2 panel fingerprints - look for admin panel terminology in bulk
+    const c2PanelTerms = [
+      /\b(?:bot|victim|target|zombie|client)s?\s*(?:online|connected|active)/gi,
+      /\b(?:command|task)\s*(?:queue|history|log)/gi,
+      /\badmin\s*panel.*(?:bot|victim|target)/gi,
+      /\b(?:heartbeat|check-in|beacon)\s*(?:status|interval)/gi,
+    ];
+
+    for (const pattern of c2PanelTerms) {
+      const matches = content.match(pattern);
+      if (matches && matches.length >= 2) {
+        signalCount++;
+        if (detectionOffset === -1) {
+          detectionOffset = content.search(pattern);
+        }
+      }
+    }
+
+    // Credential dump patterns - large concentrations of user:pass or cookie bundles
+    const credentialPatterns = [
+      /[\w\-\.]+@[\w\-\.]+:[^\s]{6,}/g, // email:password pattern
+      /(?:username|user|login)\s*[:=]\s*\S+\s*(?:password|pass|pwd)\s*[:=]\s*\S+/gi,
+      /\b(?:session|auth)_?token\s*[:=]\s*["'][\w\-]{20,}["']/gi,
+    ];
+
+    for (const pattern of credentialPatterns) {
+      const matches = content.match(pattern);
+      if (matches && matches.length >= 5) {
+        signalCount++;
+        if (detectionOffset === -1) {
+          detectionOffset = content.search(pattern);
+        }
+      }
+    }
+
+    // Cookie bundle detection - large JSON arrays with cookie objects
+    // Check for cookie/session field indicators first to avoid catastrophic backtracking
+    const cookieFieldMatches = content.match(/"(?:name|domain|value|expires)":/gi);
+    const hasCookieKeyword = /(?:cookie|session)/i.test(content);
+    if (cookieFieldMatches && cookieFieldMatches.length >= 10 && hasCookieKeyword) {
+      signalCount += 2; // Strong signal
+      if (detectionOffset === -1) {
+        const cookieKeywordIndex = content.search(/(?:cookie|session)/i);
+        detectionOffset = cookieKeywordIndex >= 0 ? cookieKeywordIndex : 0;
+      }
+    }
+
+    // Phishing kit indicators - fake login forms with brand names
+    const phishingPatterns = [
+      /(?:fake|phish|spoof).{0,50}(?:login|signin|auth)/gi,
+      /(?:credential|login)\s*(?:harvest|steal|capture|grab)/gi,
+    ];
+
+    for (const pattern of phishingPatterns) {
+      if (pattern.test(content)) {
+        signalCount++;
+        if (detectionOffset === -1) {
+          detectionOffset = content.search(pattern);
+        }
+      }
+    }
+
+    // Check for suspicious forms separately (simpler check to avoid backtracking)
+    if (/<form[^>]{0,200}password/i.test(content)) {
+      const formMatch = content.match(/<form[^>]*action=["'][^"']+["']/i);
+      if (formMatch && !/(?:google|facebook|microsoft|apple|amazon|paypal)\.com/.test(formMatch[0])) {
+        signalCount++;
+        if (detectionOffset === -1) {
+          detectionOffset = content.indexOf(formMatch[0]);
+        }
+      }
+    }
+
+    // Bulk PII harvesting - simple heuristic check for many emails + table structure
+    const rowMatches = content.match(/<tr/gi);
+    const emailMatches = content.match(/[\w\-\.]+@[\w\-\.]+\.\w+/g);
+    if (rowMatches && rowMatches.length >= 10 && emailMatches && emailMatches.length >= 10) {
+      // Both table structure and bulk emails present
+      signalCount += 2; // Strong signal
+      if (detectionOffset === -1) {
+        detectionOffset = Math.min(
+          content.indexOf('<tr'),
+          content.search(/[\w\-\.]+@[\w\-\.]+\.\w+/)
+        );
+      }
+    }
+
+    // Determine severity and confidence based on signal count
+    if (signalCount >= 3) {
+      // HIGH confidence: 3+ distinct signals
+      const excerpt = this.extractExcerpt(content, detectionOffset, 120);
+      annotations.push({
+        id: 'IPI-008',
+        severity: 'CRITICAL',
+        confidence: 0.85,
+        offset: detectionOffset,
+        excerpt: `[MALICIOUS_INFRA] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalCount === 2) {
+      // MEDIUM confidence: 2 signals
+      const excerpt = this.extractExcerpt(content, detectionOffset, 120);
+      annotations.push({
+        id: 'IPI-008',
+        severity: 'HIGH',
+        confidence: 0.65,
+        offset: detectionOffset,
+        excerpt: `[MALICIOUS_INFRA] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalCount === 1) {
+      // LOW confidence: single signal
+      const excerpt = this.extractExcerpt(content, detectionOffset, 120);
+      annotations.push({
+        id: 'IPI-008',
+        severity: 'MEDIUM',
+        confidence: 0.45,
+        offset: detectionOffset,
+        excerpt: `[MALICIOUS_INFRA] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    }
+
+    return annotations;
+  }
+
+  /**
+   * Detect IPI-009: Homoglyph & Unicode Obfuscation
+   *
+   * Detects attempts to use look-alike characters to smuggle instructions or bypass
+   * existing IPI-001 patterns. Extends IPI-007 with Unicode-layer obfuscation.
+   *
+   * @private
+   */
+  private detectIPI009(content: string, contentType: ContentType): ThreatAnnotation[] {
+    const annotations: ThreatAnnotation[] = [];
+
+    // Performance limit: skip very large content (>1MB) to ensure <5ms completion
+    if (content.length > 1_000_000) {
+      return annotations;
+    }
+
+    // Cyrillic/Greek homoglyph substitution in directive keywords
+    // Look for known directive words with Cyrillic/Greek lookalikes
+    // Check for words that mix Latin and Cyrillic characters
+    const suspiciousWords = [
+      /ign[оọ]re/gi, // "ignore" with Cyrillic о
+      /instructi[оọ]n/gi, // "instruction" with Cyrillic о
+      /syst[еė]m/gi, // "system" with Cyrillic е
+      /pr[оọ]mpt/gi, // "prompt" with Cyrillic о
+      /c[оọ]mmand/gi, // "command" with Cyrillic о
+    ];
+
+    for (const pattern of suspiciousWords) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        // Verify it actually contains non-ASCII lookalikes
+        if (/[\u0400-\u04FF\u0370-\u03FF]/.test(match[0])) {
+          const excerpt = this.extractExcerpt(content, match.index, 120);
+          annotations.push({
+            id: 'IPI-009',
+            severity: 'HIGH',
+            confidence: 0.9,
+            offset: match.index,
+            excerpt: `[HOMOGLYPH] ${excerpt}`,
+            vector: contentType,
+            mitigated: true,
+          });
+        }
+      }
+    }
+
+    // Bidirectional text override abuse (U+202E, U+202D, U+202C, U+202A, U+202B)
+    const bidiPattern = /[\u202A-\u202E]/g;
+    const bidiMatches = content.match(bidiPattern);
+    if (bidiMatches && bidiMatches.length > 0) {
+      const firstMatch = content.search(bidiPattern);
+      const excerpt = this.extractExcerpt(content, firstMatch, 120);
+      annotations.push({
+        id: 'IPI-009',
+        severity: 'HIGH',
+        confidence: 0.85,
+        offset: firstMatch,
+        excerpt: `[BIDI_OVERRIDE] ${excerpt.replace(/[\u202A-\u202E]/g, '\u2190')}`, // Replace with left arrow for visibility
+        vector: contentType,
+        mitigated: true,
+      });
+    }
+
+    // Mixed-script identifier attacks in URLs or code blocks
+    const urlPattern = /https?:\/\/[^\s]+/g;
+    let urlMatch: RegExpExecArray | null;
+    while ((urlMatch = urlPattern.exec(content)) !== null) {
+      const url = urlMatch[0];
+      // Check for mixed scripts in domain part
+      const hasCyrillic = /[\u0400-\u04FF]/.test(url);
+      const hasLatin = /[a-zA-Z]/.test(url);
+      const hasGreek = /[\u0370-\u03FF]/.test(url);
+
+      const scriptCount = [hasCyrillic, hasLatin, hasGreek].filter(Boolean).length;
+      if (scriptCount >= 2) {
+        const excerpt = this.extractExcerpt(content, urlMatch.index, 120);
+        annotations.push({
+          id: 'IPI-009',
+          severity: 'MEDIUM',
+          confidence: 0.7,
+          offset: urlMatch.index,
+          excerpt: `[MIXED_SCRIPT_URL] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+        });
+      }
+    }
+
+    // Reset regex
+    urlPattern.lastIndex = 0;
+
+    return annotations;
+  }
+
+  /**
+   * Detect IPI-010: Recursive/Nested Instruction Framing
+   *
+   * Detects content structured to make Claude believe it is reading its own prior
+   * output, a system prompt, or a tool result rather than external web content.
+   *
+   * @private
+   */
+  private detectIPI010(content: string, contentType: ContentType): ThreatAnnotation[] {
+    const annotations: ThreatAnnotation[] = [];
+
+    // Performance limit: skip very large content (>1MB) to ensure <5ms completion
+    if (content.length > 1_000_000) {
+      return annotations;
+    }
+
+    // Fake XML tag framing (tool_result, assistant, system, user)
+    const fakeXMLPatterns = [
+      /<(?:tool_result|assistant|system|user|human)[>\s]/gi,
+      /<\/(?:tool_result|assistant|system|user|human)>/gi,
+      /<function_calls>/gi,
+      /<invoke/gi,
+    ];
+
+    for (const pattern of fakeXMLPatterns) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        const excerpt = this.extractExcerpt(content, match.index, 120);
+        annotations.push({
+          id: 'IPI-010',
+          severity: 'CRITICAL',
+          confidence: 0.95,
+          offset: match.index,
+          excerpt: `[FAKE_XML] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+        });
+      }
+    }
+
+    // Content that opens with Claude's output format patterns
+    const claudeOutputPatterns = [
+      /^(?:As Claude|I am Claude|I'm Claude),?\s+(?:I have been|I was|I've been)/im,
+      /^(?:According to|Based on)\s+my\s+(?:system prompt|instructions|guidelines)/im,
+      /^I(?:'m| am)\s+(?:an AI assistant|Claude)\s+(?:created by|developed by|made by)\s+Anthropic/im,
+    ];
+
+    for (const pattern of claudeOutputPatterns) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        const excerpt = this.extractExcerpt(content, match.index, 120);
+        annotations.push({
+          id: 'IPI-010',
+          severity: 'HIGH',
+          confidence: 0.8,
+          offset: match.index,
+          excerpt: `[FAKE_CLAUDE_OUTPUT] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+        });
+      }
+    }
+
+    // Nested JSON claiming to be MCP protocol messages
+    const mcpProtocolPatterns = [
+      /"(?:jsonrpc|method|params)":\s*"(?:2\.0|initialize|tools\/list|notifications)"/gi,
+      /"result":\s*\{\s*"content":\s*\[\s*\{/gi, // MCP tool result structure
+    ];
+
+    for (const pattern of mcpProtocolPatterns) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        const excerpt = this.extractExcerpt(content, match.index, 120);
+        annotations.push({
+          id: 'IPI-010',
+          severity: 'HIGH',
+          confidence: 0.75,
+          offset: match.index,
+          excerpt: `[FAKE_MCP] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+        });
+      }
+    }
+
+    // Content mimicking visus-mcp token metrics header format
+    const visusSpoofPatterns = [
+      /\[VISUS\s+TOKEN\s+METRICS\]/i,
+      /\[SANITIZATION\s+COMPLETE\]/i,
+      /IPI\s+threats\s+detected:\s*\d+/i,
+      /Content\s+hash:\s*[a-f0-9]{64}/i,
+    ];
+
+    for (const pattern of visusSpoofPatterns) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(content)) !== null) {
+        const excerpt = this.extractExcerpt(content, match.index, 120);
+        annotations.push({
+          id: 'IPI-010',
+          severity: 'CRITICAL',
+          confidence: 0.9,
+          offset: match.index,
+          excerpt: `[SPOOF_VISUS_HEADER] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+        });
+      }
     }
 
     return annotations;

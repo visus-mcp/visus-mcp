@@ -13,6 +13,7 @@
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import type { ComplianceMetadata } from "../types.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -292,6 +293,15 @@ export interface SanitizationProofRecord {
 
   /** Number of redactions applied */
   redactionCount: number;
+
+  /**
+   * Extended compliance metadata for regulatory traceability.
+   * EU AI Act Art. 9: Evidence of risk management controls
+   * EU AI Act Art. 13: Transparency artifact
+   * EU AI Act Art. 15: Robustness measures
+   * NIST AI RMF: Control mappings for governance and security
+   */
+  compliance_metadata?: ComplianceMetadata;
 }
 
 export interface ProofVerificationResult {

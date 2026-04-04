@@ -49,7 +49,7 @@ export function detectAndNeutralize(content: string): DetectionResult {
   // Run specialized Glassworm detector first
   const glasswormResult = detectGlassworm(sanitizedContent);
   if (glasswormResult.detected) {
-    patternsDetected.add('glassworm_malware');
+    patternsDetected.add('glassworm_unicode_clusters');
     detectionsBySeverity[glasswormResult.severity]++;
 
     // Strip all Unicode Variation Selectors

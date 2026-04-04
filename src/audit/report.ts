@@ -86,6 +86,35 @@ export class ComplianceReportExporter {
   }
 
   /**
+   * Retrieve a single audit record by request_id.
+   * Uses ScanCommand with FilterExpression on request_id.
+   */
+  async getByRequestId(requestId: string): Promise<AuditLogRecord | null> {
+    try {
+      const commandInput: ScanCommandInput = {
+        TableName: this.tableName,
+        FilterExpression: 'request_id = :rid',
+        ExpressionAttributeValues: { ':rid': requestId },
+        Limit: 1
+      };
+
+      const command = new ScanCommand(commandInput);
+      const response = await this.docClient.send(command);
+      const items = (response.Items as AuditLogRecord[]) || [];
+
+      return items.length > 0 ? items[0] : null;
+    } catch (error) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'audit_log_query_failed',
+        request_id: requestId,
+        error: error instanceof Error ? error.message : String(error)
+      }));
+      return null;
+    }
+  }
+
+  /**
    * Retrieve audit records within a date range.
    * Uses ScanCommand with FilterExpression on created_at (full scan — GSI recommended for production scale).
    */

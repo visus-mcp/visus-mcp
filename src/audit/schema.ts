@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import type { ComplianceMetadata } from '../types.js';
 
 /**
  * GDPR Art. 6 lawful basis options
@@ -71,6 +72,7 @@ export interface SanitizationProof {
   proof_hash: string;                      // SHA-256(request_id + sorted_pattern_ids + timestamp_utc)
   pipeline_version: string;                // Sanitization library version
   processing_duration_ms: number;
+  compliance_metadata?: ComplianceMetadata; // Extended compliance metadata (v0.13.0+)
 }
 
 /**

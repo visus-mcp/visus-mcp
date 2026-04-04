@@ -291,7 +291,7 @@ describe("Full Proof Build and Verify", () => {
     expect(p1.chainHash).not.toBe(p2.chainHash);
   });
 
-  it("visus_verify produces compliance statement", () => {
+  it("visus_verify produces compliance statement", async () => {
     const proof = buildProof({
       requestId: "compliance-stmt-test",
       timestampUtc: "2026-03-28T00:00:00.000Z",
@@ -304,13 +304,13 @@ describe("Full Proof Build and Verify", () => {
       processingDurationMs: 2,
       redactionCount: 0,
     });
-    const result = verifyProofRecord({ proof, signingKey: SIGNING_KEY });
+    const result = await verifyProofRecord({ proof, signingKey: SIGNING_KEY });
     expect(result.valid).toBe(true);
     expect(result.complianceStatement.includes("VERIFIED")).toBe(true);
     expect(result.complianceStatement.includes("EU AI Act")).toBe(true);
   });
 
-  it("hash-only verification without signing key", () => {
+  it("hash-only verification without signing key", async () => {
     const proof = buildProof({
       requestId: "hash-only-test",
       timestampUtc: "2026-03-28T00:00:00.000Z",
@@ -323,9 +323,64 @@ describe("Full Proof Build and Verify", () => {
       processingDurationMs: 1,
       redactionCount: 0,
     });
-    const result = verifyProofRecord({ proof }); // No signing key
+    const result = await verifyProofRecord({ proof }); // No signing key
     expect(result.checks.signatureMatch).toBe("skipped");
     expect(result.checks.proofHashMatch).toBe(true);
+  });
+
+  it("handles partial proof object with missing audit record gracefully", async () => {
+    // Simulate what users receive in tool responses (PublicProofObject)
+    const partialProof = {
+      request_id: "test-partial-proof-001",
+      proof_hash: "a".repeat(64),
+      chain_hash: "b".repeat(64),
+      injection_detected: false,
+      patterns_evaluated: 43,
+      patterns_triggered: 0,
+      redactions: 0,
+      sanitization_applied: false,
+      timestamp_utc: "2026-03-28T00:00:00.000Z",
+      pipeline_version: "1.0.0",
+      schema_version: "1.0.0",
+    };
+
+    // Verify without audit log access (should return structured error, not throw)
+    const result = await verifyProofRecord({ proof: partialProof as any });
+
+    // Should return a structured response, not throw
+    expect(result).toBeDefined();
+    expect(result.valid).toBe(false);
+    expect(result.requestId).toBe("test-partial-proof-001");
+
+    // Should include helpful error messages
+    expect(result.issues).toContain("audit_record_not_found");
+    expect(result.complianceStatement).toContain("VERIFICATION INCOMPLETE");
+    expect(result.complianceStatement).toContain("complete audit record");
+
+    // Should still validate basic fields
+    expect(result.checks.schemaVersionMatch).toBe(true);
+    expect(result.recomputedProofHash).toContain("N/A");
+  });
+
+  it("handles partial proof object with invalid schema version", async () => {
+    const partialProof = {
+      request_id: "test-invalid-schema",
+      proof_hash: "a".repeat(64),
+      chain_hash: "b".repeat(64),
+      injection_detected: false,
+      patterns_evaluated: 43,
+      patterns_triggered: 0,
+      redactions: 0,
+      sanitization_applied: false,
+      timestamp_utc: "2026-03-28T00:00:00.000Z",
+      pipeline_version: "1.0.0",
+      schema_version: "99.0.0", // Invalid schema version
+    };
+
+    const result = await verifyProofRecord({ proof: partialProof as any });
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.schemaVersionMatch).toBe(false);
   });
 });
 
@@ -356,5 +411,153 @@ describe("Test Vector Validation", () => {
     );
 
     expect(proofSignature).toBe("0d7a6102117ed1c6d5ceb8dcc132000f96ddf3d1c4a97bf18328063dded959b5");
+  });
+});
+
+describe("Compliance Metadata", () => {
+  it("includes compliance metadata in proof", () => {
+    const proof = buildProof({
+      requestId: "compliance-test-001",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "test content with email@example.com",
+      sanitizedContent: "test content with [REDACTED:EMAIL]",
+      triggeredPatternIds: ["PI-001"],
+      patternsEvaluated: 43,
+      sanitizationApplied: true,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 5,
+      redactionCount: 2,
+      piiDetected: ["email"],
+      threatsNeutralized: 2,
+    });
+
+    expect(proof.compliance_metadata).toBeDefined();
+    expect(proof.compliance_metadata?.visus_version).toBe("0.13.0");
+    expect(proof.compliance_metadata?.sanitization_timestamp).toBe("2026-03-28T12:00:00.000Z");
+    expect(proof.compliance_metadata?.pii_detected).toEqual(["email"]);
+    expect(proof.compliance_metadata?.threats_neutralized).toBe(2);
+    expect(proof.compliance_metadata?.chain_of_custody).toBe(true);
+  });
+
+  it("includes EU AI Act framework mappings", () => {
+    const proof = buildProof({
+      requestId: "framework-test-001",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "content",
+      sanitizedContent: "content",
+      triggeredPatternIds: [],
+      patternsEvaluated: 43,
+      sanitizationApplied: false,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 1,
+      redactionCount: 0,
+    });
+
+    expect(proof.compliance_metadata?.framework_mappings.eu_ai_act).toContain("Art.9");
+    expect(proof.compliance_metadata?.framework_mappings.eu_ai_act).toContain("Art.15");
+  });
+
+  it("includes NIST AI RMF framework mappings", () => {
+    const proof = buildProof({
+      requestId: "nist-test-001",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "content",
+      sanitizedContent: "content",
+      triggeredPatternIds: [],
+      patternsEvaluated: 43,
+      sanitizationApplied: false,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 1,
+      redactionCount: 0,
+    });
+
+    expect(proof.compliance_metadata?.framework_mappings.nist_ai_rmf).toContain("GV-4.1-002");
+    expect(proof.compliance_metadata?.framework_mappings.nist_ai_rmf).toContain("MS-2.10-002");
+  });
+
+  it("compliance metadata is included in proof response header", () => {
+    const proof = buildProof({
+      requestId: "header-compliance-test",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "test",
+      sanitizedContent: "test",
+      triggeredPatternIds: [],
+      patternsEvaluated: 43,
+      sanitizationApplied: false,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 1,
+      redactionCount: 0,
+      piiDetected: ["phone"],
+      threatsNeutralized: 1,
+    });
+
+    const header = proofToResponseHeader(proof);
+    expect(header.visus_proof).toHaveProperty("compliance_metadata");
+
+    const metadata = (header.visus_proof as any).compliance_metadata;
+    expect(metadata).toBeDefined();
+    expect(metadata.pii_detected).toEqual(["phone"]);
+    expect(metadata.threats_neutralized).toBe(1);
+    expect(metadata.framework_mappings).toBeDefined();
+  });
+
+  it("calculates threats_neutralized correctly when not provided", () => {
+    const proof = buildProof({
+      requestId: "auto-threats-test",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "content with injection",
+      sanitizedContent: "content [REDACTED]",
+      triggeredPatternIds: ["PI-001", "PI-002"],
+      patternsEvaluated: 43,
+      sanitizationApplied: true,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 3,
+      redactionCount: 3, // 2 injections + 1 PII
+    });
+
+    // When threatsNeutralized not provided, should equal triggeredPatternIds.length + redactionCount
+    expect(proof.compliance_metadata?.threats_neutralized).toBe(5); // 2 + 3
+  });
+
+  it("handles empty PII list", () => {
+    const proof = buildProof({
+      requestId: "no-pii-test",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "clean content",
+      sanitizedContent: "clean content",
+      triggeredPatternIds: [],
+      patternsEvaluated: 43,
+      sanitizationApplied: false,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 1,
+      redactionCount: 0,
+    });
+
+    expect(proof.compliance_metadata?.pii_detected).toEqual([]);
+    expect(proof.compliance_metadata?.threats_neutralized).toBe(0);
+  });
+
+  it("verifyProofRecord handles compliance metadata in full proof", async () => {
+    const proof = buildProof({
+      requestId: "verify-compliance-test",
+      timestampUtc: "2026-03-28T12:00:00.000Z",
+      rawContent: "test",
+      sanitizedContent: "test",
+      triggeredPatternIds: [],
+      patternsEvaluated: 43,
+      sanitizationApplied: false,
+      pipelineVersion: "0.13.0",
+      processingDurationMs: 1,
+      redactionCount: 0,
+      piiDetected: ["email", "phone"],
+      threatsNeutralized: 2,
+    });
+
+    const result = await verifyProofRecord({ proof, signingKey: SIGNING_KEY });
+    expect(result.valid).toBe(true);
+
+    // Compliance metadata should not affect verification
+    expect(result.checks.proofHashMatch).toBe(true);
+    expect(result.checks.signatureMatch).toBe(true);
   });
 });

@@ -19,7 +19,9 @@
  * - IPI-005: Context Poisoning - attempts to inject false factual assertions
  * - IPI-006: Encoded Payload - obfuscated attacks using encoding schemes
  * - IPI-007: Steganographic - hidden attacks using invisible or hidden text
- * - IPI-008: Multi-vector - reserved for future use (v0.9.2+)
+ * - IPI-008: Malicious Infrastructure - detects attack infrastructure (C2 panels, credential dumps, phishing kits)
+ * - IPI-009: Homoglyph & Unicode Obfuscation - detects look-alike character substitution and Unicode attacks
+ * - IPI-010: Recursive/Nested Instruction Framing - detects fake tool results and system prompt mimicry
  */
 export type ThreatClass =
   | 'IPI-001' // Instruction Override
@@ -29,7 +31,9 @@ export type ThreatClass =
   | 'IPI-005' // Context Poisoning
   | 'IPI-006' // Encoded Payload
   | 'IPI-007' // Steganographic
-  | 'IPI-008'; // Multi-vector (reserved for v0.9.2)
+  | 'IPI-008' // Malicious Infrastructure
+  | 'IPI-009' // Homoglyph & Unicode Obfuscation
+  | 'IPI-010'; // Recursive/Nested Instruction Framing
 
 /**
  * Threat severity levels

@@ -10,6 +10,7 @@
 
 import { sanitize, sanitizeWithProof } from '../sanitizer/index.js';
 import { generateThreatReport } from '../sanitizer/threat-reporter.js';
+import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
 import type { VisusSearchInput, VisusSearchOutput, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
 
@@ -34,6 +35,8 @@ interface DuckDuckGoResponse {
  * @returns Sanitized search results with injection detection metadata
  */
 export async function visusSearch(input: VisusSearchInput): Promise<Result<VisusSearchOutput, Error>> {
+  const startTime = Date.now();
+
   // Validate input
   if (!input.query || typeof input.query !== 'string' || input.query.trim().length === 0) {
     return Err(new Error('query must be a non-empty string'));
@@ -188,10 +191,33 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       source_url: `DuckDuckGo Search: ${input.query}`
     });
 
+    // Calculate metrics and create content representation with header
+    const elapsedMs = Date.now() - startTime;
+    const threatsBlocked = allPatternsDetected.size;
+
+    let contentRepresentation: string | undefined = undefined;
+    if (shouldShowMetrics()) {
+      // Use the sanitized batch content for token calculation
+      const sanitizedCombinedContent = sanitizedResults
+        .map(r => `${r.title}\n${r.snippet}`)
+        .join('\n\n');
+
+      const metrics = calculateMetrics(combinedRawContent, sanitizedCombinedContent, threatsBlocked, elapsedMs);
+      const metricsHeader = formatMetricsHeader(metrics);
+
+      // Create formatted search results
+      const formattedResults = sanitizedResults
+        .map((r, i) => `${i + 1}. **${r.title}**\n   ${r.snippet}\n   URL: ${r.url}`)
+        .join('\n\n');
+
+      contentRepresentation = metricsHeader + formattedResults;
+    }
+
     return Ok({
       query: input.query,
       result_count: sanitizedResults.length,
       sanitized: true,
+      ...(contentRepresentation && { content: contentRepresentation }),
       results: sanitizedResults,
       total_injections_removed: totalInjectionsRemoved,
       // Include threat_report only if findings exist

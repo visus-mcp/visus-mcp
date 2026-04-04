@@ -14,6 +14,7 @@ import {
   PROOF_SCHEMA_VERSION,
   SanitizationProofRecord,
 } from "./primitives.js";
+import type { ComplianceMetadata } from "../types.js";
 
 // ─── Signing Key Management ───────────────────────────────────────────────────
 
@@ -90,6 +91,10 @@ export interface BuildProofParams {
   processingDurationMs: number;
   /** Number of distinct redactions applied */
   redactionCount: number;
+  /** PII categories detected during processing */
+  piiDetected?: string[];
+  /** Number of threats neutralized (triggered patterns + redactions) */
+  threatsNeutralized?: number;
 }
 
 export function buildProof(params: BuildProofParams): SanitizationProofRecord {
@@ -114,6 +119,20 @@ export function buildProof(params: BuildProofParams): SanitizationProofRecord {
   // Advance the chain
   chainTip = proofHash;
 
+  // Build compliance metadata
+  const complianceMetadata: ComplianceMetadata = {
+    visus_version: params.pipelineVersion,
+    sanitization_timestamp: params.timestampUtc,
+    pii_detected: params.piiDetected || [],
+    threats_neutralized: params.threatsNeutralized ??
+      (params.triggeredPatternIds.length + params.redactionCount),
+    framework_mappings: {
+      eu_ai_act: ["Art.9", "Art.15"],
+      nist_ai_rmf: ["GV-4.1-002", "MS-2.10-002"]
+    },
+    chain_of_custody: true // Always true when using chain_hash
+  };
+
   return {
     schemaVersion: PROOF_SCHEMA_VERSION,
     requestId: params.requestId,
@@ -132,6 +151,7 @@ export function buildProof(params: BuildProofParams): SanitizationProofRecord {
     inputByteSize: Buffer.byteLength(params.rawContent, "utf8"),
     outputByteSize: Buffer.byteLength(params.sanitizedContent, "utf8"),
     redactionCount: params.redactionCount,
+    compliance_metadata: complianceMetadata,
   };
 }
 
@@ -154,6 +174,7 @@ export function proofToResponseHeader(proof: SanitizationProofRecord): Record<st
       timestamp_utc: proof.timestampUtc,
       pipeline_version: proof.pipelineVersion,
       schema_version: proof.schemaVersion,
+      compliance_metadata: proof.compliance_metadata,
       verify_instruction:
         "Recompute proof_hash from disclosed fields per visus-mcp/CRYPTO-PROOF-SPEC.md",
     },

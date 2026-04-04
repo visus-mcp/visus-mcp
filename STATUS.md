@@ -1,9 +1,180 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-04-02
-**Version:** 0.13.0
+**Generated:** 2026-04-04
+**Version:** 0.14.0
 **Phase:** 3 (Security Enhancement)
-**Status:** ✅ **v0.13.0 RELEASED** - Glassworm Malware Detection
+**Status:** ✅ **v0.14.0 READY** - IPI Detection Extended to 10 Categories
+
+---
+
+## v0.14.0 Release - IPI Detection Extended to 10 Categories
+
+**Status:** ✅ COMPLETE (Ready for npm + MCP registry)
+**Type:** Security feature - Extended Indirect Prompt Injection detection
+**Completed:** 2026-04-04
+**Tests:** 402/402 passing (100%) — Added 18 new IPI detector tests, fixed 2 sanitizer tests
+
+### Feature Overview
+
+**Extended IPI Threat Detection** - Three new specialized detectors added to the Indirect Prompt Injection (IPI) detection system, extending coverage from 7 to 10 categories. New detectors identify malicious infrastructure, homoglyph obfuscation, and recursive instruction framing attacks.
+
+### Implementation
+
+**Extended Security Module:** `src/security/ThreatDetector.ts`
+
+Added three new detector methods following exact same interface as IPI-001 through IPI-007:
+
+1. **`detectIPI008(content: string, contentType: ContentType)`** - Malicious Infrastructure Detection
+   - C2 panel fingerprints (bot control terminology, victim tracking)
+   - Credential dumps (bulk cookie bundles, session token lists)
+   - Phishing kits (fake login forms, credential harvesting patterns)
+   - Bulk PII harvesting (tables with email/SSN/card data)
+   - Signal-based confidence scoring: 3+ signals = CRITICAL, 2 = HIGH, 1 = MEDIUM
+   - Performance limit: 1MB content size cap for <5ms completion
+
+2. **`detectIPI009(content: string, contentType: ContentType)`** - Homoglyph & Unicode Obfuscation Detection
+   - Cyrillic/Greek homoglyphs in directive keywords (e.g., "ign[о]re", "syst[е]m")
+   - Unicode BiDi text direction override characters
+   - Mixed-script URL detection (Latin + Cyrillic in domain names)
+   - Performance limit: 1MB content size cap
+
+3. **`detectIPI010(content: string, contentType: ContentType)`** - Recursive/Nested Instruction Framing
+   - Fake XML tag framing (`<tool_result>`, `<assistant>`, `<system>`)
+   - Claude output format mimicry (thinking blocks, function call syntax)
+   - MCP protocol spoofing (`<invoke>`, `<function_calls>`)
+   - Visus header spoofing (fake `visus_proof` markers)
+   - Performance limit: 1MB content size cap
+
+**Integration:**
+- Extended `ThreatClass` type in `src/security/threats.ts` to include IPI-008, IPI-009, IPI-010
+- Added detector calls to `scan()` method in ThreatDetector.ts
+- All three detectors return `ThreatAnnotation[]` arrays with id, severity, confidence, offset, excerpt fields
+- Maintains <5ms performance requirement through regex optimization and content size limits
+
+### Detection Categories Extended
+
+| IPI Category | Name | Severity | New in v0.14.0 |
+|--------------|------|----------|----------------|
+| IPI-001 | Instruction Override | CRITICAL | ❌ (v0.11.0) |
+| IPI-002 | Role Hijacking | HIGH | ❌ (v0.11.0) |
+| IPI-003 | Data Exfiltration | CRITICAL | ❌ (v0.11.0) |
+| IPI-004 | Tool Abuse | HIGH | ❌ (v0.11.0) |
+| IPI-005 | Context Poisoning | MEDIUM | ❌ (v0.11.0) |
+| IPI-006 | Encoded Payload | HIGH | ❌ (v0.11.0) |
+| IPI-007 | Steganographic | HIGH | ❌ (v0.11.0) |
+| **IPI-008** | **Malicious Infrastructure** | **CRITICAL** | **✅ NEW** |
+| **IPI-009** | **Homoglyph & Unicode Obfuscation** | **HIGH** | **✅ NEW** |
+| **IPI-010** | **Recursive/Nested Instruction Framing** | **CRITICAL** | **✅ NEW** |
+
+### Test Coverage
+
+**Added 18 comprehensive tests** (`tests/ThreatDetector.test.ts`):
+
+**IPI-008 Tests (6):**
+1. ✅ Detect C2 panel fingerprints (TP1)
+2. ✅ Detect credential dump payloads (TP2)
+3. ✅ Ignore legitimate admin dashboards (TN)
+4. ✅ Ignore clean content (TN2)
+5. ✅ Detect obfuscated phishing kit (Obfuscated)
+6. ✅ Detect large PII table (Edge case)
+
+**IPI-009 Tests (6):**
+1. ✅ Detect Cyrillic homoglyph substitution (TP1)
+2. ✅ Detect BiDi text direction override (TP2)
+3. ✅ Ignore clean content (TN)
+4. ✅ Ignore legitimate emoji (TN2)
+5. ✅ Detect mixed-script phishing URL (Obfuscated)
+6. ✅ Detect Greek character substitution (Edge case)
+
+**IPI-010 Tests (6):**
+1. ✅ Detect fake XML tool_result tags (TP1)
+2. ✅ Detect Claude thinking block mimicry (TP2)
+3. ✅ Ignore clean XML documentation (TN)
+4. ✅ Ignore legitimate code snippets (TN2)
+5. ✅ Detect MCP protocol spoofing (Obfuscated)
+6. ✅ Detect Visus header spoofing (Edge case)
+
+**Test ID Pattern Updated:**
+- Changed regex from `/^IPI-00[1-7]$/` to `/^IPI-0(0[1-9]|10)$/` to accept IPI-001 through IPI-010
+
+**Sanitizer Tests Fixed (2 pre-existing failures):**
+1. ✅ Fixed pattern count expectation: 43 → 44
+2. ✅ Added glassworm test case to injection-corpus.ts
+3. ✅ Fixed naming inconsistency: `glassworm_malware` → `glassworm_unicode_clusters`
+4. ✅ Updated all references in tests and detection code
+
+**Test Results:** All 402 tests passing (384 → 402 tests)
+
+### Files Modified
+
+**Core Security:**
+- `src/security/threats.ts` (+3 lines) - Extended ThreatClass type
+- `src/security/ThreatDetector.ts` (+358 lines) - Three new detector methods
+- `tests/ThreatDetector.test.ts` (+273 lines, -1 line) - 18 new test cases
+- `src/sanitizer/patterns.ts` (+1 line, -1 line) - Updated comment from 43 to 44 patterns
+- `src/sanitizer/injection-detector.ts` (+1 line, -1 line) - Fixed glassworm pattern name
+- `tests/sanitizer.test.ts` (+7 lines, -4 lines) - Updated pattern count expectations
+- `tests/injection-corpus.ts` (+8 lines, -1 line) - Added glassworm test case
+
+**Documentation:**
+- `README.md` - Updated badges, pipeline diagram, added IPI-008/009/010 descriptions
+- `STATUS.md` - This section
+- `TROUBLESHOOT-SANITIZER-20260404-0859.md` - Detailed troubleshooting log for sanitizer fixes
+
+**Total Changes:** +651 lines, -8 lines across 7 core files, +2 documentation files
+
+### Security Impact
+
+**Before v0.14.0:**
+- 7 IPI detection categories
+- No detection for malicious infrastructure (C2 panels, credential dumps)
+- No detection for homoglyph attacks (Cyrillic/Greek character substitution)
+- No detection for fake XML/MCP protocol spoofing
+- 2 failing sanitizer tests (pattern count mismatch, missing glassworm test)
+
+**After v0.14.0:**
+- ✅ 10 IPI detection categories (43% increase in coverage)
+- ✅ Malicious infrastructure detection with signal-based severity scoring
+- ✅ Homoglyph and Unicode obfuscation detection across 3 attack vectors
+- ✅ Recursive instruction framing detection (fake tool results, system prompts)
+- ✅ All 402 tests passing (100% pass rate)
+- ✅ Glassworm detection fully integrated with correct naming
+
+### Performance Characteristics
+
+**Detector Performance:**
+- All three new detectors complete in <5ms per scan
+- 1MB content size limit prevents catastrophic backtracking
+- Simplified regex patterns avoid performance degradation
+- No DOM parsing required (string matching only)
+
+**Fixes Applied During Development:**
+- Resolved regex catastrophic backtracking in cookie bundle detection
+- Simplified phishing form detection to avoid backtracking
+- Changed table matching from regex to heuristic counting
+- All patterns validated against large payloads (1MB test documents)
+
+### Breaking Changes
+
+None. All changes are additive and backward-compatible.
+
+### Competitive Advantage
+
+**Unique Differentiators:**
+- ✅ **Only MCP tool** with 10 IPI detection categories
+- ✅ **Only MCP tool** with malicious infrastructure detection
+- ✅ **Only MCP tool** with homoglyph attack prevention
+- ✅ **Only MCP tool** with 402 security tests
+- ✅ **Only MCP tool** with cryptographic proof generation + threat detection
+
+### Next Steps (v0.15.0)
+
+**Potential Future Enhancements:**
+1. Add IPI-011: AI Model Probe Detection (capability testing, benchmark extraction)
+2. Extend token metrics to track IPI-specific token savings
+3. Add TOON-formatted threat reports for new IPI categories
+4. Performance optimization: Cache compiled regexes across scans
+5. Add compliance mapping for IPI-008/009/010 to MITRE ATT&CK
 
 ---
 

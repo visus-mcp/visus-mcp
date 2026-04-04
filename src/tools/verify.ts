@@ -26,7 +26,7 @@ export async function visusVerify(input: VerifyProofInput): Promise<Result<Verif
       return Err(new Error('Invalid input: proof must be an object'));
     }
 
-    const result = verifyProofRecord(input);
+    const result = await verifyProofRecord(input);
 
     return Ok(result);
   } catch (error) {

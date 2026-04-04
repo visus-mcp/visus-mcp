@@ -20,6 +20,7 @@ import { sanitizeWithProof } from '../sanitizer/index.js';
 import { truncateContent } from '../utils/truncate.js';
 import { ThreatDetector } from '../security/ThreatDetector.js';
 import { computeThreatSummary } from '../security/threat-summary.js';
+import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
 import type { VisusReadInput, VisusReadOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -30,6 +31,7 @@ import { Err } from '../types.js';
  * @returns Sanitized article content with metadata
  */
 export async function visusRead(input: VisusReadInput): Promise<Result<VisusReadOutput, Error>> {
+  const startTime = Date.now();
   const { url, timeout_ms = 10000 } = input;
 
   // Validate inputs
@@ -81,10 +83,21 @@ export async function visusRead(input: VisusReadInput): Promise<Result<VisusRead
     // Step 4.5: Compute threat summary from IPI detections
     const threatSummary = computeThreatSummary(threats);
 
+    // Step 4.6: Calculate metrics and prepend header if enabled
+    const elapsedMs = Date.now() - startTime;
+    const threatsBlocked = threats.length;
+
+    let finalContent = truncationResult.content;
+    if (shouldShowMetrics()) {
+      const metrics = calculateMetrics(article.content, sanitizationResult.content, threatsBlocked, elapsedMs);
+      const metricsHeader = formatMetricsHeader(metrics);
+      finalContent = metricsHeader + finalContent;
+    }
+
     // Step 5: Build output with cryptographic proof
     const output: VisusReadOutput = {
       url,
-      content: truncationResult.content,
+      content: finalContent,
       metadata: {
         title: article.title || pageTitle || 'Untitled',
         author: article.byline,

@@ -14,6 +14,7 @@ import { truncateContent } from '../utils/truncate.js';
 import { generateThreatReport } from '../sanitizer/threat-reporter.js';
 import { ThreatDetector } from '../security/ThreatDetector.js';
 import { computeThreatSummary } from '../security/threat-summary.js';
+import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
 import type { VisusFetchStructuredInput, VisusFetchStructuredOutput, Result } from '../types.js';
 import { Err } from '../types.js';
 
@@ -98,6 +99,7 @@ function extractStructuredData(
 export async function visusFetchStructured(
   input: VisusFetchStructuredInput
 ): Promise<Result<VisusFetchStructuredOutput, Error>> {
+  const startTime = Date.now();
   const { url, schema, timeout_ms = 10000 } = input;
 
   // Validate inputs
@@ -206,10 +208,34 @@ export async function visusFetchStructured(
     // Step 5.5: Compute threat summary from IPI detections
     const threatSummary = computeThreatSummary(threats);
 
+    // Step 5.6: Calculate metrics and create content representation with header
+    const elapsedMs = Date.now() - startTime;
+    const threatsBlocked = threats.length;
+
+    // Create human-readable content representation
+    let contentRepresentation: string | undefined = undefined;
+    if (shouldShowMetrics()) {
+      // Use the sanitized combined data for token calculation
+      const sanitizedCombinedData = Object.entries(sanitizedData)
+        .map(([key, value]) => `${key}: ${value || 'null'}`)
+        .join('\n');
+
+      const metrics = calculateMetrics(html, sanitizedCombinedData, threatsBlocked, elapsedMs);
+      const metricsHeader = formatMetricsHeader(metrics);
+
+      // Create formatted content with metrics header
+      const formattedData = Object.entries(finalData)
+        .map(([key, value]) => `**${key}**: ${value || 'null'}`)
+        .join('\n');
+
+      contentRepresentation = metricsHeader + formattedData;
+    }
+
     // Step 6: Build output
     const output: VisusFetchStructuredOutput = {
       url,
       data: finalData,
+      ...(contentRepresentation && { content: contentRepresentation }),
       sanitization: {
         patterns_detected: Array.from(allPatternsDetected),
         pii_types_redacted: Array.from(allPIITypesRedacted),

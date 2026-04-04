@@ -4,6 +4,7 @@
  * This module provides web page rendering with three-tier fallback:
  *   1. Lambda renderer (Playwright on AWS Lambda x86_64) - if VISUS_RENDERER_URL set
  *   2. Local undici fetch() - fallback if Lambda unavailable
+ *   3. Local Playwright - fallback if fetch() fails (e.g., SSL errors on macOS)
  *
  * CRITICAL: The sanitizer ALWAYS runs locally. Rendered HTML is returned from
  * Lambda to the local process before Claude sees it. PHI never touches Lateos infrastructure.
@@ -11,6 +12,7 @@
 
 import type { BrowserRenderResult, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
+import { fetchWithPlaywright } from './local-renderer.js';
 
 /**
  * Configuration
@@ -38,7 +40,7 @@ interface LambdaRenderError {
 /**
  * Log to stderr which renderer is being used
  */
-function logRenderer(renderer: 'lambda' | 'fetch', url: string): void {
+function logRenderer(renderer: 'lambda' | 'fetch' | 'playwright', url: string): void {
   console.error(JSON.stringify({
     timestamp: new Date().toISOString(),
     event: 'renderer_selected',
@@ -277,7 +279,8 @@ function isNetworkError(error: Error): boolean {
  * Rendering strategy:
  *   1. Lambda renderer (if VISUS_RENDERER_URL is set)
  *   2. Undici fetch() (fallback)
- *   3. If fetch fails with network error → retry with Lambda (if available)
+ *   3. If fetch fails with network error AND Lambda available → retry with Lambda
+ *   4. If fetch fails and Lambda not available → use local Playwright
  *
  * @param url - The URL to fetch
  * @param options - Rendering options
@@ -324,7 +327,7 @@ export async function renderPage(
       timestamp: new Date().toISOString(),
       event: 'renderer_fallback',
       from: 'fetch',
-      to: 'playwright',
+      to: 'lambda',
       reason: fetchResult.error.message,
       url,
     }));
@@ -333,8 +336,19 @@ export async function renderPage(
     return await renderWithLambda(url, timeout);
   }
 
-  // No fallback available, return fetch error
-  return fetchResult;
+  // Strategy 4: If fetch failed and no Lambda available, use local Playwright
+  console.error('[visus-mcp] native fetch failed, falling back to local Playwright');
+  console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    event: 'renderer_fallback',
+    from: 'fetch',
+    to: 'playwright',
+    reason: fetchResult.error.message,
+    url,
+  }));
+
+  logRenderer('playwright', url);
+  return await fetchWithPlaywright(url, timeout);
 }
 
 /**

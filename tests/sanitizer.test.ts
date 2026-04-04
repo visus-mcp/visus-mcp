@@ -10,8 +10,8 @@ import { detectGlassworm, stripUnicodeVariationSelectors } from '../src/sanitize
 import { INJECTION_PAYLOADS, PII_TEST_CASES, CLEAN_CONTENT_SAMPLES } from './injection-corpus.js';
 
 describe('Injection Detector', () => {
-  describe('Pattern Detection - All 43 Categories', () => {
-    // Test each of the 43 injection patterns
+  describe('Pattern Detection - All 44 Categories', () => {
+    // Test each of the 44 injection patterns
     INJECTION_PAYLOADS.forEach((testCase) => {
       it(`should detect: ${testCase.name}`, () => {
         const result = detectAndNeutralize(testCase.payload);
@@ -24,9 +24,9 @@ describe('Injection Detector', () => {
   });
 
   describe('Pattern Coverage', () => {
-    it('should have exactly 43 patterns defined', () => {
+    it('should have exactly 44 patterns defined', () => {
       const patternNames = getAllPatternNames();
-      expect(patternNames.length).toBe(43);
+      expect(patternNames.length).toBe(44);
     });
 
     it('should have test cases for all patterns', () => {
@@ -379,7 +379,7 @@ describe('Glassworm Malware Detection', () => {
       const result = detectAndNeutralize(payload);
 
       expect(result.content_modified).toBe(true);
-      expect(result.patterns_detected).toContain('glassworm_malware');
+      expect(result.patterns_detected).toContain('glassworm_unicode_clusters');
       expect(result.content).not.toMatch(/[\uFE00-\uFE0F]/);
       expect(result.metadata.detections_by_severity.high).toBeGreaterThan(0);
     });
@@ -389,7 +389,7 @@ describe('Glassworm Malware Detection', () => {
       const payload = '\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B\uFE0C\uFE0D\uFE0E';
       const result = detectAndNeutralize(payload);
 
-      expect(result.patterns_detected).toContain('glassworm_malware');
+      expect(result.patterns_detected).toContain('glassworm_unicode_clusters');
       expect(result.metadata.detections_by_severity.critical).toBeGreaterThan(0);
     });
   });
@@ -416,7 +416,7 @@ describe('Glassworm Malware Detection', () => {
 
       const result = sanitize(payload);
 
-      expect(result.sanitization.patterns_detected).toContain('glassworm_malware');
+      expect(result.sanitization.patterns_detected).toContain('glassworm_unicode_clusters');
       expect(result.sanitization.content_modified).toBe(true);
       expect(result.metadata.has_critical_threats).toBe(true);
     });

@@ -13,6 +13,7 @@ import { detectFormat, convertJson, convertXml, convertRss } from '../utils/form
 import { routeContentHandler, normalizeMimeType } from '../content-handlers/index.js';
 import { ThreatDetector } from '../security/ThreatDetector.js';
 import { computeThreatSummary } from '../security/threat-summary.js';
+import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
 import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
 import type { ThreatAnnotation } from '../security/threats.js';
 import { Err } from '../types.js';
@@ -24,6 +25,7 @@ import { Err } from '../types.js';
  * @returns Sanitized page content with metadata
  */
 export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFetchOutput, Error>> {
+  const startTime = Date.now();
   const { url, format = 'markdown', timeout_ms = 10000 } = input;
 
   // Validate inputs
@@ -90,9 +92,21 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
       // Compute threat summary from handler threats
       const threatSummary = computeThreatSummary(threats);
 
+      // Calculate metrics and prepend header if enabled
+      const elapsedMs = Date.now() - startTime;
+      const rawContentString = Buffer.isBuffer(rawContent) ? rawContent.toString('utf-8') : rawContent;
+      const threatsBlocked = threats.length;
+
+      let finalContent = truncationResult.content;
+      if (shouldShowMetrics()) {
+        const metrics = calculateMetrics(rawContentString, sanitizedContent, threatsBlocked, elapsedMs);
+        const metricsHeader = formatMetricsHeader(metrics);
+        finalContent = metricsHeader + finalContent;
+      }
+
       const output: VisusFetchOutput = {
         url,
-        content: truncationResult.content,
+        content: finalContent,
         sanitization: {
           patterns_detected: sanitization.patterns_detected,
           pii_types_redacted: sanitization.pii_types_redacted,
@@ -153,10 +167,21 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     // Step 5.5: Compute threat summary from IPI detections
     const threatSummary = computeThreatSummary(threats);
 
+    // Step 5.6: Calculate metrics and prepend header if enabled
+    const elapsedMs = Date.now() - startTime;
+    const threatsBlocked = threats.length;
+
+    let finalContent = truncationResult.content;
+    if (shouldShowMetrics()) {
+      const metrics = calculateMetrics(processedContent, sanitizationResult.content, threatsBlocked, elapsedMs);
+      const metricsHeader = formatMetricsHeader(metrics);
+      finalContent = metricsHeader + finalContent;
+    }
+
     // Step 6: Build output with cryptographic proof
     const output: VisusFetchOutput = {
       url,
-      content: truncationResult.content,
+      content: finalContent,
       sanitization: {
         patterns_detected: sanitizationResult.sanitization.patterns_detected,
         pii_types_redacted: sanitizationResult.sanitization.pii_types_redacted,
