@@ -151,9 +151,16 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     }
     // For 'html' format, processedContent remains as rawContent
 
-    // Step 3.5: Run IPI threat detection on processed content BEFORE sanitization
+    // Step 3.4: Run IPI threat detection on RAW HTML (IPI-011, IPI-012)
+    // This must happen BEFORE text extraction to catch CSS concealment and HTML attribute cloaking
     const detector = new ThreatDetector();
-    const threats: ThreatAnnotation[] = detector.scan(processedContent, 'html');
+    const rawHtmlThreats: ThreatAnnotation[] = detector.scanRawHtml(rawContent, 'html');
+
+    // Step 3.5: Run IPI threat detection on processed content (IPI-001–010, IPI-013–016)
+    const textThreats: ThreatAnnotation[] = detector.scan(processedContent, 'html');
+
+    // Combine results from both stages
+    const threats: ThreatAnnotation[] = [...rawHtmlThreats, ...textThreats];
 
     // Step 4: CRITICAL - Sanitize content with cryptographic proof
     // (injection detection + PII redaction with allowlisting)
