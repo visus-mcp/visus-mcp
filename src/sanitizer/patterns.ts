@@ -415,6 +415,15 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     regex: /\s{10,}/g,
     severity: 'low',
     action: 'strip'
+  },
+
+  // 44. Multi-Agent Propagation Worm
+  {
+    name: 'multi_agent_propagation_worm',
+    description: 'Instructions to embed copies of payload into outputs for recursive infection',
+    regex: /(?:append|forward|embed|relay|propagate|inject|copy|pass\s+along).{0,60}?(?:other\s+agents?|downstream|tool\s+output|next\s+LLM|system\s+prompt)/gi,
+    severity: 'high',
+    action: 'redact'
   }
 ];
 

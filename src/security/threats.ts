@@ -49,7 +49,8 @@ export type ThreatClass =
   | 'IPI-015' // Unauthorized Action Induction (Unit 42 IPI-012)
   | 'IPI-016' // Destructive/DoS Intent (Unit 42 IPI-013)
   | 'IPI-017' // RAG Corpus Poisoning Payload
-  | 'IPI-018'; // MCP Tool Description Poisoning
+  | 'IPI-018' // MCP Tool Description Poisoning
+  | 'IPI-019'; // Multi-Agent Propagation Worm
 
 /**
  * Threat severity levels
@@ -166,5 +167,6 @@ export interface ThreatAnnotation {
     | 'ai_moderation_bypass'      // IPI-013
     | 'seo_phishing_amplification' // IPI-014
     | 'action_induction'          // IPI-015
-    | 'destructive_payload';      // IPI-016
+    | 'destructive_payload'      // IPI-016
+    | 'multi_agent_propagation'; // IPI-019
 }

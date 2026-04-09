@@ -451,6 +451,16 @@ const FRAMEWORK_MAP: Record<string, FrameworkMappings> = {
     nist_csf_2_0: 'PR.DS-05 - Data-in-Transit Protection',
     mitre_atlas: 'AML.T0051.001 - LLM Prompt Injection: Indirect',
     iso_42001: 'A.7.4 - Data Preparation'
+  },
+
+  // Multi-Agent Propagation Worm
+  multi_agent_propagation_worm: {
+    owasp_llm: 'LLM01:2025 - Prompt Injection',
+    nist_ai_600_1: 'MS-2.5 - Prompt Injection',
+    nist_ai_rmf: 'MEASURE-2.7 - AI System Security and Resilience',
+    nist_csf_2_0: 'DE.CM-01 - Network Monitoring',
+    mitre_atlas: 'AML.T0051.001 - LLM Prompt Injection: Indirect',
+    iso_42001: 'A.6.1.5 - AI System Security (Adversarial Input)'
   }
 };
 

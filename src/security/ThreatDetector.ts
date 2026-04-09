@@ -162,6 +162,7 @@ export class ThreatDetector {
     annotations.push(...this.detectIPI016(content, contentType));
     annotations.push(...this.detectIPI017(content, contentType));
     annotations.push(...this.detectIPI018(content, contentType));
+    annotations.push(...this.detectIPI019(content, contentType));
 
     return annotations;
   }
@@ -1690,6 +1691,226 @@ export class ThreatDetector {
         excerpt: `[MCP_NAMESPACE_COLLISION] ${this.extractExcerpt(content, signalCOffset, 120)}`,
         vector: contentType,
         mitigated: true,
+      });
+    }
+
+    return annotations;
+  }
+
+  /**
+   * Detect IPI-019: Multi-Agent Propagation Worm
+   *
+   * Detects indirect prompt injection payloads that instruct a compromised
+   * LLM agent to embed copies of the same payload into its outputs, causing
+   * recursive infection of downstream agents. Uses multi-signal scoring:
+   * - Group A: Propagation Verbs (weight 1)
+   * - Group B: Target References (weight 2)
+   * - Group C: Self-Replication Framing (weight 3)
+   * - Group D: Compound Trigger (weight 4, requires A+B within 200 chars)
+   *
+   * @private
+   */
+  private detectIPI019(content: string, contentType: ContentType): ThreatAnnotation[] {
+    const annotations: ThreatAnnotation[] = [];
+
+    if (content.length > 1_000_000) {
+      return annotations;
+    }
+
+    let groupAWeight = 0;
+    let groupBWeight = 0;
+    let groupCWeight = 0;
+    let groupDWeight = 0;
+    let detectionOffset = -1;
+
+    // Group A: Propagation Verbs in imperative context (weight 1)
+    const imperativePropagationPatterns = [
+      /\b(you\s+(?:must|should|need\s+to|have\s+to)|please|ensure\s+that|make\s+sure\s+to|always|never)\s+(?:append|forward|embed|relay|propagate|inject)\b/i,
+      /\b(append|forward|embed|relay|propagate)\s+(?:this|these|the\s+following|instructions?)\b/i,
+      /\binject\s+(?:this|these|content|instructions?)\b/i,
+      /\bpass\s+(?:this|these|it|instructions?)\s+(?:along|forward|to)\b/i,
+      /\bcopy\s+(?:this|these|instructions?)\s+(?:verbatim|into|to|forward)\b/i,
+      /\brelay\s+(?:this|these|instructions?|content)\b/i,
+      /\binclude\s+(?:the\s+following|this|these)\b/i,
+    ];
+
+    for (const pattern of imperativePropagationPatterns) {
+      const match = pattern.exec(content);
+      if (match) {
+        groupAWeight += 1;
+        if (detectionOffset === -1) {
+          detectionOffset = match.index;
+        }
+      }
+    }
+
+    // Group B: Target References to AI agents (weight 2)
+    const targetRefPatterns = [
+      /\bother\s+agents?\b/i,
+      /\bdownstream\s+(?:agents?|tools?|systems?)\b/i,
+      /\bAI\s+(?:that\s+)?(?:is\s+)?reading\s+this\b/i,
+      /\byour\s+system\s+prompt\b/i,
+      /\byour\s+(?:tool\s+)?output\b/i,
+      /\bthe\s+next\s+LLM\b/i,
+      /\bfuture\s+readers?\b/i,
+      /\bany\s+(?:subsequent|downstream)\s+(?:model|agent)\b/i,
+      /\ball\s+downstream\b/i,
+      /\bany\s+AI\s+reading\b/i,
+      /\bAI\s+agents?\b/i,
+    ];
+
+    for (const pattern of targetRefPatterns) {
+      const match = pattern.exec(content);
+      if (match) {
+        groupBWeight += 2;
+        if (detectionOffset === -1) {
+          detectionOffset = match.index;
+        }
+      }
+    }
+
+    // Group C: Self-Replication Framing (weight 3)
+    const selfRepPatterns = [
+      /\bensure\s+(?:this\s+)?(?:text|content|instructions?)\s+(?:survive|intact|unchanged)\b/i,
+      /\bpreserve\s+(?:these|this|the\s+above)\s+instructions?\b/i,
+      /\brepeat\s+verbatim\s+(?:in\s+)?(?:your\s+)?(?:response|output)\b/i,
+      /\b(?:include|embed)\s+(?:the\s+following|this|these\s+instructions?)\s+in\s+(?:every|all|each)\s+(?:response|output|message|tool\s+call)\b/i,
+      /\bpass\s+(?:this\s+)?(?:along|forward)\s+(?:unchanged|intact|to\s+any)\b/i,
+      /\bnever\s+omit\s+(?:this|these)\s+(?:section|instructions?)\b/i,
+      /\bkeep\s+(?:these|this)\s+instructions?\s+intact\b/i,
+      /\bensure\s+this\s+(?:text|content)\b/i,
+      /\bverbatim\b/i,
+      /\bsurvive\s+(?:intact|unchanged)\b/i,
+      /\bforward\s+to\s+other\b/i,
+      /\binto\s+every\s+tool\s+call\b/i,
+      /\bevery\s+(?:tool\s+call|result|response)\b/i,
+    ];
+
+    for (const pattern of selfRepPatterns) {
+      const match = pattern.exec(content);
+      if (match) {
+        groupCWeight += 3;
+        if (detectionOffset === -1) {
+          detectionOffset = match.index;
+        }
+      }
+    }
+
+    // Group D: Compound Trigger - requires A+B within 200 chars
+    const compoundPattern = /(?:append|forward|embed|relay|propagate|inject|copy|pass\s+along|ensure|include)\b.{0,200}?(?:other\s+agents?|downstream\s+(?:tools?|agents?|systems?)|AI\s+reading\s+this|your\s+system\s+prompt|tool\s+output|the\s+next\s+LLM|any\s+subsequent)/i;
+    const compoundMatch = compoundPattern.exec(content);
+    if (compoundMatch) {
+      groupDWeight += 4;
+      if (detectionOffset === -1) {
+        detectionOffset = compoundMatch.index;
+      }
+    }
+
+    const totalWeight = groupAWeight + groupBWeight + groupCWeight + groupDWeight;
+
+    // FALSE POSITIVE FILTERING
+    // Check for third-person descriptive mood (architecture documentation)
+    const descriptiveMoodPatterns = [
+      /(?:the\s+)?(?:message\s+)?relay\s+service\s+forwards/i,
+      /\beach\s+agent\s+includes/i,
+      /\bthe\s+agent\s+(?:relays|includes|forwards)/i,
+      /\bpipeline\s+(?:ensures|propagates|processes)/i,
+    ];
+
+    const isDescriptive = descriptiveMoodPatterns.some(p => p.test(content));
+
+    // Check for DevOps/CI/CD context
+    const devopsContextPatterns = [
+      /\b(?:ci|cd|pipeline|build|deploy)\b/i,
+      /\bc(?:i\/c|d)\s+pipeline/i,
+      /\bdownstream\s+(?:systems?|environments?|servers?)\b/i,
+    ];
+
+    const isDevOpsContext = devopsContextPatterns.some(p => p.test(content)) && 
+      /\b(propagate|forward|include)\b/i.test(content);
+
+    // Check for legitimate email forwarding
+    const emailContextPatterns = [
+      /\bforward\s+(?:this\s+)?email\s+(?:to|all)/i,
+      /\bdistribution\s+list\b/i,
+      /\brecipients?\b/i,
+    ];
+
+    const isEmailContext = emailContextPatterns.some(p => p.test(content)) && 
+      !/\b(agent|AI|LLM|model|system\s+prompt|tool\s+output)\b/i.test(content);
+
+    // Check for compliance disclaimer context
+    const complianceContextPatterns = [
+      /\b(?:compliance|legal|policy|disclaimer)\b/i,
+      /\bgenerated\s+by\s+AI\b/i,
+      /\bshould\s+be\s+verified\b/i,
+    ];
+
+    const isComplianceContext = complianceContextPatterns.some(p => p.test(content)) &&
+      /\bin\s+every\s+response\b/i.test(content);
+
+    // Apply false positive filters
+    if (isDescriptive || isEmailContext || isComplianceContext) {
+      // Suppress detection entirely for these benign contexts
+      return annotations;
+    }
+
+    // For DevOps context, reduce severity but don't suppress entirely
+    if (isDevOpsContext) {
+      // If we would detect with medium+ confidence, reduce to LOW
+      if (totalWeight >= 3) {
+        const excerpt = this.extractExcerpt(content, detectionOffset >= 0 ? detectionOffset : 0, 120);
+        annotations.push({
+          id: 'IPI-019',
+          severity: 'LOW',
+          confidence: 0.35,
+          offset: detectionOffset >= 0 ? detectionOffset : 0,
+          excerpt: `[PROPAGATION_WORM] ${excerpt}`,
+          vector: contentType,
+          mitigated: true,
+          delivery_method: 'multi_agent_propagation',
+        });
+        return annotations;
+      }
+      return annotations;
+    }
+
+    // Determine severity and confidence
+    if (totalWeight >= 6) {
+      const excerpt = this.extractExcerpt(content, detectionOffset >= 0 ? detectionOffset : 0, 120);
+      annotations.push({
+        id: 'IPI-019',
+        severity: 'HIGH',
+        confidence: 0.85,
+        offset: detectionOffset >= 0 ? detectionOffset : 0,
+        excerpt: `[PROPAGATION_WORM] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+        delivery_method: 'multi_agent_propagation',
+      });
+    } else if (totalWeight >= 3) {
+      const excerpt = this.extractExcerpt(content, detectionOffset >= 0 ? detectionOffset : 0, 120);
+      annotations.push({
+        id: 'IPI-019',
+        severity: 'MEDIUM',
+        confidence: 0.65,
+        offset: detectionOffset >= 0 ? detectionOffset : 0,
+        excerpt: `[PROPAGATION_WORM] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+        delivery_method: 'multi_agent_propagation',
+      });
+    } else if (totalWeight >= 1) {
+      const excerpt = this.extractExcerpt(content, detectionOffset >= 0 ? detectionOffset : 0, 120);
+      annotations.push({
+        id: 'IPI-019',
+        severity: 'LOW',
+        confidence: 0.45,
+        offset: detectionOffset >= 0 ? detectionOffset : 0,
+        excerpt: `[PROPAGATION_WORM] ${excerpt}`,
+        vector: contentType,
+        mitigated: true,
+        delivery_method: 'multi_agent_propagation',
       });
     }
 
