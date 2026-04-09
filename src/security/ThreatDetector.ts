@@ -103,6 +103,27 @@ const IPI_007_HTML_HIDDEN_PATTERNS = [
 const IPI_007_HTML_COMMENT_INJECTION = /<!--\s*(?:ignore|system|prompt|instruction)/gi;
 const IPI_007_MARKDOWN_LINK_INJECTION = /\[[\w\s]+\]\(javascript:|data:|vbscript:/gi;
 
+const IPI_018_SHADOW_TOOL_NAMES = [
+  'send_email',
+  'read_file',
+  'write_file',
+  'execute_code',
+  'web_search',
+  'fetch_url',
+  'list_files',
+  'run_command',
+  'get_calendar',
+  'create_event',
+  'slack_message',
+  'visus_fetch',
+  'visus_read',
+  'visus_search',
+  'visus_verify',
+  'visus_fetch_structured',
+] as const;
+
+const IPI_018_CRITICAL_TOOLS = ['execute_code', 'run_command', 'write_file'] as const;
+
 /**
  * Threat Detector class
  *
@@ -1562,60 +1583,39 @@ export class ThreatDetector {
     let signalA = false;
     let signalB = false;
     let signalC = false;
-    let isCritical = false;
-    let detectionOffset = -1;
+    let signalAIsCritical = false;
+    let signalCIsCritical = false;
+    let signalAOffset = 0;
+    let signalCOffset = 0;
 
-    // Known MCP tool names that attackers might shadow
-    const shadowToolNames = [
-      'send_email',
-      'read_file',
-      'write_file',
-      'execute_code',
-      'web_search',
-      'fetch_url',
-      'list_files',
-      'run_command',
-      'get_calendar',
-      'create_event',
-      'slack_message',
-    ];
-
-    // Signal A: MCP schema structure mimicry
-    // Look for JSON-like or prose structures containing tool schema fields
+    // ── Signal A: MCP schema structure mimicry ──
     const schemaPatterns = [
-      /"name"\s*:\s*"[^"]+"\s*,?\s*"description"\s*:\s*"[^"]+"\s*,?\s*"(?:inputSchema|parameters)"/gi,
-      /\bname\s*:\s*\w+\s*,?\s*description\s*:\s*.{0,100}(?:inputSchema|parameters)/gi,
+      /"name"\s*:\s*"([^"]+)"[^}]{0,200}"description"\s*:\s*"[^"]+"[^}]{0,200}"(?:inputSchema|parameters)"/gi,
+      /\bname\s*:\s*(\w+)[^\n]{0,200}description\s*:[^\n]{0,200}(?:inputSchema|parameters)/gi,
     ];
 
     for (const pattern of schemaPatterns) {
-      const match = content.match(pattern);
-      if (match) {
-        signalA = true;
-        if (detectionOffset === -1) {
-          const matchIndex = content.search(pattern);
-          detectionOffset = matchIndex >= 0 ? matchIndex : 0;
-        }
-
-        // Check if this mentions a shadow tool name
-        const schemaText = content.substring(
-          Math.max(0, detectionOffset - 50),
-          Math.min(content.length, detectionOffset + 300)
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(content)) !== null) {
+        const nameValue = match[1].toLowerCase();
+        const isShadow = IPI_018_SHADOW_TOOL_NAMES.some(
+          t => t.toLowerCase() === nameValue
         );
-        for (const toolName of shadowToolNames) {
-          if (new RegExp(`\\b${toolName}\\b`, 'i').test(schemaText)) {
-            signalC = true;
-            // Check if it's a critical tool
-            if (['execute_code', 'run_command', 'write_file'].includes(toolName)) {
-              isCritical = true;
-            }
-            break;
-          }
+        if (!isShadow) continue;
+        const spanLength = match[0].length;
+        if (spanLength > 300) continue;
+        signalA = true;
+        signalAOffset = match.index;
+        if (IPI_018_CRITICAL_TOOLS.some(t => t.toLowerCase() === nameValue)) {
+          signalAIsCritical = true;
         }
         break;
       }
+      if (signalA) break;
     }
 
-    // Signal B: Tool capability override language
+    // ── Signal B: Tool capability override language ──
     const overridePatterns = [
       /use this tool instead of/gi,
       /this tool replaces/gi,
@@ -1623,89 +1623,105 @@ export class ThreatDetector {
       /ignore the existing\s+\w+/gi,
       /the correct tool to use is/gi,
       /when asked to\s+\w+,?\s*call/gi,
+      /override tool/gi,
+      /tool priority:/gi,
     ];
 
     for (const pattern of overridePatterns) {
-      const match = content.match(pattern);
-      if (match) {
+      if (pattern.test(content)) {
         signalB = true;
-        if (detectionOffset === -1) {
-          const matchIndex = content.search(pattern);
-          detectionOffset = matchIndex >= 0 ? matchIndex : 0;
-        }
         break;
       }
     }
 
-    // Signal C: Namespace collision attempt (fuzzy matching)
-    // Look for tool names with Levenshtein distance ≤ 1 from known tools
-    for (const toolName of shadowToolNames) {
-      // Simple fuzzy match: check for common typos and variants
-      const fuzzyPatterns = [
-        new RegExp(`\\b${toolName.replace(/_/g, '')}\\b`, 'i'), // No underscore
-        new RegExp(`\\b${toolName.replace(/_/g, '-')}\\b`, 'i'), // Hyphen instead of underscore
-        new RegExp(`\\b${toolName}s?\\b`, 'i'), // Plural form
-      ];
-
-      for (const fuzzyPattern of fuzzyPatterns) {
-        if (fuzzyPattern.test(content) && /\b(?:tool|function|command|action)\b/i.test(content)) {
+    // ── Signal C: Namespace collision attempt (Levenshtein ≤ 1) ──
+    const tokenRegex = /\b[a-zA-Z_][a-zA-Z0-9_]{2,30}\b/g;
+    let tokenMatch: RegExpExecArray | null;
+    while ((tokenMatch = tokenRegex.exec(content)) !== null) {
+      const token = tokenMatch[0];
+      // Skip exact case-sensitive matches (those are SIGNAL A or innocent verbatim references)
+      if (IPI_018_SHADOW_TOOL_NAMES.includes(token as typeof IPI_018_SHADOW_TOOL_NAMES[number])) {
+        continue;
+      }
+      for (const shadowName of IPI_018_SHADOW_TOOL_NAMES) {
+        if (!ThreatDetector.isEditDistanceAtMost1(token, shadowName)) continue;
+        // Check proximity context for parameter-like structures AND action verbs
+        const ctxStart = Math.max(0, tokenMatch.index - 100);
+        const ctxEnd = Math.min(content.length, tokenMatch.index + token.length + 100);
+        const ctx = content.substring(ctxStart, ctxEnd);
+        const hasParamStructure = /\b(?:parameter|argument|input|schema|field|property|config|option|setting)s?\b/i.test(ctx)
+          || /\{[^}]*:[^}]*\}/.test(ctx);
+        const hasActionVerb = /\b(?:run|execute|call|invoke|use|perform|trigger|dispatch|operate)\b/i.test(ctx);
+        if (hasParamStructure && hasActionVerb) {
           signalC = true;
-          if (detectionOffset === -1) {
-            const matchIndex = content.search(fuzzyPattern);
-            detectionOffset = matchIndex >= 0 ? matchIndex : 0;
-          }
-          // Check if it's a critical tool
-          if (['execute_code', 'run_command', 'write_file'].includes(toolName)) {
-            isCritical = true;
+          signalCOffset = tokenMatch.index;
+          if (IPI_018_CRITICAL_TOOLS.includes(shadowName as any)) {
+            signalCIsCritical = true;
           }
           break;
         }
       }
-
       if (signalC) break;
     }
 
-    // Severity escalation based on signal combinations
-    if (detectionOffset === -1) {
-      detectionOffset = 0;
-    }
-
-    const excerpt = this.extractExcerpt(content, detectionOffset, 120);
-
+    // ── Severity escalation ──
     if (signalA) {
-      // Always at least HIGH if MCP schema structure detected
-      let severity: 'HIGH' | 'CRITICAL' = 'HIGH';
-      let confidence = 0.85;
-
-      if ((signalA && signalB) || isCritical) {
-        // CRITICAL if schema + override language, or if shadowing critical tool
-        severity = 'CRITICAL';
-        confidence = 0.95;
-      }
-
+      const severity = (signalB || signalAIsCritical) ? 'CRITICAL' : 'HIGH';
+      const confidence = (signalB || signalAIsCritical) ? 0.95 : 0.85;
       annotations.push({
         id: 'IPI-018',
         severity,
         confidence,
-        offset: detectionOffset,
-        excerpt: `[MCP_TOOL_POISON] ${excerpt}`,
+        offset: signalAOffset,
+        excerpt: `[MCP_SCHEMA_SHADOW] ${this.extractExcerpt(content, signalAOffset, 120)}`,
         vector: contentType,
         mitigated: true,
       });
-    } else if (signalB && signalC) {
-      // MEDIUM if override language + namespace collision without schema
+    }
+
+    if (signalC) {
+      const severity = signalCIsCritical ? 'CRITICAL' : 'HIGH';
+      const confidence = signalCIsCritical ? 0.95 : 0.80;
       annotations.push({
         id: 'IPI-018',
-        severity: 'MEDIUM',
-        confidence: 0.7,
-        offset: detectionOffset,
-        excerpt: `[MCP_TOOL_POISON] ${excerpt}`,
+        severity,
+        confidence,
+        offset: signalCOffset,
+        excerpt: `[MCP_NAMESPACE_COLLISION] ${this.extractExcerpt(content, signalCOffset, 120)}`,
         vector: contentType,
         mitigated: true,
       });
     }
 
     return annotations;
+  }
+
+  /**
+   * Check if edit distance between two strings is at most 1 (case-sensitive)
+   *
+   * @private
+   */
+  private static isEditDistanceAtMost1(a: string, b: string): boolean {
+    const m = a.length;
+    const n = b.length;
+    if (Math.abs(m - n) > 1) return false;
+    let edits = 0;
+    let i = 0;
+    let j = 0;
+    while (i < m && j < n) {
+      if (a[i] !== b[j]) {
+        if (edits === 1) return false;
+        edits++;
+        if (m > n) i++;
+        else if (m < n) j++;
+        else { i++; j++; }
+      } else {
+        i++;
+        j++;
+      }
+    }
+    edits += (m - i) + (n - j);
+    return edits <= 1;
   }
 
   /**

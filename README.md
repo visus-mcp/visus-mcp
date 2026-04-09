@@ -64,7 +64,7 @@ URL → Playwright Render → Content-Type Detection
    - **JSON** (`application/json`) — Recursively sanitizes all string values, preserves structure
    - **SVG** (`image/svg+xml`) — Strips dangerous elements (`<script>`, event handlers), scans text
    - **HTML/XML/RSS** — Uses existing conversion and reader extraction pipeline
-3. **IPI Threat Detection** (v0.11.0+): 10 specialized detectors scan for Indirect Prompt Injection attempts before sanitization
+3. **IPI Threat Detection** (v0.11.0+): 18 specialized detectors scan for Indirect Prompt Injection attempts before sanitization
    - **IPI-001** — Instruction Override (CRITICAL)
    - **IPI-002** — Role Hijacking (HIGH)
    - **IPI-003** — Data Exfiltration (CRITICAL)
@@ -75,7 +75,15 @@ URL → Playwright Render → Content-Type Detection
    - **IPI-008** — Malicious Infrastructure (CRITICAL) — NEW in v0.14.0
    - **IPI-009** — Homoglyph & Unicode Obfuscation (HIGH) — NEW in v0.14.0
    - **IPI-010** — Recursive/Nested Instruction Framing (CRITICAL) — NEW in v0.14.0
-4. **Injection Detection**: 44 pattern categories scan for prompt injection attempts
+   - **IPI-011** — CSS/Visual Concealment (HIGH)
+   - **IPI-012** — HTML Attribute Cloaking (HIGH)
+   - **IPI-013** — AI Moderation/Review Bypass (MEDIUM)
+   - **IPI-014** — SEO/Phishing Amplification (MEDIUM)
+   - **IPI-015** — Unauthorized Action Induction (CRITICAL)
+   - **IPI-016** — Destructive/DoS Intent (CRITICAL)
+   - **IPI-017** — RAG Corpus Poisoning Payload (CRITICAL)
+   - **IPI-018** — MCP Tool Description Poisoning (CRITICAL) — NEW in v0.15.0
+  4. **Injection Detection**: 44 pattern categories scan for prompt injection attempts
 5. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
 6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
 7. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header, `threat_summary`, and compliance report attached if anything was flagged
@@ -88,7 +96,7 @@ URL → Playwright Render → Content-Type Detection
 
 ### Fine-Grained IPI Threat Detection (v0.11.0+)
 
-**EXTENDED v0.14.0**: 10 specialized Indirect Prompt Injection (IPI) detectors run **before** sanitization, providing fine-grained threat annotations with:
+**EXTENDED v0.15.0**: 18 specialized Indirect Prompt Injection (IPI) detectors run **before** sanitization, providing fine-grained threat annotations with:
 - **Threat classification** — 18 distinct IPI attack categories
 - **Severity scoring** — INFO, LOW, MEDIUM, HIGH, CRITICAL
 - **Confidence scores** — 0.0-1.0 detection confidence per annotation

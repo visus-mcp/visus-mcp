@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.visus-mcp/visus-mcp",
-  "description": "Security-first web access. Sanitizes pages, blocks injection, redacts PII. Now with PDF/JSON/SVG.",
+  "description": "Security-first web access. Sanitizes pages, blocks injection, redacts PII. Now with PDF/JSON/SVG and MCP tool poisoning detection.",
   "websiteUrl": "https://github.com/visus-mcp/visus-mcp",
   "repository": {
     "url": "https://github.com/visus-mcp/visus-mcp",
     "source": "github"
   },
-  "version": "0.13.0",
+  "version": "0.15.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "visus-mcp",
-      "version": "0.13.0",
+      "version": "0.15.0",
       "transport": {
         "type": "stdio"
       },
@@ -41,10 +41,10 @@
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "tool": "mcp-publisher",
-      "version": "0.13.0",
+      "version": "0.15.0",
       "buildInfo": {
-        "timestamp": "2026-04-02T00:00:00Z",
-        "release": "v0.13.0 — Glassworm malware detection for steganographic Unicode attacks"
+        "timestamp": "2026-04-09T00:00:00Z",
+        "release": "v0.15.0 — IPI-018: MCP Tool Description Poisoning detection with 3-signal architecture"
       }
     }
   }
