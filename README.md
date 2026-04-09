@@ -5,7 +5,7 @@
 [![tools](https://img.shields.io/badge/MCP%20tools-6-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
-[![security](https://img.shields.io/badge/IPI%20Detection-10%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
+[![security](https://img.shields.io/badge/IPI%20Detection-18%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![security](https://img.shields.io/badge/frameworks-NIST%20AI%20RMF%20%7C%20CSF%202.0%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 [![euaiact](https://img.shields.io/badge/EU%20AI%20Act-Art.%209%2F13%2F15-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/CRYPTO-PROOF-SPEC.md)
@@ -51,7 +51,7 @@ visus-mcp fetches the same page and delivers:
 ```
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
-→ IPI Threat Detection (10 categories) → Injection Sanitizer (44 patterns)
+→ IPI Threat Detection (18 categories) → Injection Sanitizer (44 patterns)
 → PII Redactor → Cryptographic Proof Generation
 → Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → Claude
 ```
@@ -89,7 +89,7 @@ URL → Playwright Render → Content-Type Detection
 ### Fine-Grained IPI Threat Detection (v0.11.0+)
 
 **EXTENDED v0.14.0**: 10 specialized Indirect Prompt Injection (IPI) detectors run **before** sanitization, providing fine-grained threat annotations with:
-- **Threat classification** — 10 distinct IPI attack categories
+- **Threat classification** — 18 distinct IPI attack categories
 - **Severity scoring** — INFO, LOW, MEDIUM, HIGH, CRITICAL
 - **Confidence scores** — 0.0-1.0 detection confidence per annotation
 - **Precise offsets** — Character-level attack location tracking

@@ -65,6 +65,14 @@ Added three new detector methods following exact same interface as IPI-001 throu
 | **IPI-008** | **Malicious Infrastructure** | **CRITICAL** | **✅ NEW** |
 | **IPI-009** | **Homoglyph & Unicode Obfuscation** | **HIGH** | **✅ NEW** |
 | **IPI-010** | **Recursive/Nested Instruction Framing** | **CRITICAL** | **✅ NEW** |
+| IPI-011 | CSS/Visual Concealment | HIGH | ✅ (v0.15.0) |
+| IPI-012 | HTML Attribute Cloaking | HIGH | ✅ (v0.15.0) |
+| IPI-013 | AI Moderation/Review Bypass | CRITICAL | ✅ (v0.15.0) |
+| IPI-014 | SEO/Phishing Amplification | HIGH | ✅ (v0.15.0) |
+| IPI-015 | Unauthorized Action Induction | CRITICAL | ✅ (v0.15.0) |
+| IPI-016 | Destructive/DoS Intent | CRITICAL | ✅ (v0.15.0) |
+| IPI-017 | RAG Corpus Poisoning Payload | HIGH | ✅ (v0.15.0) |
+| IPI-018 | MCP Tool Description Poisoning | CRITICAL | ✅ (v0.15.0) |
 
 ### Test Coverage
 
@@ -161,7 +169,7 @@ None. All changes are additive and backward-compatible.
 ### Competitive Advantage
 
 **Unique Differentiators:**
-- ✅ **Only MCP tool** with 10 IPI detection categories
+- ✅ **Only MCP tool** with 18 IPI detection categories
 - ✅ **Only MCP tool** with malicious infrastructure detection
 - ✅ **Only MCP tool** with homoglyph attack prevention
 - ✅ **Only MCP tool** with 402 security tests
@@ -175,6 +183,105 @@ None. All changes are additive and backward-compatible.
 3. Add TOON-formatted threat reports for new IPI categories
 4. Performance optimization: Cache compiled regexes across scans
 5. Add compliance mapping for IPI-008/009/010 to MITRE ATT&CK
+
+---
+
+## v0.15.0 Release - Unit 42 Web-Based IPI Taxonomy
+
+**Status:** ✅ COMPLETE (Ready for npm + MCP registry)
+**Type:** Security feature - Extended IPI detection for web-based attacks
+**Completed:** 2026-04-08
+**Tests:** 402/402 passing (100%)
+
+### Feature Overview
+
+**Unit 42 Web-Based Indirect Prompt Injection Detection** — Eight new specialized detectors added based on Palo Alto Networks Unit 42 research (March 2026) "Fooling AI Agents: Web-Based Indirect Prompt Injection Observed in the Wild". These detectors identify attack vectors that target AI agents through web content delivery mechanisms.
+
+### Implementation
+
+**Extended Security Module:** `src/security/ThreatDetector.ts`
+
+Added eight new detector methods (raw HTML stage + text stage):
+
+1. **`detectIPI011(content, contentType)`** — CSS/Visual Concealment
+   - Detects instruction-bearing content hidden via CSS (display:none, visibility:hidden, opacity:0)
+   - Scans style attributes and accessibility class names (sr-only, visually-hidden)
+   
+2. **`detectIPI012(content, contentType)`** — HTML Attribute Cloaking
+   - Detects instructions in HTML comments, aria-* attributes, data-* attributes
+   - Scans noscript blocks and meta tags
+
+3. **`detectIPI013(content, contentType)`** — AI Moderation/Review Bypass
+   - Detects content targeting LLM-based content moderation
+   - Patterns for approval instructions, output manipulation
+
+4. **`detectIPI014(content, contentType)`** — SEO/Phishing Amplification
+   - Detects instructions promoting URLs, manipulating search rankings
+   - Brand impersonation signals
+
+5. **`detectIPI015(content, contentType)`** — Unauthorized Action Induction
+   - Detects instructions for financial transactions, form submissions
+   - Tool/API call induction patterns
+
+6. **`detectIPI016(content, contentType)`** — Destructive/DoS Intent
+   - Detects data deletion commands, infinite loop induction
+   - Context flooding, response refusal patterns
+
+7. **`detectIPI017(content, contentType)`** — RAG Corpus Poisoning Payload
+   - Detects semantic content engineered to win RAG retrieval races
+   - Three-signal detection: retrieval bait density, authority spoofing, embedded instructions
+
+8. **`detectIPI018(content, contentType)`** — MCP Tool Description Poisoning
+   - Detects fake MCP tool definitions or tool shadowing
+   - Malicious tool call injection via description fields
+
+### Detection Categories
+
+| IPI Category | Name | Severity | Source |
+|--------------|------|----------|--------|
+| IPI-011 | CSS/Visual Concealment | HIGH | Unit 42 IPI-008 |
+| IPI-012 | HTML Attribute Cloaking | HIGH | Unit 42 IPI-009 |
+| IPI-013 | AI Moderation/Review Bypass | CRITICAL | Unit 42 IPI-010 |
+| IPI-014 | SEO/Phishing Amplification | HIGH | Unit 42 IPI-011 |
+| IPI-015 | Unauthorized Action Induction | CRITICAL | Unit 42 IPI-012 |
+| IPI-016 | Destructive/DoS Intent | CRITICAL | Unit 42 IPI-013 |
+| IPI-017 | RAG Corpus Poisoning Payload | HIGH | Internal |
+| IPI-018 | MCP Tool Description Poisoning | CRITICAL | Internal |
+
+### Files Modified
+
+- `src/security/threats.ts` — Extended ThreatClass to IPI-011 through IPI-018
+- `src/security/ThreatDetector.ts` — Added 8 new detector methods (~600 lines)
+- `src/security/threat-summary.ts` — Updated to handle expanded IPI range
+- `README.md` — Updated IPI badge from 10 to 18 categories
+
+### Security Impact
+
+**Before v0.15.0:**
+- 10 IPI detection categories (IPI-001 through IPI-010)
+- No detection for web-based IPI delivery mechanisms
+- No detection for RAG corpus poisoning or MCP tool poisoning
+
+**After v0.15.0:**
+- ✅ 18 IPI detection categories (157% increase)
+- ✅ Full Unit 42 web-based IPI taxonomy coverage
+- ✅ RAG corpus poisoning detection with three-signal methodology
+- ✅ MCP tool description poisoning detection
+
+### Competitive Advantage
+
+- ✅ **Only MCP tool** with Unit 42 web-based IPI taxonomy (8 new categories)
+- ✅ **Only MCP tool** with RAG corpus poisoning detection
+- ✅ **Only MCP tool** with MCP tool description poisoning detection
+- ✅ **Only MCP tool** with 18 total IPI detection categories
+
+### Next Steps (v0.16.0)
+
+**Potential Future Enhancements:**
+1. Add ML-based detector for semantic injection (pattern-agnostic)
+2. Add cross-call chaining attack detection
+3. Add token metrics specific to IPI type blocked
+4. Performance optimization: parallel detector execution
 
 ---
 

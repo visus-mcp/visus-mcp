@@ -56,7 +56,7 @@ console.error('[VISUS-DEBUG] Creating server...');
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.12.0'
+    version: '0.14.0'
   },
   {
     capabilities: {
@@ -317,7 +317,7 @@ async function startMcpServer() {
     timestamp: new Date().toISOString(),
     event: 'mcp_server_started',
     name: 'visus-mcp',
-    version: '0.12.0',
+    version: '0.14.0',
     tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
   }));
 
