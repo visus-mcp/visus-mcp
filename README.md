@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.13.0
+npx visus-mcp@0.15.0
 ```
 
 *"What the web shows you, Lateos reads safely."*

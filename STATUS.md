@@ -1,9 +1,9 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-04-04
-**Version:** 0.14.0
+**Generated:** 2026-04-09
+**Version:** 0.15.0
 **Phase:** 3 (Security Enhancement)
-**Status:** ✅ **v0.14.0 READY** - IPI Detection Extended to 10 Categories
+**Status:** ✅ **v0.15.0 READY** - IPI Detection + Test Infrastructure Fix
 
 ---
 
