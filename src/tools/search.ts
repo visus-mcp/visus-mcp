@@ -10,6 +10,8 @@
 
 import { sanitize, sanitizeWithProof } from '../sanitizer/index.js';
 import { generateThreatReport } from '../sanitizer/threat-reporter.js';
+import { ThreatDetector } from '../security/ThreatDetector.js';
+import { sessionStore } from '../session/session-store.js';
 import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
 import type { VisusSearchInput, VisusSearchOutput, Result } from '../types.js';
 import { Ok, Err } from '../types.js';
@@ -191,6 +193,18 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       source_url: `DuckDuckGo Search: ${input.query}`
     });
 
+    // Run IPI threat detection on the combined raw content
+    const detector = new ThreatDetector();
+    const combinedRaw = validResults.map(r => `${r.title}\n${r.snippet}`).join('\n\n');
+    const searchThreats = detector.scan(combinedRaw, 'text');
+
+    // Record to session-level threat accumulator
+    if (searchThreats.length > 0) {
+      sessionStore.recordHit('visus_search', `search: ${input.query}`, searchThreats);
+    } else {
+      sessionStore.recordCleanCall('visus_search');
+    }
+
     // Calculate metrics and create content representation with header
     const elapsedMs = Date.now() - startTime;
     const threatsBlocked = allPatternsDetected.size;
@@ -223,7 +237,14 @@ export async function visusSearch(input: VisusSearchInput): Promise<Result<Visus
       // Include threat_report only if findings exist
       ...(threatReport && { threat_report: threatReport }),
       // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
-      ...batchProof.proofHeader
+      ...batchProof.proofHeader,
+      // Include SLTA session info
+      slta: {
+        session_id: sessionStore.getSessionId(),
+        threat_level: sessionStore.getCurrentLevel(),
+        session_hits: sessionStore.getState().hits.reduce((sum, h) => sum + h.annotations.length, 0),
+        chains_detected: sessionStore.getState().chains.length
+      }
     });
 
   } catch (error) {

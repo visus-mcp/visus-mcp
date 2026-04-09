@@ -4,6 +4,7 @@
 
 import type { ThreatReport } from './sanitizer/threat-reporter.js';
 import type { ThreatClass, ThreatSeverity } from './security/threats.js';
+import type { SessionThreatLevel } from './session/session-store.js';
 
 /**
  * Compliance framework mappings for regulatory traceability
@@ -74,11 +75,20 @@ export interface VisusFetchOutput {
     truncated?: boolean;
     truncated_at_chars?: number;
   };
-  threat_report?: ThreatReport;
+threat_report?: ThreatReport;
   /**
    * IPI threat summary (v0.9.0+)
    */
   threat_summary?: ThreatSummary;
+  /**
+   * SLTA session info (v0.15.0+)
+   */
+  slta?: {
+    session_id: string;
+    threat_level: SessionThreatLevel;
+    session_hits: number;
+    chains_detected: number;
+  };
 }
 
 /**
@@ -126,6 +136,15 @@ export interface VisusFetchStructuredOutput {
    * IPI threat summary (v0.9.0+)
    */
   threat_summary?: ThreatSummary;
+  /**
+   * SLTA session info (v0.15.0+)
+   */
+  slta?: {
+    session_id: string;
+    threat_level: SessionThreatLevel;
+    session_hits: number;
+    chains_detected: number;
+  };
 }
 
 /**
@@ -151,6 +170,15 @@ export interface VisusReadOutput {
    * IPI threat summary (v0.9.0+)
    */
   threat_summary?: ThreatSummary;
+  /**
+   * SLTA session info (v0.15.0+)
+   */
+  slta?: {
+    session_id: string;
+    threat_level: SessionThreatLevel;
+    session_hits: number;
+    chains_detected: number;
+  };
 }
 
 /**
@@ -179,6 +207,15 @@ export interface VisusSearchOutput {
   total_injections_removed: number;
   message?: string;
   threat_report?: ThreatReport;
+  /**
+   * SLTA session info (v0.15.0+)
+   */
+  slta?: {
+    session_id: string;
+    threat_level: SessionThreatLevel;
+    session_hits: number;
+    chains_detected: number;
+  };
 }
 
 /**
