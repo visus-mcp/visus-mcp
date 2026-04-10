@@ -30,6 +30,8 @@
  * - IPI-016: Destructive/DoS Intent - data deletion, infinite loops, response refusal (Unit 42 IPI-013)
  * - IPI-017: RAG Corpus Poisoning Payload - semantically engineered content to win RAG retrieval races with embedded instruction payloads
  * - IPI-018: MCP Tool Description Poisoning - fake MCP tool definitions or tool shadowing to inject malicious tool calls
+ * - IPI-019: Multi-Agent Propagation Worm - recursive infection payloads that instruct agents to embed copies in outputs
+ * - IPI-020: Conditional/Dormant Trigger - conditional logic payloads that activate only when environmental conditions are met
  */
 export type ThreatClass =
   | 'IPI-001' // Instruction Override
@@ -50,7 +52,8 @@ export type ThreatClass =
   | 'IPI-016' // Destructive/DoS Intent (Unit 42 IPI-013)
   | 'IPI-017' // RAG Corpus Poisoning Payload
   | 'IPI-018' // MCP Tool Description Poisoning
-  | 'IPI-019'; // Multi-Agent Propagation Worm
+  | 'IPI-019' // Multi-Agent Propagation Worm
+  | 'IPI-020'; // Conditional/Dormant Trigger
 
 /**
  * Threat severity levels
@@ -168,5 +171,6 @@ export interface ThreatAnnotation {
     | 'seo_phishing_amplification' // IPI-014
     | 'action_induction'          // IPI-015
     | 'destructive_payload'      // IPI-016
-    | 'multi_agent_propagation'; // IPI-019
+    | 'multi_agent_propagation'  // IPI-019
+    | 'dormant_trigger';         // IPI-020
 }

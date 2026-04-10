@@ -1,12 +1,12 @@
 /**
  * Threat Detector for Indirect Prompt Injection (IPI) Attacks
  *
- * Detects and classifies 18 categories of IPI attacks with fine-grained annotations.
+ * Detects and classifies 19 categories of IPI attacks with fine-grained annotations.
  * All detectors run on every scan (no short-circuit) to catch multi-vector attacks.
  *
  * Dual-stage detection:
  * - Raw HTML stage: IPI-011, IPI-012 (via scanRawHtml)
- * - Text stage: IPI-001 through IPI-010, IPI-013 through IPI-018 (via scan)
+ * - Text stage: IPI-001 through IPI-010, IPI-013 through IPI-020 (via scan)
  *
  * @module security/ThreatDetector
  */
@@ -124,6 +124,33 @@ const IPI_018_SHADOW_TOOL_NAMES = [
 
 const IPI_018_CRITICAL_TOOLS = ['execute_code', 'run_command', 'write_file'] as const;
 
+const IPI_020_CONDITION_KEYWORDS = [
+  'if', 'only if', 'when', 'unless', 'in the event that',
+  'provided that', 'given that', 'assuming', 'once you have',
+  'if you have access to', 'if you are running', 'if this is',
+] as const;
+
+const IPI_020_ACTION_VERBS = [
+  'exfiltrate', 'send', 'execute', 'call', 'forward', 'transmit',
+  'upload', 'post', 'fetch', 'run', 'invoke', 'dispatch',
+  'delete', 'rm', 'drop', 'expose', 'leak', 'output', 'print',
+  'return', 'reveal', 'disclose',
+] as const;
+
+const IPI_020_ENV_SENSITIVE_TARGETS = [
+  '.env', 'api_key', 'api key', 'secret', 'credential', 'token',
+  'password', 'passwd', 'private key', 'ssh key', 'access key',
+  'auth', 'authorization', 'bearer', 'session', 'cookie',
+  'database', 'db_url', 'connection string', 'production',
+  'staging', 'repository', 'repo', 'filesystem', 'file system',
+  'config', 'configuration', 'environment variable', 'env var',
+  '.pem', '.key', '.cert', 'keystore', 'vault',
+] as const;
+
+const IPI_020_CRITICAL_ACTION_VERBS = [
+  'exfiltrate', 'delete', 'rm', 'drop', 'execute',
+] as const;
+
 /**
  * Threat Detector class
  *
@@ -163,6 +190,7 @@ export class ThreatDetector {
     annotations.push(...this.detectIPI017(content, contentType));
     annotations.push(...this.detectIPI018(content, contentType));
     annotations.push(...this.detectIPI019(content, contentType));
+    annotations.push(...this.detectIPI020(content, contentType));
 
     return annotations;
   }
@@ -1911,6 +1939,200 @@ export class ThreatDetector {
         vector: contentType,
         mitigated: true,
         delivery_method: 'multi_agent_propagation',
+      });
+    }
+
+    return annotations;
+  }
+
+  /**
+   * Detect IPI-020: Conditional/Dormant Trigger
+   *
+   * Detects conditional logic payloads embedded in web content that instruct
+   * an LLM agent to perform a malicious action ONLY when a specific
+   * environmental condition is met. Uses three-signal detection:
+   * - Signal A: Condition keyword + action verb proximity
+   * - Signal B: Environment-sensitive target proximity
+   * - Signal C: Dormancy/stealth marker
+   *
+   * @private
+   */
+  private detectIPI020(content: string, contentType: ContentType): ThreatAnnotation[] {
+    const annotations: ThreatAnnotation[] = [];
+
+    if (content.length > 1_000_000) {
+      return annotations;
+    }
+
+    let signalA = false;
+    let signalACritical = false;
+    let signalAOffset = 0;
+    let signalB = false;
+    let signalC = false;
+    let signalCOffset = 0;
+    let windowHasEnvMarker = false;
+
+    const sortedConditions = [...IPI_020_CONDITION_KEYWORDS].sort((a, b) => b.length - a.length);
+
+    for (const conditionKeyword of sortedConditions) {
+      const escapedCondition = conditionKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const conditionRegex = new RegExp(`\\b${escapedCondition}\\b`, 'gi');
+      let condMatch: RegExpExecArray | null;
+
+      while ((condMatch = conditionRegex.exec(content)) !== null) {
+        const windowStart = condMatch.index;
+        const windowEnd = Math.min(content.length, condMatch.index + condMatch[0].length + 150);
+        const window = content.substring(windowStart, windowEnd);
+
+        for (const verb of IPI_020_ACTION_VERBS) {
+          const escapedVerb = verb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const verbRegex = new RegExp(`\\b${escapedVerb}\\b`, 'i');
+          const verbMatch = verbRegex.exec(window);
+          if (verbMatch) {
+            signalA = true;
+            signalAOffset = condMatch.index;
+            if (IPI_020_CRITICAL_ACTION_VERBS.some(cv => cv.toLowerCase() === verb.toLowerCase())) {
+              signalACritical = true;
+            }
+            const urlPattern = /https?:\/\//i;
+            const filePathPattern = /(\/[\w.]+){2,}|[\w]+\.[a-z]{2,4}/i;
+            const varPattern = /\b[A-Z][A-Z0-9_]{2,}\b/;
+            const bracketPattern = /[{[\(]/;
+            windowHasEnvMarker = urlPattern.test(window) || filePathPattern.test(window) || 
+              varPattern.test(window) || bracketPattern.test(window) || 
+              /@/.test(window) || IPI_020_ENV_SENSITIVE_TARGETS.some(t => window.toLowerCase().includes(t.toLowerCase()));
+            break;
+          }
+        }
+        if (signalA) break;
+      }
+      if (signalA) break;
+    }
+
+    if (signalA) {
+      const bWindowStart = Math.max(0, signalAOffset - 50);
+      const bWindowEnd = Math.min(content.length, signalAOffset + 300);
+      const bWindow = content.substring(bWindowStart, bWindowEnd).toLowerCase();
+
+      for (const target of IPI_020_ENV_SENSITIVE_TARGETS) {
+        const commonTargets = ['auth', 'config', 'cookie', 'session', 'secret', 'token', 'vault', 'bearer'];
+        let found = false;
+        if (commonTargets.includes(target)) {
+          const escapedTarget = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const targetRegex = new RegExp(`\\b${escapedTarget}\\b`, 'i');
+          found = targetRegex.test(bWindow);
+        } else {
+          found = bWindow.includes(target.toLowerCase());
+        }
+        if (found) {
+          signalB = true;
+          break;
+        }
+      }
+    }
+
+    const dormancyPatterns = [
+      /\b(?:do\s+not\s+act|only\s+act|remain\s+(?:silent|dormant|hidden))\b/gi,
+      /\b(?:wait\s+until\s+you|hold\s+(?:off|back)|defer\s+(?:until|this))\b/gi,
+      /\buntil\s+you\s+(?:have|find|detect|see|confirm)\b/gi,
+      /\b(?:invisible|undetected|bypass(?:ing)?\s+(?:security|detection|filters))\b/gi,
+      /\b(?:only\s+execute|only\s+run|only\s+send)\s+(?:if|when|this)\b/gi,
+    ];
+
+    for (const pattern of dormancyPatterns) {
+      const regex = new RegExp(pattern.source, pattern.flags);
+      const match = regex.exec(content);
+      if (match) {
+        signalC = true;
+        signalCOffset = match.index;
+        break;
+      }
+    }
+
+    const benignContextPatterns = [
+      /\b(?:temperature|weather|recipe|bake|cook|oven|boil|simmer)\b/i,
+      /\b(?:callback|function|response|status\s+code|http|api\s+endpoint)\b/i,
+      /\bif\s+the\s+(?:response|request|server|status|user)\s+(?:is|returns?|equals?)\b/i,
+    ];
+
+    const isBenignSignalAOnly = signalA && !signalB && !signalC && !signalACritical &&
+      benignContextPatterns.some(p => {
+        const ctxStart = Math.max(0, signalAOffset - 100);
+        const ctxEnd = Math.min(content.length, signalAOffset + 100);
+        return p.test(content.substring(ctxStart, ctxEnd));
+      });
+
+    const isTentativeSignalA = signalA && !signalB && !signalACritical && !windowHasEnvMarker;
+
+    if (signalA && signalB && signalACritical) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'CRITICAL',
+        confidence: 0.95,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_CRIT_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalA && signalACritical) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'CRITICAL',
+        confidence: 0.90,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_CRIT_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalA && signalB && signalC) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'HIGH',
+        confidence: 0.90,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_ENV_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalA && signalB) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'HIGH',
+        confidence: 0.90,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_ENV_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalA && signalC) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'HIGH',
+        confidence: 0.85,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalA && !isBenignSignalAOnly && !isTentativeSignalA) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'HIGH',
+        confidence: 0.75,
+        offset: signalAOffset,
+        excerpt: `[DORMANT_TRIGGER] ${this.extractExcerpt(content, signalAOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
+      });
+    } else if (signalC && !signalA) {
+      annotations.push({
+        id: 'IPI-020',
+        severity: 'MEDIUM',
+        confidence: 0.65,
+        offset: signalCOffset,
+        excerpt: `[DORMANT_MARKER] ${this.extractExcerpt(content, signalCOffset, 120)}`,
+        vector: contentType,
+        mitigated: true,
       });
     }
 
