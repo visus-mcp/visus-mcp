@@ -249,6 +249,104 @@ export interface VisusConfig {
 }
 
 /**
+ * Input for visus_read_csv tool
+ */
+export interface VisusReadCsvInput {
+  source: string;
+  format?: 'table' | 'json';
+  delimiter?: string;
+}
+
+/**
+ * Output from visus_read_csv tool
+ */
+export interface VisusReadCsvOutput {
+  source: string;
+  content: string;
+  sanitization: {
+    patterns_detected: string[];
+    pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
+    content_modified: boolean;
+  };
+  metadata: {
+    row_count: number;
+    column_count: number;
+    fetched_at: string;
+    content_length_original: number;
+    content_length_sanitized: number;
+  };
+  threat_summary?: ThreatSummary;
+  visus_proof?: Record<string, unknown>;
+}
+
+/**
+ * Input for visus_read_excel tool
+ */
+export interface VisusReadExcelInput {
+  source: string;
+  sheet?: string | number;
+  format?: 'table' | 'json';
+}
+
+/**
+ * Output from visus_read_excel tool
+ */
+export interface VisusReadExcelOutput {
+  source: string;
+  content: string;
+  sanitization: {
+    patterns_detected: string[];
+    pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
+    content_modified: boolean;
+  };
+  metadata: {
+    sheet_count: number;
+    sheets: Array<{ name: string; row_count: number; column_count: number }>;
+    fetched_at: string;
+    content_length_original: number;
+    content_length_sanitized: number;
+  };
+  threat_summary?: ThreatSummary;
+  visus_proof?: Record<string, unknown>;
+}
+
+/**
+ * Input for visus_read_gsheet tool
+ */
+export interface VisusReadGsheetInput {
+  url: string;
+  sheet_id?: number;
+  format?: 'table' | 'json';
+}
+
+/**
+ * Output from visus_read_gsheet tool
+ */
+export interface VisusReadGsheetOutput {
+  url: string;
+  content: string;
+  sanitization: {
+    patterns_detected: string[];
+    pii_types_redacted: string[];
+    pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
+    content_modified: boolean;
+  };
+  metadata: {
+    spreadsheet_id: string;
+    gid: number;
+    row_count: number;
+    column_count: number;
+    fetched_at: string;
+    content_length_original: number;
+    content_length_sanitized: number;
+  };
+  threat_summary?: ThreatSummary;
+  visus_proof?: Record<string, unknown>;
+}
+
+/**
  * Result type for error handling (Lateos convention)
  */
 export type Result<T, E = Error> =

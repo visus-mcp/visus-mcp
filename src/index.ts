@@ -43,6 +43,9 @@ import { visusRead, visusReadToolDefinition } from './tools/read.js';
 import { visusSearch, visusSearchToolDefinition } from './tools/search.js';
 import { visusReport, visusReportToolDefinition } from './tools/report.js';
 import { visusVerify, visusVerifyToolDefinition } from './tools/verify.js';
+import { visusReadCsv, visusReadCsvToolDefinition } from './tools/visus_read_csv.js';
+import { visusReadExcel, visusReadExcelToolDefinition } from './tools/visus_read_excel.js';
+import { visusReadGsheet, visusReadGsheetToolDefinition } from './tools/visus_read_gsheet.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 import { shouldElicit } from './sanitizer/hitl-gate.js';
@@ -77,7 +80,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       visusReadToolDefinition,
       visusSearchToolDefinition,
       visusReportToolDefinition,
-      visusVerifyToolDefinition
+      visusVerifyToolDefinition,
+      visusReadCsvToolDefinition,
+      visusReadExcelToolDefinition,
+      visusReadGsheetToolDefinition
     ]
   };
 });
@@ -271,6 +277,66 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         // No HITL for verification - it's a read-only audit operation
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'visus_read_csv': {
+        const result = await visusReadCsv(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_read_csv failed: ${result.error.message}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'visus_read_excel': {
+        const result = await visusReadExcel(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_read_excel failed: ${result.error.message}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.value, null, 2)
+            }
+          ]
+        };
+      }
+
+      case 'visus_read_gsheet': {
+        const result = await visusReadGsheet(args as any);
+
+        if (!result.ok) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `visus_read_gsheet failed: ${result.error.message}`
+          );
+        }
+
         return {
           content: [
             {

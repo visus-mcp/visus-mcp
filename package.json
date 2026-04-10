@@ -1,6 +1,6 @@
 {
   "name": "visus-mcp",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "mcpName": "io.github.visus-mcp/visus-mcp",
   "description": "Security-first MCP server. Sanitizes web content before it reaches your LLM — strips prompt injection, redacts PII, and reduces token consumption by up to 70%.",
   "main": "dist/index.js",
@@ -48,15 +48,18 @@
     "cheerio": "^1.2.0",
     "fast-xml-parser": "4.5.0",
     "jsdom": "^29.0.1",
+    "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.58.2",
-    "undici": "^7.24.5"
+    "undici": "^7.24.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^29.5.14",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^20.19.37",
+    "@types/papaparse": "^5.5.2",
     "aws-cdk": "^2.1112.0",
     "aws-cdk-lib": "^2.244.0",
     "constructs": "^10.5.1",

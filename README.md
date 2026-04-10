@@ -1,8 +1,8 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-402%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
-[![tools](https://img.shields.io/badge/MCP%20tools-6-blue)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-450%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-9-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
 [![security](https://img.shields.io/badge/IPI%20Detection-18%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.15.0
+npx visus-mcp@0.16.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -463,6 +463,115 @@ All extracted fields are individually sanitized.
 - Incident investigation and forensics
 
 See [CRYPTO-PROOF-SPEC.md](./CRYPTO-PROOF-SPEC.md) for the complete technical specification.
+
+---
+
+## Spreadsheet & Data Tools
+
+**NEW in v0.16.0:** Read and sanitize spreadsheet data from CSV/TSV files, Excel workbooks, and public Google Sheets. All cell content passes through the IPI injection scanner before being returned — spreadsheet cells are a documented prompt injection vector.
+
+### `visus_read_csv`
+
+Reads and sanitizes a CSV or TSV file from a local path or URL.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| source | string | yes | Local file path or URL to .csv/.tsv |
+| format | "table"\|"json" | no | Output format (default: "table") |
+| delimiter | string | no | Column delimiter (default: auto-detect) |
+
+**Input:**
+```json
+{
+  "source": "/path/to/data.csv",
+  "format": "table",
+  "delimiter": ","
+}
+```
+
+**Output:**
+```json
+{
+  "source": "/path/to/data.csv",
+  "content": "| name | age | city |\n| --- | --- | --- |\n| Alice | 30 | NYC |",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": [],
+    "content_modified": false
+  },
+  "metadata": {
+    "row_count": 1,
+    "column_count": 3,
+    "fetched_at": "2026-04-09T12:00:00.000Z",
+    "content_length_original": 24,
+    "content_length_sanitized": 24
+  }
+}
+```
+
+### `visus_read_excel`
+
+Reads and sanitizes an Excel workbook from a local path or URL.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| source | string | yes | Local file path or URL to .xlsx/.xls |
+| sheet | string\|number | no | Sheet name or index (default: all sheets) |
+| format | "table"\|"json" | no | Output format (default: "table") |
+
+**Input:**
+```json
+{
+  "source": "/path/to/workbook.xlsx",
+  "sheet": "Sheet1",
+  "format": "table"
+}
+```
+
+**Output:**
+```json
+{
+  "source": "/path/to/workbook.xlsx",
+  "content": "| Name | Age |\n| --- | --- |\n| Alice | 30 |",
+  "sanitization": {
+    "patterns_detected": [],
+    "pii_types_redacted": [],
+    "content_modified": false
+  },
+  "metadata": {
+    "sheet_count": 1,
+    "sheets": [{ "name": "Sheet1", "row_count": 2, "column_count": 2 }],
+    "fetched_at": "2026-04-09T12:00:00.000Z",
+    "content_length_original": 18,
+    "content_length_sanitized": 18
+  }
+}
+```
+
+### `visus_read_gsheet`
+
+Reads and sanitizes a public Google Sheet.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| url | string | yes | Google Sheets URL (any standard format) |
+| sheet_id | number | no | Sheet GID (default: 0) |
+| format | "table"\|"json" | no | Output format (default: "table") |
+
+Accepts any standard Google Sheets URL format:
+- `https://docs.google.com/spreadsheets/d/{ID}/edit#gid={GID}`
+- `https://docs.google.com/spreadsheets/d/{ID}/edit`
+- `https://docs.google.com/spreadsheets/d/{ID}`
+
+**Input:**
+```json
+{
+  "url": "https://docs.google.com/spreadsheets/d/1ABC123/edit#gid=0",
+  "format": "table"
+}
+```
+
+**Security note:** All three tools run cell content through the full IPI threat detection + injection sanitization + PII redaction pipeline before returning output. Spreadsheet cells are a documented prompt injection vector — malicious formulas, hidden instructions in unused cells, and data exfiltration payloads in cell values are all neutralized before reaching the LLM.
 
 ---
 
@@ -990,7 +1099,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 43 injection patterns, 389/389 passing tests
+- **Validated Patterns**: 43 injection patterns, 450+ passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
@@ -1043,6 +1152,9 @@ npm start
 
 | Version | Status | Highlights |
 |---|---|---|
+| v0.16.0 | ✅ Released | Spreadsheet & Data Tools — CSV/TSV, Excel, Google Sheets with IPI sanitization |
+| v0.15.0 | ✅ Released | Unit 42 Web-Based IPI Taxonomy — 18 IPI detection categories |
+| v0.14.0 | ✅ Released | IPI Detection Extended to 10 categories |
 | v0.11.0 | ✅ Released | IPI Threat Detection — 7 specialized detectors, threat_summary in all tools |
 | v0.10.0 | ✅ Released | Cryptographic Proof System (SHA-256 + HMAC, EU AI Act Art. 9/13/15) |
 | v0.8.1 | ✅ Released | PDF extraction bug fix |

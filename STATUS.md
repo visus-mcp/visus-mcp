@@ -1,9 +1,100 @@
 # Visus MCP - Project Status
 
 **Generated:** 2026-04-09
-**Version:** 0.15.0
+**Version:** 0.16.0
 **Phase:** 3 (Security Enhancement)
-**Status:** ✅ **v0.15.0 READY** - IPI Detection + Test Infrastructure Fix
+**Status:** ✅ **v0.16.0 READY** - Spreadsheet & Data Tools with IPI Sanitization
+
+---
+
+## v0.16.0 Release - Spreadsheet & Data Tools
+
+**Status:** ✅ COMPLETE (Ready for npm + MCP registry)
+**Type:** Feature - Three new MCP tools for reading and sanitizing spreadsheet data
+**Completed:** 2026-04-09
+**Tests:** 48 new tests passing across 3 new test suites
+
+### Feature Overview
+
+**Spreadsheet & Data Tools** — Three new MCP tools that read and sanitize CSV/TSV files, Excel workbooks, and public Google Sheets. All cell content passes through the full IPI threat detection + injection sanitization + PII redaction pipeline before being returned. Spreadsheet cells are a documented prompt injection vector.
+
+### Implementation
+
+**New Tools:**
+
+1. **`visus_read_csv`** (`src/tools/visus_read_csv.ts`)
+   - Reads CSV/TSV from local path or URL
+   - Parses with papaparse (header: true, skipEmptyLines: true)
+   - Supports delimiter override and auto-detect
+   - Output formats: markdown table or JSON array
+   - Full security pipeline: IPI scan → sanitizeWithProof → token metrics
+
+2. **`visus_read_excel`** (`src/tools/visus_read_excel.ts`)
+   - Reads .xlsx/.xls from local path or URL
+   - Parses with SheetJS (XLSX.read + sheet_to_json)
+   - Supports sheet selection by name or index
+   - Multi-sheet output with per-sheet markdown tables
+   - Full security pipeline: IPI scan → sanitizeWithProof → token metrics
+
+3. **`visus_read_gsheet`** (`src/tools/visus_read_gsheet.ts`)
+   - Reads public Google Sheets via CSV export endpoint
+   - URL normalization: extracts spreadsheet ID from any standard format
+   - Supports GID override via sheet_id parameter
+   - Reuses CSV parsing logic (papaparse)
+   - Full security pipeline: IPI scan → sanitizeWithProof → token metrics
+
+### Tool Parameters
+
+| Tool | Parameters | Required |
+|------|-----------|----------|
+| visus_read_csv | source (string), format ("table"\|"json"), delimiter (string) | source |
+| visus_read_excel | source (string), sheet (string\|number), format ("table"\|"json") | source |
+| visus_read_gsheet | url (string), sheet_id (number), format ("table"\|"json") | url |
+
+### Security Guarantees
+
+- ✅ All cell content scanned by ThreatDetector (18 IPI categories) before return
+- ✅ All cell content passes through sanitizeWithProof (44 injection patterns + PII redaction)
+- ✅ Cryptographic proof (visus_proof) included in every response
+- ✅ Token metrics header prepended to every response
+- ✅ Structured errors (never throws to server)
+
+### Test Coverage
+
+**48 new tests across 3 test suites:**
+
+- `tests/visus_read_csv.test.ts` (15 tests): clean CSV, TSV, injection detection, empty CSV, missing file, empty source, JSON format, data integrity, delimiter override, 150-row large, metrics header, proof, tool definition
+- `tests/visus_read_excel.test.ts` (15 tests): single sheet, multi-sheet, sheet by name/index, injection detection, empty workbook, missing file, JSON format, invalid sheet index/name, data integrity, metrics header, proof, tool definition
+- `tests/visus_read_gsheet.test.ts` (9+6 tests): URL parsing (5 tests: edit#gid, no GID, /edit only, invalid, empty), fetch+parse, GID override, no-GID default, invalid URL, HTTP error, metrics, JSON format, injection detection, tool definition (3 tests)
+
+### Files Created
+
+- `src/tools/visus_read_csv.ts` (189 lines)
+- `src/tools/visus_read_excel.ts` (194 lines)
+- `src/tools/visus_read_gsheet.ts` (173 lines)
+- `tests/visus_read_csv.test.ts` (148 lines)
+- `tests/visus_read_excel.test.ts` (161 lines)
+- `tests/visus_read_gsheet.test.ts` (176 lines)
+
+### Files Modified
+
+- `src/types.ts` — Added 6 new interfaces (VisusReadCsvInput/Output, VisusReadExcelInput/Output, VisusReadGsheetInput/Output)
+- `src/index.ts` — Imported and registered 3 new tools (ListTools + CallTool handlers)
+- `package.json` — Bumped to 0.16.0, added xlsx@0.18.5 + papaparse + @types/papaparse
+- `README.md` — Added "Spreadsheet & Data Tools" section, updated tool count badge 6→9, updated version reference
+- `STATUS.md` — This section
+
+### Dependencies Added
+
+- `xlsx@0.18.5` — SheetJS for Excel parsing
+- `papaparse@^5.5.3` — CSV/TSV parsing
+- `@types/papaparse@^5.5.2` — TypeScript definitions
+
+### Competitive Advantage
+
+- ✅ **Only MCP tool** with spreadsheet sanitization through IPI pipeline
+- ✅ **Only MCP tool** that scans Excel cell content for prompt injection
+- ✅ **Only MCP tool** that sanitizes Google Sheets with cryptographic proof
 
 ---
 
