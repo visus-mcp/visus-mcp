@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-450%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-128%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-9-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -51,7 +51,7 @@ visus-mcp fetches the same page and delivers:
 ```
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
-→ IPI Threat Detection (18 categories) → Injection Sanitizer (44 patterns)
+→ IPI Threat Detection (18 categories) → Injection Sanitizer (45 patterns)
 → PII Redactor → Cryptographic Proof Generation
 → Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → Claude
 ```
@@ -84,7 +84,7 @@ URL → Playwright Render → Content-Type Detection
    - **IPI-017** — RAG Corpus Poisoning Payload (CRITICAL)
    - **IPI-018** — MCP Tool Description Poisoning (CRITICAL) — NEW in v0.15.0
    - **IPI-020** — Conditional/Dormant Trigger (CRITICAL) — NEW in v0.16.0
-   4. **Injection Detection**: 44 pattern categories scan for prompt injection attempts
+   4. **Injection Detection**: 45 pattern categories scan for prompt injection attempts
 5. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
 6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
 7. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header, `threat_summary`, and compliance report attached if anything was flagged
@@ -1100,7 +1100,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 43 injection patterns, 450+ passing tests
+- **Validated Patterns**: 45 injection patterns, 128+ passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)

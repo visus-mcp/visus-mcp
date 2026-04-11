@@ -24,9 +24,9 @@ describe('Injection Detector', () => {
   });
 
   describe('Pattern Coverage', () => {
-    it('should have exactly 44 patterns defined', () => {
+    it('should have exactly 45 patterns defined', () => {
       const patternNames = getAllPatternNames();
-      expect(patternNames.length).toBe(44);
+      expect(patternNames.length).toBe(45);
     });
 
     it('should have test cases for all patterns', () => {

@@ -35,9 +35,9 @@ Attacker → Compromised Website → MCP Tool → Claude (VULNERABLE)
 
 ---
 
-## Injection Detection: 43 Pattern Categories
+## Injection Detection: 45 Pattern Categories
 
-Visus scans all web content against 43 validated injection pattern categories before delivering it to the LLM.
+Visus scans all web content against 45 validated injection pattern categories before delivering it to the LLM.
 
 ### Critical Severity Patterns
 
@@ -253,7 +253,7 @@ Visus automatically detects and redacts personally identifiable information to p
 ### What Visus DOES Guarantee
 
 1. ✅ **All content is sanitized** — The sanitizer cannot be bypassed
-2. ✅ **Known patterns are detected** — 43 validated categories with test coverage
+2. ✅ **Known patterns are detected** — 45 validated categories with test coverage
 3. ✅ **PII is redacted** — Common PII types are automatically removed
 4. ✅ **No raw content leakage** — LLM never sees unsanitized web pages
 5. ✅ **Audit trail** — Detections are logged to stderr (JSON structured logs)

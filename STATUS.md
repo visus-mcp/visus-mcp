@@ -1,9 +1,41 @@
 # Visus MCP - Project Status
 
-**Generated:** 2026-04-09
+**Generated:** 2026-04-11
 **Version:** 0.16.0
 **Phase:** 3 (Security Enhancement)
 **Status:** ✅ **v0.16.0 READY** - Spreadsheet & Data Tools with IPI Sanitization
+
+---
+
+## 2026-04-11 - Test Suite Fix
+
+**Status:** ✅ COMPLETE
+**Type:** Infrastructure - Jest/ts-jest configuration fix
+
+### Issue
+
+Tests failing with "File is not under 'rootDir'" and "jest is not defined" errors.
+
+### Root Cause
+
+- `tsconfig.json` has `rootDir: "./src"` restrictive setting
+- Tests in `/tests` directory are outside this rootDir
+- ts-jest ESM preset conflicts when tests import from other test files
+
+### Fix Applied
+
+1. Created `tsconfig.test.json` with `rootDir: "."` for tests
+2. Updated `jest.config.js` to use `tsconfig.test.json` in ts-jest transform
+3. Added test case for `multi_agent_propagation_worm` (45th pattern)
+4. Updated test expectation from 44 to 45 patterns
+
+### Results
+
+- ✅ `sanitizer.test.ts`: **104/104 passed**
+- ✅ `auth-smoke.test.ts`: **24/24 passed**
+- Total: **128 tests passing**
+- Lint: ✅ Pass
+- Build: ✅ Pass
 
 ---
 
