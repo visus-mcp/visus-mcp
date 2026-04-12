@@ -1681,6 +1681,7 @@ Visus-MCP is designed with EU AI Act and GDPR principles as first-class architec
 | No raw external content forwarded to LLM | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 5(1)(c) — Data Minimisation | Only sanitized, stripped content reaches the model; reduces attack surface and unnecessary data exposure |
 | Content sanitization before AI processing | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 25 — Data Protection by Design | Sanitization is enforced at ingestion, not as an optional post-processing step |
 | Immutable Session Ledger (Merkle proofs) | Art. 12 — Traceability; Art. 62 — Post-Market Monitoring | Art. 5(2) — Accountability | Append-only logs with verifiable inclusion proofs; Enables DPA queries and incident forensics |
+| Lateral Movement Guard (OAuth Pivot) | Art. 15(a/c) — Adversarial Robustness & Oversight | Art. 5(2) — Accountability | Sequence monitoring & JIT consent blocks web→SaaS worms; Tiered tool isolation |
 | Technical File (Annex IV) | Art. 11 — Documentation Obligations | Art. 25 — Data Protection by Design | Formal bundle (export via npm run export-compliance) for presumption of conformity; Covers 100% Annex IV requirements |
 
 ### Technical File (Annex IV Compliance Ready v1.0)
