@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "test": "node --experimental-vm-modules --max-old-space-size=12000 --expose-gc node_modules/jest/bin/jest.js --runInBand --forceExit",
+    "test": "node --experimental-vm-modules --max-old-space-size=8192 --expose-gc node_modules/jest/bin/jest.js --runInBand --forceExit",
     "test:integration": "node --experimental-vm-modules --max-old-space-size=12000 --expose-gc node_modules/jest/bin/jest.js --testMatch='**/tests/**/*.integration.test.ts' --forceExit",
     "lint": "tsc --noEmit",
     "dev": "tsc --watch",

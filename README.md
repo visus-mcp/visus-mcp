@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-128%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-500%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-9-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -1153,7 +1153,7 @@ npm start
 
 | Version | Status | Highlights |
 |---|---|---|
-| v0.16.0 | ✅ Released | Spreadsheet & Data Tools — CSV/TSV, Excel, Google Sheets with IPI sanitization |
+| v0.16.0 | ✅ Released | Spreadsheet & Data Tools — CSV/TSV, Excel, Google Sheets with IPI sanitization. **Phase 1 COMPLETE** — All 500+ tests passing, 0 failures. Ready for MCP Directory submission. |
 | v0.15.0 | ✅ Released | Unit 42 Web-Based IPI Taxonomy — 18 IPI detection categories |
 | v0.14.0 | ✅ Released | IPI Detection Extended to 10 categories |
 | v0.11.0 | ✅ Released | IPI Threat Detection — 7 specialized detectors, threat_summary in all tools |

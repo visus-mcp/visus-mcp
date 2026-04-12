@@ -7,18 +7,24 @@
 
 import { visusFetch, visusFetchToolDefinition } from '../src/tools/fetch.js';
 import { visusFetchStructured, visusFetchStructuredToolDefinition } from '../src/tools/fetch-structured.js';
-import { renderPage, closeBrowser } from '../src/browser/playwright-renderer.js';
 import type { BrowserRenderResult } from '../src/types.js';
 import { Ok } from '../src/types.js';
 
-// Mock the browser renderer
-jest.mock('../src/browser/playwright-renderer.js', () => ({
-  renderPage: jest.fn(),
-  closeBrowser: jest.fn(),
-  checkUrl: jest.fn()
-}));
 
-const mockRenderPage = renderPage as jest.MockedFunction<typeof renderPage>;
+let mockRenderPage: jest.MockedFunction<any>;
+let mockCloseBrowser: jest.MockedFunction<any>;
+
+beforeAll(async () => {
+  await jest.unstable_mockModule('../src/browser/playwright-renderer.js', () => ({
+    renderPage: jest.fn(),
+    closeBrowser: jest.fn(),
+    checkUrl: jest.fn()
+  }));
+  const rendererModule = await import('../src/browser/playwright-renderer.js');
+  mockRenderPage = rendererModule.renderPage as jest.MockedFunction<any>;
+  mockCloseBrowser = rendererModule.closeBrowser as jest.MockedFunction<any>;
+});
+
 
 describe('visus_fetch Tool', () => {
   afterEach(() => {
@@ -26,7 +32,7 @@ describe('visus_fetch Tool', () => {
   });
 
   afterAll(async () => {
-    await closeBrowser();
+    await mockCloseBrowser();
   });
 
   it('should fetch and sanitize clean content', async () => {
@@ -556,10 +562,15 @@ describe('visus_fetch Tool', () => {
   });
 });
 
-describe('visus_fetch_structured Tool', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('visus_fetch_structured Tool', () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    afterAll(async () => {
+      await mockCloseBrowser();
+    });
+
 
   it('should extract structured data according to schema', async () => {
     const mockResult: BrowserRenderResult = {
