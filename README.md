@@ -1,11 +1,11 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-540%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
-[![tools](https://img.shields.io/badge/MCP%20tools-9-blue)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-562%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-10-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
-[![security](https://img.shields.io/badge/IPI%20Detection-19%20categories-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
+[![security](https://img.shields.io/badge/IPI%20Detection-19%20%2B%2015%20worm%20patterns-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![security](https://img.shields.io/badge/frameworks-NIST%20AI%20RMF%20%7C%20CSF%202.0%20%7C%20OWASP%20%7C%20MITRE%20%7C%20ISO42001-orange)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 [![euaiact](https://img.shields.io/badge/EU%20AI%20Act-Art.%209%2F13%2F15-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/CRYPTO-PROOF-SPEC.md)
@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.16.0
+npx visus-mcp@0.18.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -51,8 +51,8 @@ visus-mcp fetches the same page and delivers:
 ```
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
-→ IPI Threat Detection (18 categories) → Injection Sanitizer (45 patterns)
-→ PII Redactor → Cryptographic Proof Generation
+→ IPI Threat Detection (19 categories) → Injection Sanitizer (45 patterns)
+→ Worm Detection (15 Morris II patterns) → PII Redactor → Cryptographic Proof
 → Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → Claude
 ```
 
@@ -299,7 +299,7 @@ Metrics are enabled by default.
 
 ---
 
-## MCP Tools
+## MCP Tools (10 tools)
 
 ### `visus_fetch`
 
@@ -595,6 +595,9 @@ Accepts any standard Google Sheets URL format:
 ```
 
 **Security note:** All three tools run cell content through the full IPI threat detection + injection sanitization + PII redaction pipeline before returning output. Spreadsheet cells are a documented prompt injection vector — malicious formulas, hidden instructions in unused cells, and data exfiltration payloads in cell values are all neutralized before reaching the LLM.
+
+### Worm Detection (v0.18.0+)
+Detects Morris II-style self-replicating prompts post-sanitization. Scans for replication commands (`always include this`), role hijacks (`ignore instructions`), obfuscation (Base64/Unicode), and chain propagation. Risk scoring 0-1; >0.8 triggers HITL. Enabled via `VISUS_WORM_DETECTION=true` (default: enabled). Redacts as `[REDACTED:WORM_*]`.
 
 ### `visus_context_scan`
 
