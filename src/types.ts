@@ -43,7 +43,10 @@ export interface ThreatSummary {
   highest_severity: ThreatSeverity | 'NONE';
   classes_detected: ThreatClass[];
   statefulRisk?: number;
-  worm_risk?: number; // New: Morris II worm risk score (v0.18.0)
+  worm_risk?: number; // Morris II worm risk score (v0.18.0)
+  session_risk?: number; // VSIL cumulative session risk (v0.19.0)
+  chain_detected?: boolean; // Multi-turn chain flagged
+  priming_flags?: string[]; // e.g., ['saved_url', 'dangling_instruction']
 }
 
 import type { ThreatAnnotation } from './sanitizer/threat-reporter.js';
@@ -99,8 +102,8 @@ export interface VisusFetchOutput {
     pii_types_redacted: string[];
     pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
-    worm_patterns_detected?: string[]; // New (v0.18.0)
-    worm_risk_score?: number; // New (v0.18.0)
+    worm_patterns_detected?: string[]; // v0.18.0
+    worm_risk_score?: number; // v0.18.0
   };
   metadata: {
     title: string;
@@ -113,13 +116,7 @@ export interface VisusFetchOutput {
     truncated_at_chars?: number;
   };
   threat_report?: ThreatReport;
-  /**
-   * IPI threat summary (v0.9.0+)
-   */
-  threat_summary?: ThreatSummary;
-  /**
-   * SLTA session info (v0.15.0+)
-   */
+  threat_summary?: ThreatSummary; // Now includes session_risk, chain_detected (v0.19.0)
   slta?: {
     session_id: string;
     threat_level: SessionThreatLevel;

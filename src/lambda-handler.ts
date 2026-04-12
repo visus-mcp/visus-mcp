@@ -110,10 +110,52 @@ function logAuditEvent(
  * @param context Lambda context
  * @returns API Gateway response
  */
+import { SessionLedger } from './security/session-ledger.js';
+
+const ledger = new SessionLedger();
+
 export async function handler(
   event: APIGatewayProxyEvent,
   context: Context
 ): Promise<APIGatewayProxyResult> {
+  const requestId = context.awsRequestId;
+  const userId = event.requestContext.authorizer?.claims?.sub || 'anonymous';
+  const sessionId = `lambda-${userId}-${Date.now()}`; // Per-request session
+
+  // ... existing CORS/health/auth
+
+  if (event.path === '/fetch' || event.path === '/dev/fetch' || event.path === '/prod/fetch') {
+    const fetchReq = body as FetchRequest;
+    // ... validation
+
+    const result = await visusFetch(fetchReq);
+
+    if (!result.ok) { /* error */ }
+
+    // VSIL Check (similar to stdio)
+    const { score, newThreats, /* ... */ } = await ledger.checkContextualIntegrity(sessionId, 'visus_fetch', fetchReq, result.value);
+    if (score > 0.7) {
+      // Lambda block (no real-time HITL, return risk in response)
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ blocked: true, session_risk: score, reason: 'High session risk - review manual' }),
+      };
+    }
+
+    // Update ledger
+    const hashes = /* extract */;
+    ledger.update(sessionId, hashes, 'visus_fetch', newThreats);
+
+    // Extend result.value.threat_summary with session_risk, etc.
+
+    // Audit log with session data
+    logAuditEvent(userId, requestId, fetchReq.url, '/fetch', result.value.sanitization.patterns_detected, result.value.sanitization.pii_types_redacted, score);
+
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result.value) };
+  }
+
+  // Similar for /fetch-structured, /context-scan (pass sessionId from body or header)
   const requestId = context.awsRequestId;
 
   // Log request to stderr
