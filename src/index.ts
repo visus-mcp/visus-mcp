@@ -46,6 +46,7 @@ import { visusVerify, visusVerifyToolDefinition } from './tools/verify.js';
 import { visusReadCsv, visusReadCsvToolDefinition } from './tools/visus_read_csv.js';
 import { visusReadExcel, visusReadExcelToolDefinition } from './tools/visus_read_excel.js';
 import { visusReadGsheet, visusReadGsheetToolDefinition } from './tools/visus_read_gsheet.js';
+import { visusContextScan, visusContextScanToolDefinition } from './tools/context-scan.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 import { shouldElicit } from './sanitizer/hitl-gate.js';
@@ -59,7 +60,7 @@ console.error('[VISUS-DEBUG] Creating server...');
 const server = new Server(
   {
     name: 'visus-mcp',
-    version: '0.14.0'
+      version: '0.17.0'
   },
   {
     capabilities: {
@@ -83,7 +84,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       visusVerifyToolDefinition,
       visusReadCsvToolDefinition,
       visusReadExcelToolDefinition,
-      visusReadGsheetToolDefinition
+      visusReadGsheetToolDefinition,
+      visusContextScanToolDefinition
     ]
   };
 });
@@ -96,8 +98,36 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
  */
 async function handleCriticalThreatElicitation(
   output: any,
-  url: string
+  url: string,
+  wormRisk: number = 0
 ): Promise<{ output: any; blocked: boolean }> {
+  const threatReport = output.threat_report as ThreatReport | undefined;
+  const wormScore = (output.sanitization as any)?.worm_risk_score ?? 0;
+
+  if (shouldElicit(threatReport, Math.max(wormRisk, wormScore))) {
+    const message = buildElicitMessage(threatReport || { total_findings: 0, findings_toon: '', overall_severity: 'CRITICAL' } as any, url, Math.max(wormRisk, wormScore));
+    const { proceed, includeReport } = await runElicitation(server, message); // Simplified, assume runElicitation takes message
+
+    if (!proceed) {
+      return {
+        output: {
+          url,
+          blocked: true,
+          reason: 'User declined after threat/worm detected',
+          threat_report: threatReport
+        },
+        blocked: true
+      };
+    }
+
+    if (!includeReport && output.threat_report) {
+      const { threat_report, ...clean } = output;
+      return { output: clean, blocked: false };
+    }
+  }
+
+  return { output, blocked: false };
+}
   const threatReport = output.threat_report as ThreatReport | undefined;
 
   // Check if elicitation is needed
@@ -347,6 +377,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case 'visus_context_scan': {
+        return await visusContextScan(request);
+      }
+
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,
@@ -384,7 +418,7 @@ async function startMcpServer() {
     event: 'mcp_server_started',
     name: 'visus-mcp',
     version: '0.14.0',
-    tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search']
+    tools: ['visus_fetch', 'visus_fetch_structured', 'visus_read', 'visus_search', 'visus_context_scan']
   }));
 
   // Graceful shutdown

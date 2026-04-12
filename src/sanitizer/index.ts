@@ -179,8 +179,21 @@ export async function sanitizeWithProof(
   const timestampUtc = new Date().toISOString();
   const startMs = Date.now();
 
-  // Run existing sanitization pipeline (unmodified)
-  const sanitizationResult = sanitize(rawContent, sourceUrl);
+// Run existing sanitization pipeline (unmodified)
+    let sanitizationResult = sanitize(rawContent, sourceUrl);
+
+    // New: Run worm detection post-sanitization (v0.18.0)
+    if (process.env.VISUS_WORM_DETECTION !== 'false') {
+      const { wormScan } = await import('./worm-detector.js');
+      const wormResult = wormScan(sanitizationResult.content);
+      if (wormResult.content_modified) {
+        sanitizationResult.content = wormResult.modifiedContent;
+        sanitizationResult.sanitization.content_modified = true;
+      }
+      (sanitizationResult.sanitization as any).worm_patterns_detected = wormResult.patterns;
+      (sanitizationResult.sanitization as any).worm_risk_score = wormResult.score;
+      (sanitizationResult.metadata as any).worm_risk = wormResult.score;
+    }
 
   const processingDurationMs = Date.now() - startMs;
 
@@ -190,6 +203,10 @@ export async function sanitizeWithProof(
     sanitizationResult.sanitization.pii_types_redacted.length;
 
   // Build cryptographic proof
+  // Include worm data in proof
+  const wormPatterns = (sanitizationResult.sanitization as any).worm_patterns_detected || [];
+  const wormScore = (sanitizationResult.sanitization as any).worm_risk_score || 0;
+  
   const proof = buildProof({
     requestId,
     timestampUtc,
@@ -203,6 +220,8 @@ export async function sanitizeWithProof(
     redactionCount,
     piiDetected: sanitizationResult.sanitization.pii_types_redacted,
     threatsNeutralized: redactionCount,
+    worm_patterns_detected: wormPatterns,
+    worm_risk_score: wormScore,
   });
 
   return {

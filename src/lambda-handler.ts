@@ -223,6 +223,19 @@ export async function handler(
 
       // Call visus_fetch
       const result = await visusFetch(fetchReq);
+      const wormRisk = (result.value.sanitization as any)?.worm_risk_score ?? 0;
+      if (wormRisk > 0.8) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            blocked: true, 
+            reason: 'High Morris II worm risk detected', 
+            worm_risk: wormRisk,
+            patterns: (result.value.sanitization as any)?.worm_patterns_detected || []
+          }),
+        };
+      }
 
       if (!result.ok) {
         return {
@@ -249,6 +262,10 @@ export async function handler(
       };
     }
 
+import crypto from 'crypto';
+import type { ContextScanInput } from '../../types.js';
+import { scanContext } from '../../security/stateful-detector.js';
+
     if (event.path === '/fetch-structured' || event.path === '/dev/fetch-structured' || event.path === '/prod/fetch-structured') {
       const fetchReq = body as FetchStructuredRequest;
 
@@ -271,6 +288,19 @@ export async function handler(
 
       // Call visus_fetch_structured
       const result = await visusFetchStructured(fetchReq);
+      const wormRisk = (result.value.sanitization as any)?.worm_risk_score ?? 0;
+      if (wormRisk > 0.8) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ 
+            blocked: true, 
+            reason: 'High Morris II worm risk detected', 
+            worm_risk: wormRisk,
+            patterns: (result.value.sanitization as any)?.worm_patterns_detected || []
+          }),
+        };
+      }
 
       if (!result.ok) {
         return {
@@ -294,6 +324,57 @@ export async function handler(
         statusCode: 200,
         headers: corsHeaders,
         body: JSON.stringify(result.value),
+      };
+    }
+
+    if (event.path === '/context-scan' || event.path === '/dev/context-scan' || event.path === '/prod/context-scan') {
+      const contextReq = body as ContextScanInput;
+
+      // Validate
+      if (!Array.isArray(contextReq.history) || contextReq.history.length === 0) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: 'Missing or invalid "history" array' }),
+        };
+      }
+
+      const sessionId = contextReq.sessionId || crypto.randomUUID();
+
+      // Direct scan (no HITL in Lambda)
+      const input: ContextScanInput = {
+        sessionId,
+        history: contextReq.history,
+        priorExtractions: contextReq.priorExtractions || [],
+        currentTool: contextReq.currentTool || 'visus_fetch'  // Default
+      };
+
+      const scanResult = await scanContext(input);
+
+      // Simple proof
+      const proof = {
+        request_id: sessionId,
+        proof_hash: crypto.createHash('sha256').update(JSON.stringify(scanResult)).digest('hex').substring(0,16),
+        timestamp_utc: new Date().toISOString(),
+        pipeline_version: '0.17.0'
+      };
+
+      const output = { ...scanResult, visus_proof: proof };
+
+      // Log audit
+      logAuditEvent(
+        userId,
+        requestId,
+        'context-scan',
+        '/context-scan',
+        [scanResult.threats.length > 0 ? 'stateful_risk' : 'none'],
+        []
+      );
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify(output),
       };
     }
 

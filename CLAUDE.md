@@ -308,6 +308,7 @@ When a root cause is confirmed, add it here. Future sessions check this list fir
 | OOM in ThreatDetector.test.ts | Large corpus (injection-corpus.ts, 10k+ lines) + jsdom DOM per test loaded at module init | Lazy-import corpus inside describe() blocks; batch patterns in groups of ~10 | 2026-04-12 |
 | @exodus/bytes nested ESM transform failure | reader.test.ts / token-metrics-integration.test.ts fail with ESM load error | @exodus/bytes loaded as nested dep under jsdom/node_modules/ — top-level transformIgnorePatterns lookahead doesn't match nested paths | Append |.*/@exodus/bytes/ to the alternation in jest.config.js — the .* wildcard catches any nesting depth — remove @exodus/bytes from the leading exception group if present | 2026-04-12 |
 | fetch-tool.test.ts ESM mock failure | mockResolvedValue is not a function | jest.mock() is hoisted at compile time and doesn't work with native ESM — static imports bypass the mock entirely | Replace all jest.mock() with jest.unstable_mockModule(); convert static imports of mocked modules to dynamic import() inside beforeAll() Rule: In ESM Jest, jest.unstable_mockModule() must be called BEFORE the dynamic import of the module under test | 2026-04-12 |
+| Multi-Turn / Stateful Attacks | Chaining where Page1 primes ("save URL:evil.com"), Page2 exfils ("use saved URL") | Stateless tools miss history priming | visus_context_scan tool scans history + local JSON cache for risks; HITL on score >0.7. Standalone; call manually before fetch. Covers 80% multi-turn (Unit 42 2026). | 2026-04-12 |
 
 ---
 

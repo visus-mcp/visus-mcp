@@ -42,6 +42,41 @@ export interface ThreatSummary {
   threat_count: number;
   highest_severity: ThreatSeverity | 'NONE';
   classes_detected: ThreatClass[];
+  statefulRisk?: number;
+  worm_risk?: number; // New: Morris II worm risk score (v0.18.0)
+}
+
+import type { ThreatAnnotation } from './sanitizer/threat-reporter.js';
+
+/**
+ * Primed entity from history priming (e.g., saved URL/IP)
+ */
+export interface PrimedEntity {
+  type: 'url' | 'ip' | 'tool';
+  valueHash: string;  // SHA-256 hash of the primed value
+  sessionId: string;
+  timestamp: string;
+  confidence: number;  // 0.0-1.0 priming confidence
+}
+
+/**
+ * Input for visus_context_scan tool
+ */
+export interface ContextScanInput {
+  sessionId?: string;
+  history: string[];
+  priorExtractions?: (VisusFetchOutput | VisusSearchOutput | VisusReadOutput)[];
+  currentTool?: string;  // e.g., 'visus_fetch'
+}
+
+/**
+ * Output from visus_context_scan tool
+ */
+export interface ContextScanOutput {
+  riskScore: number;  // 0.0-1.0 overall risk
+  primedEntities: PrimedEntity[];
+  threats: ThreatAnnotation[];
+  recommendation: 'safe' | 'review' | 'block';
 }
 
 /**
@@ -64,6 +99,8 @@ export interface VisusFetchOutput {
     pii_types_redacted: string[];
     pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
+    worm_patterns_detected?: string[]; // New (v0.18.0)
+    worm_risk_score?: number; // New (v0.18.0)
   };
   metadata: {
     title: string;
@@ -75,7 +112,7 @@ export interface VisusFetchOutput {
     truncated?: boolean;
     truncated_at_chars?: number;
   };
-threat_report?: ThreatReport;
+  threat_report?: ThreatReport;
   /**
    * IPI threat summary (v0.9.0+)
    */
@@ -120,6 +157,8 @@ export interface VisusFetchStructuredOutput {
     pii_types_redacted: string[];
     pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
+    worm_patterns_detected?: string[]; // New (v0.18.0)
+    worm_risk_score?: number; // New (v0.18.0)
   };
   metadata: {
     title: string;
@@ -219,7 +258,7 @@ export interface VisusSearchOutput {
 }
 
 /**
- * Result from browser rendering
+ * Result type from browser rendering
  *
  * @property html - Response content as string (for text) or Buffer (for binary like PDFs)
  *                  Use Buffer for application/pdf, image/*, and other binary types
@@ -347,11 +386,31 @@ export interface VisusReadGsheetOutput {
 }
 
 /**
+ * Worm Detection interfaces (v0.18.0)
+ */
+export interface WormDetection {
+  patterns_detected: string[];
+  risk_score: number;
+  content_modified: boolean;
+}
+
+/**
  * Result type for error handling (Lateos convention)
  */
 export type Result<T, E = Error> =
   | { ok: true; value: T }
   | { ok: false; error: E };
+
+/**
+ * Threat annotation from detectors
+ */
+export interface ThreatAnnotation {
+  id: string;
+  severity: string;
+  confidence: number;
+  offset: number;
+  excerpt: string;
+}
 
 /**
  * Create a success result

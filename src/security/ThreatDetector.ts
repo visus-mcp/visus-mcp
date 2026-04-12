@@ -156,7 +156,20 @@ const IPI_020_CRITICAL_ACTION_VERBS = [
  *
  * Scans content for IPI attacks and returns detailed threat annotations.
  */
+import { wormScan } from '../sanitizer/worm-detector.js';
+
 export class ThreatDetector {
+  // In scan method, optional worm integration for post-processing
+  public scan(content: string, contentType: string): ThreatAnnotation[] {
+    // Existing IPI scans...
+    const threats = []; // ... existing
+    // Optional: if (process.env.VISUS_WORM_DETECTION !== 'false') {
+    //   const worm = wormScan(content);
+    //   threats.push(...worm.threats);
+    // }
+    return threats;
+  }
+  // Other methods...
   /**
    * Scan content for all IPI threat categories (text stage)
    *
