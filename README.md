@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-567%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-10-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -653,7 +653,11 @@ Scans history for priming keywords ("remember/save/store URL/IP/tool"), cross-re
 
 ---
 
-## Cryptographic Proof System
+## Cryptographic Proof System (Verified)
+
+Tamper-evident proofs (SHA-256 + HMAC-SHA-256) for EU AI Act compliance. **verifyProof** recomputes hash/signature—fails on tampering.
+
+### What's in a Proof?
 
 **NEW in v0.10.0:** Every Visus tool response now includes a `visus_proof` object providing tamper-evident cryptographic evidence that sanitization executed. This satisfies EU AI Act Art. 9 (Risk Management), Art. 13 (Transparency), and Art. 15 (Robustness) requirements.
 
