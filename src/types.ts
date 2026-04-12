@@ -47,6 +47,8 @@ export interface ThreatSummary {
   session_risk?: number; // VSIL cumulative session risk (v0.19.0)
   chain_detected?: boolean; // Multi-turn chain flagged
   priming_flags?: string[]; // e.g., ['saved_url', 'dangling_instruction']
+  drift_score?: number; // Crescendo drift (RFC-2026-003)
+  skeleton_key?: boolean;
 }
 
 import type { ThreatAnnotation } from './sanitizer/threat-reporter.js';

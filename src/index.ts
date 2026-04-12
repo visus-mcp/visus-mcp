@@ -47,6 +47,7 @@ import { visusReadCsv, visusReadCsvToolDefinition } from './tools/visus_read_csv
 import { visusReadExcel, visusReadExcelToolDefinition } from './tools/visus_read_excel.js';
 import { visusReadGsheet, visusReadGsheetToolDefinition } from './tools/visus_read_gsheet.js';
 import { visusContextScan, visusContextScanToolDefinition } from './tools/context-scan.js';
+import { visusGetLedgerProof, visusGetLedgerProofToolDefinition } from './tools/ledger-proof.js';
 import { closeBrowser } from './browser/playwright-renderer.js';
 import { detectRuntime, logRuntimeConfig, validateRuntime } from './runtime.js';
 import { shouldElicit, buildElicitMessage } from './sanitizer/hitl-gate.js';
@@ -86,7 +87,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       visusReadCsvToolDefinition,
       visusReadExcelToolDefinition,
       visusReadGsheetToolDefinition,
-      visusContextScanToolDefinition
+      visusContextScanToolDefinition,
+      visusGetLedgerProofToolDefinition
     ]
   };
 });
@@ -236,31 +238,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new McpError(ErrorCode.InternalError, `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 });
-      case 'visus_fetch': {
-        const result = await visusFetch(args as any);
-
-        if (!result.ok) {
-          throw new McpError(
-            ErrorCode.InternalError,
-            `visus_fetch failed: ${result.error.message}`
-          );
-        }
-
-        // Handle HITL elicitation for CRITICAL threats
-        const { output } = await handleCriticalThreatElicitation(
-          result.value,
-          (args as any).url
-        );
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(output, null, 2)
-            }
-          ]
-        };
-      }
 
       case 'visus_fetch_structured': {
         const result = await visusFetchStructured(args as any);
@@ -443,9 +420,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'visus_context_scan': {
-        return await visusContextScan(request);
-      }
+       case 'visus_context_scan': {
+         return await visusContextScan(request);
+       }
+
+       case 'visus_get_ledger_proof': {
+         const { arguments: args } = request.params;
+         const result = await visusGetLedgerProof(args.request_id);
+         return {
+           content: [
+             {
+               type: 'text',
+               text: JSON.stringify(result, null, 2)
+             }
+           ]
+         };
+       }
+
 
       default:
         throw new McpError(
