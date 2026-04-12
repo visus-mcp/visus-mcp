@@ -58,11 +58,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^29.5.14",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^20.19.37",
     "@types/papaparse": "^5.5.2",
+    "archiver": "^7.0.1",
     "aws-cdk": "^2.1112.0",
     "aws-cdk-lib": "^2.244.0",
     "constructs": "^10.5.1",
