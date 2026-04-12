@@ -1,7 +1,7 @@
 # Visus — Secure Web Access for Claude
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
-[![tests](https://img.shields.io/badge/tests-562%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-567%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-10-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
@@ -21,7 +21,7 @@ Claude handles most of it. But it still has to read all of it first. You still p
 
 Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
 ```bash
-npx visus-mcp@0.18.0
+npx visus-mcp@0.19.0
 ```
 
 *"What the web shows you, Lateos reads safely."*
