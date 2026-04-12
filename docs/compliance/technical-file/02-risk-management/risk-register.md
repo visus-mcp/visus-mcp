@@ -17,3 +17,5 @@ Visus-MCP employs a risk-based approach aligned with EN ISO/IEC 42001 and NIST A
 - **Threshold:** Residual >2 triggers update to Technical File.
 
 **Overall Residual Risk:** LOW – All mitigations validated at 100% test pass rate. No unmitigated CRITICAL risks.
+
+**Links to V&V:** test-coverage.md; All risks covered in 570+ Jest suites.
