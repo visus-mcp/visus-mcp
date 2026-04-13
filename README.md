@@ -1683,6 +1683,7 @@ Visus-MCP is designed with EU AI Act and GDPR principles as first-class architec
 | Immutable Session Ledger (Merkle proofs) | Art. 12 — Traceability; Art. 62 — Post-Market Monitoring | Art. 5(2) — Accountability | Append-only logs with verifiable inclusion proofs; Enables DPA queries and incident forensics |
 | Lateral Movement Guard (OAuth Pivot) | Art. 15(a/c) — Adversarial Robustness & Oversight | Art. 5(2) — Accountability | Sequence monitoring & JIT consent blocks web→SaaS worms; Tiered tool isolation |
 | Metadata Sanitizer (Implicit Injections) | Art. 15(a) — Adversarial Robustness | Art. 5(2) — Accountability | Shadow context for JSON-LD/OG/Microdata; Semantic divergence checks; Annex IV logs |
+| Visual Injection Detector (Multi-Modal) | Art. 15(a) — Adversarial Robustness | - | Img/SVG/PDF stego isolation (Anamorpher); Alt/src risks; Shadow tagging/LMG boost |
 | Technical File (Annex IV) | Art. 11 — Documentation Obligations | Art. 25 — Data Protection by Design | Formal bundle (export via npm run export-compliance) for presumption of conformity; Covers 100% Annex IV requirements |
 
 ### Technical File (Annex IV Compliance Ready v1.0)
