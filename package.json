@@ -1,6 +1,6 @@
 {
   "name": "visus-mcp",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "mcpName": "io.github.visus-mcp/visus-mcp",
   "description": "Security-first MCP server. Sanitizes web content before it reaches your LLM — strips prompt injection, redacts PII, and reduces token consumption by up to 70%.",
   "main": "dist/index.js",
