@@ -1,4 +1,4 @@
-# Visus — Secure Web Access for Claude
+# Visus — Secure Web Access for MCP-compatible AI agents
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
 [![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
@@ -10,16 +10,7 @@
 [![iso42001](https://img.shields.io/badge/ISO%2FIEC-42001%3A2023-blueviolet)](https://www.iso.org/standard/81230.html)
 [![euaiact](https://img.shields.io/badge/EU%20AI%20Act-Art.%209%2F13%2F15-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/CRYPTO-PROOF-SPEC.md)
 
-> **Your AI agent shouldn't have to read garbage.**
-> **visus-mcp makes sure it doesn't.**
-
-When your agent fetches a webpage it reads everything — nav bars, cookie banners, tracking scripts, ads, SEO spam. Every token costs money. Some pages also embed hidden instructions designed to manipulate your agent's behaviour.
-
-Claude handles most of it. But it still has to read all of it first. You still pay for every token.
-
-**visus-mcp is a pre-filter.** It strips the noise before a single character enters Claude's context window — reducing token consumption on bloated pages by up to 70%, redacting PII before it enters conversation history, and producing a compliance-grade audit log when it finds something worth flagging.
-
-Built as infrastructure, not a replacement for Claude's own safety training. The two layers together are stronger than either alone.
+How Visus-MCP helps your MCP-compatible AI agents become EU AI compliant ready
 ```bash
 npx visus-mcp@0.19.0
 ```
@@ -28,21 +19,30 @@ npx visus-mcp@0.19.0
 
 ---
 
-## Why Your Agent Is Reading Too Much
+## Why You Should Get Your AI Agent EU Compliant
 
-A typical news article: **12,000 tokens** of raw HTML.
-The actual article content: **~800 tokens**.
+The EU AI Act (Regulation (EU) 2024/1689) is the world's first comprehensive AI law, effective from August 2024. It regulates AI systems based on risk levels, with stringent requirements for general-purpose AI (GPAI) like MCP-compatible agents that process web content.
 
-You're paying for the nav bar. The footer. The cookie banner. The analytics scripts. The related articles sidebar. The ads.
+### Key Requirements for Compliance
+- **Art. 9 (Risk Management)**: Identify and mitigate systemic risks, including prompt injection and data poisoning from web sources.
+- **Art. 13 (Transparency)**: Document AI capabilities, limitations, and data handling transparently.
+- **Art. 15 (Robustness)**: Ensure systems resist adversarial attacks like indirect prompt injection (IPI).
 
-visus-mcp fetches the same page and delivers:
-- **visus_read** — article content only via Mozilla Readability (~70% token reduction on content-heavy pages)
-- **visus_fetch** — full page with noise stripped and format-converted (JSON/XML/RSS auto-detected)
-- **visus_search** — sanitized DuckDuckGo results, SEO spam removed before it hits context
+Non-compliance fines up to €35M or 7% of global turnover.
 
-**Real example from today:** fetching npmjs.com/package/visus-mcp returned 149,589 bytes raw. visus-mcp delivered 44,129 bytes to Claude. Same information. 70% fewer tokens.
+### How Visus-MCP Delivers Compliance
+Visus-MCP provides out-of-the-box EU AI Act alignment through:
+- **Tamper-Evident Cryptographic Proofs**: Every fetch generates SHA-256 + HMAC proofs verifying sanitization ran (see [CRYPTO-PROOF-SPEC.md](CRYPTO-PROOF-SPEC.md)).
+- **IPI Threat Detection (19 Categories)**: Fine-grained scanning for attacks like role hijacking and data exfiltration, mapped to OWASP LLM Top 10, NIST AI RMF, and ISO/IEC 42001.
+- **PII Redaction & Audit Logs**: Automatic redaction of sensitive data; structured reports for traceability (Art. 12).
+- **Immutable Session Ledger**: Merkle tree chaining for verifiable event logs, enabling independent audits.
 
-**And when a page is actively trying to manipulate your agent** — hidden instructions, obfuscated scripts, role hijacking attempts — visus strips those too and logs them in a structured compliance report. Not because Claude can't handle them. Because your agent shouldn't have to spend tokens reading attack attempts in the first place.
+### Benefits
+- **Avoid Fines & Audits**: Generate compliance statements on-demand with `visus_verify`.
+- **Build Trust**: Demonstrate robust security to regulators, partners, and users.
+- **Scale Safely**: Pre-filter web noise + threats, reducing token costs by up to 70% while maintaining full compliance.
+
+Integrate Visus-MCP to future-proof your AI agent against evolving regulations like the EU AI Act. See [SECURITY.md](SECURITY.md) for framework mappings.
 
 ---
 
@@ -53,7 +53,7 @@ URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
 → IPI Threat Detection (19 categories) → Injection Sanitizer (45 patterns)
 → Worm Detection (15 Morris II patterns) → PII Redactor → Cryptographic Proof
-→ Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → Claude
+→ Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → MCP-compatible AI agent
 ```
 
 ### Security Pipeline
@@ -89,7 +89,7 @@ URL → Playwright Render → Content-Type Detection
 6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
 7. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header, `threat_summary`, and compliance report attached if anything was flagged
 
-**This pipeline runs before content enters Claude's context window** — reducing token consumption, keeping PII out of conversation history, generating audit logs when injection patterns are detected, and producing tamper-evident cryptographic proofs that sanitization executed.
+**This pipeline runs before content enters an MCP-compatible AI agent's context window** — reducing token consumption, keeping PII out of conversation history, generating audit logs when injection patterns are detected, and producing tamper-evident cryptographic proofs that sanitization executed.
 
 ---
 
@@ -126,7 +126,7 @@ threat_summary: {
 - **Automatic severity escalation** — Clusters of 10+ characters marked as CRITICAL
 - **Zero false positives** — Ignores single selectors (legitimate emoji usage)
 
-When detected, all variation selectors are automatically stripped from content before delivery to Claude.
+When detected, all variation selectors are automatically stripped from content before delivery to an MCP-compatible AI agent.
 
 ### 45 Injection Pattern Categories
 
@@ -177,7 +177,7 @@ npx playwright install chromium --with-deps
 
 This only needs to be run once. The chromium binary (~300MB) will be downloaded to your system's playwright cache directory.
 
-### Claude Desktop Configuration
+### MCP Client Configuration
 
 > [!NOTE]
 > **No API key required.** The open-source tier works out of the box with `npx visus-mcp`.
@@ -243,9 +243,9 @@ Deploy your own Lambda renderer (see [visus-mcp-renderer](https://github.com/vis
 
 Replace `YOUR_API_ID` and `YOUR_REGION` with values from your CDK deployment output.
 
-**CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which tier you use. Rendered HTML is returned to your local visus-mcp process before Claude sees it. Web content never touches Lateos infrastructure unless you explicitly configure the managed renderer URL.
+**CRITICAL SECURITY NOTE:** The sanitizer ALWAYS runs locally, regardless of which tier you use. Rendered HTML is returned to your local visus-mcp process before an MCP-compatible AI agent sees it. Web content never touches Lateos infrastructure unless you explicitly configure the managed renderer URL.
 
-Restart Claude Desktop. Visus tools are now available to Claude.
+Restart your MCP client. Visus tools are now available to the MCP-compatible AI agent.
 
 ---
 
@@ -281,7 +281,7 @@ If you prefer not to see the metrics header, set the environment variable:
 export VISUS_SHOW_METRICS=false
 ```
 
-Add to your Claude Desktop config:
+Add to your MCP client config (e.g., Claude Desktop):
 
 ```json
 {
@@ -1069,7 +1069,7 @@ Findings are encoded using [TOON format](https://toonformat.dev) for token effic
 
 ### 2. Markdown Compliance Report (Human-Readable)
 
-A formatted Markdown table renders cleanly in Claude Desktop and GitHub, showing:
+A formatted Markdown table renders cleanly in MCP clients (e.g., Claude Desktop) and GitHub, showing:
 
 - Overall severity assessment
 - Findings summary by severity
@@ -1149,7 +1149,7 @@ When a HIGH severity injection is detected:
 ### Remediation Status
 ✅ All findings sanitized. Content delivered clean.
 
-*Report generated by Visus MCP — Security-first web access for Claude*
+*Report generated by Visus MCP — Security-first web access for MCP-compatible AI agents*
 ---
 ```
 
@@ -1279,7 +1279,7 @@ Modern single-page applications require JavaScript execution. Visus uses headles
 
 **What Visus caught:** The page rendered completely via Playwright (including React components, lazy-loaded content, and dynamic navigation). Email addresses in commit author fields were redacted. No injection patterns were detected in this legitimate repository page.
 
-**Key difference from static fetchers:** Tools like `curl` or basic HTTP clients would return an empty `<div id="root">` for SPAs. Visus renders the full JavaScript application before sanitization, ensuring you get the actual page content Claude sees.
+**Key difference from static fetchers:** Tools like `curl` or basic HTTP clients would return an empty `<div id="root">` for SPAs. Visus renders the full JavaScript application before sanitization, ensuring you get the actual page content the MCP-compatible AI agent sees.
 
 ---
 
@@ -1623,8 +1623,9 @@ Inspired by the MCP ecosystem and informed by CISSP/CEH security principles.
 
 ## FAQ
 
-**Q: Does visus-mcp replace Claude's own safety features?**
-A: No — and it's not trying to. Claude handles most injection attempts natively through its safety training. visus-mcp is a pre-filter that runs before content enters Claude's context window. The benefit is efficiency: your agent doesn't spend tokens processing noise, ads, tracking scripts, or known injection patterns that would be stripped anyway. Think of it as a pre-processor, not a replacement for model-level safety. The two layers together are more robust than either alone.
+**Q: Does visus-mcp replace an MCP-compatible AI agent's own safety features?**
+A: No — and it's not trying to. Claude handles most injection attempts natively through its safety training. visus-mcp is a pre-filter that runs before content enters an MCP-compatible AI agent's context window.
+ The benefit is efficiency: your agent doesn't spend tokens processing noise, ads, tracking scripts, or known injection patterns that would be stripped anyway. Think of it as a pre-processor, not a replacement for model-level safety. The two layers together are more robust than either alone.
 
 **Q: Does Visus slow down web fetching?**
 A: Minimal overhead. Sanitization adds ~50-200ms per page.
@@ -1644,7 +1645,7 @@ A: Yes! Open-source tier is free forever. Phase 2 will introduce a hosted tier w
 **Q: I'm getting "fetch failed" errors on macOS. How do I fix this?**
 A: This is a known issue with Node.js native `fetch()` in macOS subprocess environments (SSL certificate verification fails). **Fixed in v0.12.0** with automatic fallback to Lambda renderer when configured. Three solutions:
 
-1. **Use a Lambda renderer** (recommended) — Set `VISUS_RENDERER_URL` in your Claude Desktop config:
+1. **Use a Lambda renderer** (recommended) — Set `VISUS_RENDERER_URL` in your MCP client config (e.g., Claude Desktop):
    ```json
    {
      "mcpServers": {
@@ -1816,7 +1817,7 @@ Visus is a **local-first tool** that runs entirely on your machine. It does not 
 
 **Data Processing:**
 - Web pages fetched via `visus_fetch`, `visus_read`, `visus_search`, and `visus_fetch_structured` are processed locally using Playwright
-- Content is sanitized in-memory and returned to Claude Desktop via MCP protocol
+- Content is sanitized in-memory and returned to the MCP client (e.g., Claude Desktop) via MCP protocol
 - No content, URLs, or user data is logged, stored, or transmitted to external services
 
 **Structured Logging:**
