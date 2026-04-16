@@ -12,7 +12,7 @@
 
 How Visus-MCP helps your MCP-compatible AI agents become EU AI compliant ready
 ```bash
-npx visus-mcp@0.19.0
+npx visus-mcp@0.25.1
 ```
 
 *"What the web shows you, Lateos reads safely."*
