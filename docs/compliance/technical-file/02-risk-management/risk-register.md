@@ -11,6 +11,8 @@ Visus-MCP employs a risk-based approach aligned with EN ISO/IEC 42001 and NIST A
 | R003-TRACEABILITY | Tampering/deletion of audit logs | CRITICAL (5/5) | NONE (0/5) | Merkle tree append-only (SHA-256 leaves); Inclusion proofs verifiable offline. Ledger v0.18.0 tests: 4/4 pass. |
 | R004-IPI-CHAINING | Multi-turn priming (e.g., Page1 save, Page2 exploit) | HIGH (4/5) | LOW (2/5) | Stateful scan (visus_context_scan); Local hash cache (30min TTL). Session-ledger.test.ts covers 80% vectors (Unit 42 2026). |
 
+| R010-BOOLEAN_BYPASS | CVE-2026-4399 Boolean Prompt Injection (logic gate restriction bypass) | HIGH (4/5) | LOW (1/5) | Boolean-gate detector (regex + safeEval); Pre-test antecedents; Tests: boolean-gate.test.ts (10 cases, 100% pass). |
+
 ## Assessment Methodology
 - **Scoring:** Likelihood (1-5) x Impact (1-5); Residual post-controls.
 - **Review Cycle:** Quarterly (Art. 61); Next: Q3 2026.

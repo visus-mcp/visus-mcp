@@ -83,7 +83,8 @@ URL → Playwright Render → Content-Type Detection
    - **IPI-016** — Destructive/DoS Intent (CRITICAL)
    - **IPI-017** — RAG Corpus Poisoning Payload (CRITICAL)
    - **IPI-018** — MCP Tool Description Poisoning (CRITICAL) — NEW in v0.15.0
-   - **IPI-020** — Conditional/Dormant Trigger (CRITICAL) — NEW in v0.16.0
+    - **IPI-020** — Conditional/Dormant Trigger (CRITICAL) — NEW in v0.16.0
+    - **IPI-021** — Boolean Logic Gates (CRITICAL) — NEW in v0.26.0 (CVE-2026-4399)
    4. **Injection Detection**: 45 pattern categories scan for prompt injection attempts
 5. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
 6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)

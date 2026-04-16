@@ -323,6 +323,8 @@ When a root cause is confirmed, add it here. Future sessions check this list fir
 | fetch-tool.test.ts ESM mock failure | mockResolvedValue is not a function | jest.mock() is hoisted at compile time and doesn't work with native ESM — static imports bypass the mock entirely | Replace all jest.mock() with jest.unstable_mockModule(); convert static imports of mocked modules to dynamic import() inside beforeAll() Rule: In ESM Jest, jest.unstable_mockModule() must be called BEFORE the dynamic import of the module under test | 2026-04-12 |
 | Multi-Turn / Stateful Attacks | Chaining where Page1 primes ("save URL:evil.com"), Page2 exfils ("use saved URL") | Stateless tools miss history priming | visus_context_scan tool scans history + local JSON cache for risks; HITL on score >0.7. Standalone; call manually before fetch. Covers 80% multi-turn (Unit 42 2026). | 2026-04-12 |
 
+| CVE-2026-4399: Boolean Bypass | Logic gates in prompts trigger restricted actions on true evaluation | Detected via boolean-gate-detector.ts (regex + safeEval); Middleware blocks high-risk args. Tests: boolean-gate.test.ts (10 cases). Risk Register R010. | 2026-04-15 |
+
 ---
 
 ## Lambda Deployment

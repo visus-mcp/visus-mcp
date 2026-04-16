@@ -269,8 +269,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const sessionId = 'session-' + crypto.randomUUID();  // Or from MCP context
 
   try {
-    // DB Guard Middleware for SQL/DB tools
-    if (name.includes('sql') || name.includes('db') || name === 'visus_db_verify') {
+    // Boolean Gate Middleware for Tool Requests (CVE-2026-4399)
+  import { detectBooleanGate } from './security/boolean-gate-detector.js';
+  const argsStr = JSON.stringify(args);
+  const gateResult = detectBooleanGate(argsStr);
+  if (gateResult.content_modified) {
+    throw new McpError(ErrorCode.InvalidRequest, `Boolean injection detected in tool args: ${gateResult.patterns_detected.join(', ')}`);
+  }
+
+  // DB Guard Middleware for SQL/DB tools
+  if (name.includes('sql') || name.includes('db') || name === 'visus_db_verify') {
       const guarded = await dbGuardMiddleware(name, args, sessionId);
       args = guarded.args;  // Updated args
     }

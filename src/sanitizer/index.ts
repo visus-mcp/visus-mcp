@@ -63,7 +63,16 @@ export function sanitize(content: string, sourceUrl?: string): SanitizationResul
   const originalLength = content.length;
 
   // Step 1: Detect and neutralize injection patterns
-  const injectionResult = detectAndNeutralize(content);
+  let injectionResult = detectAndNeutralize(content);
+
+  // Integrate Boolean Gate Detection (CVE-2026-4399)
+  import { detectBooleanGate } from '../security/boolean-gate-detector.js';
+  const booleanResult = detectBooleanGate(injectionResult.content);
+  if (booleanResult.content_modified) {
+    injectionResult.content = booleanResult.content;
+    injectionResult.patterns_detected.push(...booleanResult.patterns_detected);
+    injectionResult.content_modified = true;
+  }
 
   // Step 2: Redact PII from the already-sanitized content (with allowlisting)
   const piiResult = redactPII(injectionResult.content, sourceUrl);

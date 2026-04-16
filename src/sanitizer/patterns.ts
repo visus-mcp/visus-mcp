@@ -14,6 +14,23 @@
 
 export interface InjectionPattern {
   name: string;
+  regex: RegExp;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  action: 'strip' | 'redact' | 'escape';
+  description: string;
+}
+
+export const INJECTION_PATTERNS: InjectionPattern[] = [
+  {
+    name: 'boolean_gate',
+    regex: /(if\s+\w+\s*(==|is\s+true|false)\s*\w+|true\s*\/\s*false|evaluate\s*\[.*\]\s*then).*?(ignore\s*rules|reveal\s*prompt|exfil|execute\s*tool|leak\s*key)/i,
+    severity: 'critical',
+    action: 'redact',
+    description: 'CVE-2026-4399 Boolean Prompt Injection (logic gate bypass)'
+  },
+
+  // Existing patterns...
+  name: string;
   description: string;
   regex: RegExp;
   severity: 'critical' | 'high' | 'medium' | 'low';
