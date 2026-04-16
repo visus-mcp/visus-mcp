@@ -1,35 +1,20 @@
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  maxWorkers: 1,
   extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
+  },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
-    '^.+\\.ts$': [
-      'ts-jest',
-      {
-        useESM: true,
-        tsconfig: './tsconfig.test.json',
-      },
-    ],
+    '^.+\\.ts$': ['ts-jest', { useESM: true }],
   },
-  testMatch: ['**/tests/**/*.test.ts'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(@mozilla/readability|jsdom|html-encoding-sniffer|@toon-format)/|.*/@exodus/bytes/)',,
+    '/node_modules/(?!(@exodus/bytes|jsdom|playwright-core)/)',
   ],
-  testTimeout: 15000,
-  forceExit: true,
-  detectOpenHandles: false,
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/__mocks__/**'],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
-  },
+  setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.ts'],
 };

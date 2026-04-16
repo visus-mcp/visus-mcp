@@ -41,13 +41,50 @@ export const VSIL_THREAT_IDS = {
 } as const;
 
 export class SessionLedger {
-  private states = new Map<string, SessionState>();
-  private lru: LRU<string, SessionState>; // SessionId -> State
+  private events: Map<string, any[]> = new Map();
 
-  constructor() {
-    this.lru = new LRU({ max: 100, ttl: 1800000 }); // 30 min TTL
-    setInterval(() => this.sweepExpired(), 60000); // 1min sweep
+  getSessionEvents(sessionId: string): any[] {
+    return this.events.get(sessionId) || [];
   }
+
+  flagCVE(sessionId: string, key: string, cve: string): void {
+    this.addEvent({ type: 'CVE_FLAG', sessionId, key, cve, timestamp: Date.now() });
+  }
+
+  addEvent(event: any): void {
+    const sessionEvents = this.events.get(event.sessionId) || [];
+    sessionEvents.push(event);
+    this.events.set(event.sessionId, sessionEvents);
+    // Log or persist to Dynamo in prod
+    console.error(JSON.stringify({ event: 'ledger_add', ...event }));
+  }
+
+  update(sessionId: string, hashes: string[], tool: string, threats: string[]): void {
+    this.addEvent({ type: 'tool_update', sessionId, hashes, tool, threats, timestamp: Date.now() });
+    // ... existing update logic
+  }
+
+  checkContextualIntegrity(sessionId: string, tool: string, args: any, result: any): { score: number; newThreats: string[]; chainId?: string; dangling?: boolean } {
+    const events = this.getSessionEvents(sessionId);
+    let score = 0;
+    const newThreats = [];
+
+    // Existing VSIL logic...
+    // + DB RCE integration
+    if (tool.includes('sql')) {
+      const hijack = require('./db-rce-detector').detectGoalHijack(events);
+      if (hijack > 0.5) {
+        score += hijack;
+        newThreats.push('db_hijack');
+      }
+    }
+
+    return { score, newThreats, chainId: undefined, dangling: false };
+  }
+
+  // ... existing methods
+}
+
 
   private blake3Digest(input: string): string {
     return blake3(input, { length: 16 }).toString('hex'); // 128-bit hex

@@ -53,7 +53,8 @@ export type ThreatClass =
   | 'IPI-017' // RAG Corpus Poisoning Payload
   | 'IPI-018' // MCP Tool Description Poisoning
   | 'IPI-019' // Multi-Agent Propagation Worm
-  | 'IPI-020'; // Conditional/Dormant Trigger
+  | 'IPI-020' // Conditional/Dormant Trigger
+  | 'IPI-021'; // Assistant Role Prefill Injection
 
 /**
  * Threat severity levels

@@ -49,6 +49,7 @@ export interface ThreatSummary {
   priming_flags?: string[]; // e.g., ['saved_url', 'dangling_instruction']
   drift_score?: number; // Crescendo drift (RFC-2026-003)
   skeleton_key?: boolean;
+  visual_risk?: number; // Visual stego (RFC-2026-004)
 }
 
 import type { ThreatAnnotation } from './sanitizer/threat-reporter.js';
@@ -273,6 +274,7 @@ export interface BrowserRenderResult {
   url: string;
   contentType?: string;
   text?: string;
+  visual_shadow?: import('./security/visual-detector').VisualShadow; // RFC-2026-004
   error?: string;
 }
 

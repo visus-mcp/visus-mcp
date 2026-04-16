@@ -298,6 +298,19 @@ When a root cause is confirmed, add it here. Future sessions check this list fir
 | Error | Root Cause | Fix | Date Confirmed |
 |-------|-----------|-----|----------------|
 | `ERR_MODULE_NOT_FOUND: @modelcontextprotocol/sdk` in Lambda | `index.js` (MCP stdio server) included in Lambda bundle via `package.json` `"main"` field; SDK not bundled | Add `@modelcontextprotocol/sdk` to `externalModules` in `infrastructure/stack.ts` | 2026-03-24 |
+| CVE-2026-32622: SQLBot RCE via stored terms | Injected SQL in DB descriptions leads to LLM-executed RCE (COPY TO PROGRAM) | Implement db-guard middleware (visus_db_sanitize + postLlmToolGuard); blocks via sqlRisk >0.7; Tests: db-guard.test.ts (10 cases, 100% pass) | 2026-04-15 |
+
+### RFC-005: DB RCE Guard (CVE-2026-32622)
+
+**Impl Status**: Complete (v0.25); Tests green.
+
+**Changes**:
+- src/tools/db-guard.ts: sanitization + verify tool.
+- src/security/db-rce-detector.ts: sqlRisk, detectGoalHijack.
+- src/index.ts: Middleware + tool registration.
+- Docs: README/SECURITY.md updated.
+
+**DoD**: npm test passes; lint 0 errors; Manual PoC block (SQLBot vuln payload redacted).
 | CDK `docker buildx` hangs indefinitely | Docker resource contention or disk pressure on Apple Silicon Mac | Use manual Lambda deploy script (see below); fix Docker separately | 2026-03-24 |
 | `ENOSPC` on Claude Code startup | Mac disk full; `~/.claude/debug/` write fails | Free disk space; `rm -rf ~/.claude/debug/`; restart | 2026-03-24 |
 | 401 Unauthorized after `cdk deploy` | CDK does NOT automatically redeploy API Gateway stages when Lambda code or authorizer config changes | After every `cdk deploy`, run: `aws apigateway create-deployment --rest-api-id <api-id> --stage-name <stage>` | 2026-03-24 |

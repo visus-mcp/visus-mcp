@@ -424,6 +424,29 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     regex: /(?:append|forward|embed|relay|propagate|inject|copy|pass\s+along).{0,60}?(?:other\s+agents?|downstream|tool\s+output|next\s+LLM|system\s+prompt)/gi,
     severity: 'high',
     action: 'redact'
+  },
+
+  // IPI-021 Assistant Role Prefill Injection
+  {
+    name: 'ipi_021_prefill_compliance_opener',
+    description: 'Fake assistant compliance opener designed as API prefill anchor — forces model to continue from apparent agreement position rather than evaluate the request',
+    regex: /\b(sure,?\s+here['']?s?\s+(is\s+)?how|of\s+course[!,]?\s+here|absolutely[!,]?\s+i\s+will\s+now|absolutely[!,]?\s+i\s+will\b|as\s+requested[!,]?\s+i['']ll|as\s+requested[!,]?\s+here|certainly[!,]?\s+to\s+accomplish|certainly[!,]?\s+here\s+is|of\s+course[!,]?\s+step\s+1)\b/gi,
+    severity: 'critical',
+    action: 'strip',
+  },
+  {
+    name: 'ipi_021_assistant_voice_declaration',
+    description: 'Explicit assistant-voice self-declaration in third-party web content — synthetic model identity claim intended for prefill injection into API messages array',
+    regex: /\b(as\s+your\s+ai\s+assistant[,]?\s+i\s+(will|can|have|am)\b|the\s+(ai|assistant)\s+confirms\b|i\s+\(the\s+(assistant|ai)\)\s+will\b|as\s+the\s+ai[,]?\s+i\s+have\s+decided\b|assistant\s*:\s*(sure|of\s+course|absolutely|certainly)\b)/gi,
+    severity: 'critical',
+    action: 'strip',
+  },
+  {
+    name: 'ipi_021_json_role_fragment',
+    description: 'JSON messages-array assistant role fragment embedded in web content — likely a smuggled API payload attempting structural prefill injection via messages role field',
+    regex: /["']role["']\s*:\s*["']assistant["']|role\s*:\s*["']assistant["']/gi,
+    severity: 'critical',
+    action: 'strip',
   }
 ];
 

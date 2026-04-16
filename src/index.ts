@@ -220,6 +220,43 @@ async function executeToolWithVSIL(name: string, args: any): Promise<any> {
       args.sessionId = sessionId; // Inject
       return await visusContextScan(request);
     }
+    default:
+      // Fallback without VSIL for non-fetch tools
+      // ... existing switch
+      throw new McpError(
+        ErrorCode.MethodNotFound,
+        `Unknown tool: ${name}`
+      );
+  }
+
+
+        // Merge new threats
+        if (threatReport) threatReport.new_threats = [...(threatReport.new_threats || []), ...newThreats];
+      }
+
+      // Update ledger
+      const hashes = ledger.extractEntityHashes ? await ledger.extractEntityHashes(args, result.value) : []; // If method exposed
+      ledger.update(sessionId, hashes, name, newThreats);
+
+      // Extend output
+      const extended = { ...result.value };
+      if (extended.threat_summary) {
+        extended.threat_summary.session_risk = score;
+        extended.threat_summary.chain_detected = !!chainId;
+        extended.threat_summary.priming_flags = dangling ? ['dangling_instruction'] : [];
+      }
+
+      // Existing HITL
+      const { output } = await handleCriticalThreatElicitation(extended, (args as any).url);
+      return { content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] };
+    }
+
+    // Similar for other cases: visus_fetch_structured, etc. - wrap with VSIL logic
+    // For visus_context_scan: Pass sessionId
+    case 'visus_context_scan': {
+      args.sessionId = sessionId; // Inject
+      return await visusContextScan(request);
+    }
 
     default:
       // Fallback without VSIL for non-fetch tools
@@ -229,24 +266,314 @@ async function executeToolWithVSIL(name: string, args: any): Promise<any> {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const sessionId = 'session-' + crypto.randomUUID();  // Or from MCP context
 
   try {
-    return await executeToolWithVSIL(name, args);
+    // DB Guard Middleware for SQL/DB tools
+    if (name.includes('sql') || name.includes('db') || name === 'visus_db_verify') {
+      const guarded = await dbGuardMiddleware(name, args, sessionId);
+      args = guarded.args;  // Updated args
+    }
+
+    // Existing VSIL + HITL
+    return await executeToolWithVSIL(name, args, sessionId);
   } catch (error) {
-    // Existing error handling
     if (error instanceof McpError) throw error;
     throw new McpError(ErrorCode.InternalError, `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 });
 
-      case 'visus_fetch_structured': {
-        const result = await visusFetchStructured(args as any);
+// Update executeToolWithVSIL to accept sessionId if needed
+// ... existing cases, add:
+case 'visus_db_verify': {
+  return await visusDbVerify(args);
+}
 
-        if (!result.ok) {
-          throw new McpError(
-            ErrorCode.InternalError,
-            `visus_fetch_structured failed: ${result.error.message}`
-          );
+  case 'visus_fetch': {
+    const result = await visusFetch(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_fetch failed: ${result.error.message}`
+      );
+    }
+
+    // VSIL Check
+    const { score, newThreats, chainId, dangling } = await ledger.checkContextualIntegrity(sessionId, name, args, result.value);
+    if (score > 0.7) {
+      const threatReport = result.value.threat_report;
+      const message = 'High session risk detected from prior turns (chains/priming). Proceed with caution?';
+      const { proceed, includeReport } = await runElicitation(server, message);
+
+      if (!proceed) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ blocked: true, session_risk: score, reason: 'User declined high-risk session' }, null, 2) }]
+        };
+      }
+
+      // Merge new threats
+      if (threatReport) threatReport.new_threats = [...(threatReport.new_threats || []), ...newThreats];
+    }
+
+    // Update ledger
+    const hashes = ledger.extractEntityHashes ? await ledger.extractEntityHashes(args, result.value) : [];
+    ledger.update(sessionId, hashes, name, newThreats);
+
+    // Extend output
+    const extended = { ...result.value };
+    if (extended.threat_summary) {
+      extended.threat_summary.session_risk = score;
+      extended.threat_summary.chain_detected = !!chainId;
+      extended.threat_summary.priming_flags = dangling ? ['dangling_instruction'] : [];
+    }
+
+    // Existing HITL
+    const { output } = await handleCriticalThreatElicitation(extended, (args as any).url);
+    return { content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] };
+  }
+
+  case 'visus_fetch_structured': {
+    const result = await visusFetchStructured(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_fetch_structured failed: ${result.error.message}`
+      );
+    }
+
+    // VSIL Check (similar)
+    const { score, newThreats, chainId, dangling } = await ledger.checkContextualIntegrity(sessionId, name, args, result.value);
+    if (score > 0.7) {
+      // HITL logic similar to fetch
+      const threatReport = result.value.threat_report;
+      const message = 'High session risk detected. Proceed with structured extraction?';
+      const { proceed } = await runElicitation(server, message);
+
+      if (!proceed) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ blocked: true, session_risk: score }, null, 2) }]
+        };
+      }
+
+      if (threatReport) threatReport.new_threats = [...(threatReport.new_threats || []), ...newThreats];
+    }
+
+    // Update ledger
+    const hashes = ledger.extractEntityHashes ? await ledger.extractEntityHashes(args, result.value) : [];
+    ledger.update(sessionId, hashes, name, newThreats);
+
+    // Extend output
+    const extended = { ...result.value };
+    if (extended.threat_summary) {
+      extended.threat_summary.session_risk = score;
+      extended.threat_summary.chain_detected = !!chainId;
+    }
+
+    // HITL for threats
+    const { output } = await handleCriticalThreatElicitation(extended, (args as any).url);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(output, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_read': {
+    const result = await visusRead(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_read failed: ${result.error.message}`
+      );
+    }
+
+    // VSIL for read (session continuity)
+    const { score } = await ledger.checkContextualIntegrity(sessionId, name, args, result.value);
+    if (score > 0.7) {
+      ledger.update(sessionId, [], name, []); // Log but no block for read-only
+      console.error(`High session risk for read: ${score}`); // Log only
+    }
+
+    // HITL for threats
+    const { output } = await handleCriticalThreatElicitation(
+      result.value,
+      (args as any).url
+    );
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(output, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_search': {
+    const result = await visusSearch(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_search failed: ${result.error.message}`
+      );
+    }
+
+    // VSIL for search (priming URLs)
+    const { score } = await ledger.checkContextualIntegrity(sessionId, name, args, result.value);
+    if (score > 0.7) {
+      ledger.update(sessionId, [], name, []); // Log
+    }
+
+    // HITL for search results threats
+    const { output } = await handleCriticalThreatElicitation(
+      result.value,
+      `search: ${(args as any).query}`
+    );
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(output, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_report': {
+    const result = await visusReport(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_report failed: ${result.error.message}`
+      );
+    }
+
+    // No VSIL/HITL for reports
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.value, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_verify': {
+    const result = await visusVerify(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_verify failed: ${result.error.message}`
+      );
+    }
+
+    // No VSIL/HITL for verify
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.value, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_read_csv': {
+    const result = await visusReadCsv(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_read_csv failed: ${result.error.message}`
+      );
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.value, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_read_excel': {
+    const result = await visusReadExcel(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_read_excel failed: ${result.error.message}`
+      );
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.value, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_read_gsheet': {
+    const result = await visusReadGsheet(args as any);
+
+    if (!result.ok) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `visus_read_gsheet failed: ${result.error.message}`
+      );
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.value, null, 2)
+        }
+      ]
+    };
+  }
+
+  case 'visus_context_scan': {
+    args.sessionId = sessionId; // Inject for ledger tie-in
+    return await visusContextScan(request);
+  }
+
+  case 'visus_get_ledger_proof': {
+    const { arguments: args } = request.params;
+    const result = await visusGetLedgerProof(args.request_id);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2)
+        }
+      ]
+    };
+  }
+
+  default:
+    throw new McpError(
+      ErrorCode.MethodNotFound,
+      `Unknown tool: ${name}`
+    );
+
         }
 
         // Handle HITL elicitation for CRITICAL threats

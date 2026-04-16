@@ -8,13 +8,15 @@
 
 import { renderPage } from '../browser/playwright-renderer.js';
 import { sanitizeWithProof } from '../sanitizer/index.js';
+import { createHash } from 'crypto';
 import { truncateContent } from '../utils/truncate.js';
 import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
 import { routeContentHandler, normalizeMimeType } from '../content-handlers/index.js';
+import { ImmutableLedger } from '../compliance/ImmutableLedger.js';
 import { ThreatDetector } from '../security/ThreatDetector.js';
 import { computeThreatSummary } from '../security/threat-summary.js';
 import { calculateMetrics, formatMetricsHeader, shouldShowMetrics } from '../utils/tokenMetrics.js';
-import type { VisusFetchInput, VisusFetchOutput, Result } from '../types.js';
+import type { VisusFetchInput, VisusFetchOutput, Result, InclusionProof } from '../types.js';
 import type { ThreatAnnotation } from '../security/threats.js';
 import { Err } from '../types.js';
 
@@ -195,6 +197,79 @@ if (process.env.VISUS_WORM_DETECTION !== 'false' && !sanitizationResult.sanitiza
     }
 
     // Step 6: Build output with cryptographic proof
+  // Integration: Immutable Ledger Logging
+  const ledger = new ImmutableLedger();
+  const sessionId = 'default-session-' + Math.random().toString(36).slice(2); // Placeholder; use proper MCP session ID
+  const rawHash = createHash('sha256').update(rawContent).digest('hex');
+  const cleanHash = createHash('sha256').update(sanitizationResult.content).digest('hex');
+  const threatDetails = threats.map(t => ({
+    pattern_id: t.id,
+    severity: t.severity,
+    snippet_hash: createHash('sha256').update(t.excerpt || '').digest('hex')
+  }));
+  const visusProof = sanitizationResult.proofHeader?.visus_proof || ''; // Assume from existing proof
+
+  const event = {
+    session_id: sessionId,
+    url: url,
+    original_hash: rawHash,
+    sanitization_steps: sanitizationResult.sanitization.patterns_detected || [],
+    threats_detected: threatDetails,
+    pii_redacted_count: sanitizationResult.sanitization.pii_types_redacted?.length || 0,
+    pii_types: sanitizationResult.sanitization.pii_types_redacted || [],
+    cleaned_hash: cleanHash,
+    visus_proof: visusProof,
+    human_review_flag: false,
+    tool_name: 'visus_fetch',
+    // Add VSIL data if available
+    // entities: ..., etc.
+  };
+
+  const { merkle_root: _merkleRoot, proof: inclusionProof } = await ledger.addEvent(sessionId, event);
+
+  let finalOutput = {
+    url,
+    content: finalContent,
+    sanitization: {
+      patterns_detected: sanitizationResult.sanitization.patterns_detected,
+      pii_types_redacted: sanitizationResult.sanitization.pii_types_redacted,
+      pii_allowlisted: sanitizationResult.sanitization.pii_allowlisted,
+      content_modified: sanitizationResult.sanitization.content_modified
+    },
+    metadata: {
+      title: title || 'Untitled',
+      fetched_at: new Date().toISOString(),
+      content_length_original: sanitizationResult.metadata.original_length,
+      content_length_sanitized: sanitizationResult.metadata.sanitized_length,
+      format_detected: formatType,
+      content_type: detectedContentType,
+      merkle_root: _merkleRoot, // New
+      proof: inclusionProof, // New
+      ...(truncationResult.truncated && {
+        truncated: true,
+        truncated_at_chars: truncationResult.truncated_at_chars
+      })
+    },
+    // Include threat_report only if findings exist
+    ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report }),
+    // Include threat_summary only if threats detected
+    ...(threatSummary.threat_count > 0 && { threat_summary: threatSummary }),
+    // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
+    ...sanitizationResult.proofHeader
+  } as VisusFetchOutput;
+
+  // Log to stderr if critical threats detected
+  if (sanitizationResult.metadata.has_critical_threats) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'critical_threat_detected',
+      url,
+      patterns: sanitizationResult.sanitization.patterns_detected,
+      severity_score: sanitizationResult.metadata.severity_score
+    }));
+  }
+
+  return { ok: true, value: finalOutput };
     const output: VisusFetchOutput = {
       url,
       content: finalContent,

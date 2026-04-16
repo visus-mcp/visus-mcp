@@ -288,6 +288,7 @@ function isNetworkError(error: Error): boolean {
  */
 export async function renderPage(
   url: string,
+  page?: Page, // Optional page for reuse
   options: {
     timeout_ms?: number;
     format?: 'html' | 'text' | 'markdown';
@@ -348,7 +349,13 @@ export async function renderPage(
   }));
 
   logRenderer('playwright', url);
-  return await fetchWithPlaywright(url, timeout);
+  let result = await fetchWithPlaywright(url, timeout);
+  if (page && page.isClosed() === false) {
+    const visuals = await import('../security/visual-detector.js').then(m => m.extractVisuals(page));
+    result.value.visual_shadow = visuals;
+  }
+  return result;
+}
 }
 
 /**

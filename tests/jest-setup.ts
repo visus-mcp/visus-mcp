@@ -1,0 +1,1 @@
+import 'jest-unstable-mock-module'; // For unstable_mockModule support
