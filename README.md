@@ -302,7 +302,7 @@ Metrics are enabled by default.
 
 ---
 
-## MCP Tools (11 tools)
+## MCP Tools (12 tools)
 
 ### `visus_fetch`
 

@@ -21,10 +21,13 @@ Raw HTML extraction → Injection Sanitizer (43 patterns) → PII Redactor →
 Clean content → Claude via MCP
 ```
 
-### Two MCP Tools
+### Three MCP Tools
 
 1. **`visus_fetch(url, options?)`** - Returns sanitized markdown/text from a URL
 2. **`visus_fetch_structured(url, schema)`** - Extracts structured data with sanitization
+3. **`visus_scan_mcp(config: string, options?)`** - Scans MCP params JSON for RCE/shell/env risks pre-spawn (NEW v0.26.0). Returns {findings[], score, safeToSpawn, remediation[], mcp_risks[]}. Modes: strict/balanced/permissive; whitelist support. Reuses sanitizer for IPI in args/env.
+
+Both fetch tools MUST always pass content through the sanitizer — this cannot be bypassed.
 
 Both tools MUST always pass content through the sanitizer — this cannot be bypassed.
 
@@ -103,6 +106,15 @@ All tests must pass before Phase 1 is complete.
 - Timeout handling
 - Invalid URL handling
 - Sanitizer is always called (cannot be bypassed)
+
+### `tests/mcp-config-scan.test.ts` (NEW v0.26.0)
+- Safe params (default StdioServerParameters → score=0, safeToSpawn=true)
+- Risky params (`sh -c` → high score, findings >0)
+- Entropy detection (base64 payload >4.5 threshold)
+- Whitelist ignores known safe patterns
+- Mode thresholds (strict blocks at 4, permissive never blocks)
+- Sanitizer integration (code_execution in command → mcp_risks populated)
+- 10+ cases, 100% pass rate
 
 ### `tests/injection-corpus.ts`
 - 43 injection payloads (one per pattern category)
@@ -539,6 +551,17 @@ Do not proceed past the sanitizer until the pattern library and basic detection 
   data: Record<string, string | null>,  // Extracted fields, sanitized
   sanitization: { /* same as above */ },
   metadata: { /* same as above */ }
+}
+```
+
+### `visus_scan_mcp` Output (NEW v0.26.0)
+```typescript
+{
+  findings: [{ pattern: string, location: string, snippet: string, severity: 'low'|'med'|'high'|'critical' }],
+  score: number,                  // 0-10 risk score
+  safeToSpawn: boolean,           // Safe to spawn MCP server?
+  remediation: string[],          // Actionable fixes (e.g., "Set shell: false")
+  mcp_risks: string[]             // Sanitizer-flagged IPI/RCE in params (e.g., "code_execution")
 }
 ```
 

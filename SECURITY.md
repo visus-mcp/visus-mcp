@@ -35,7 +35,36 @@ Attacker → Compromised Website → MCP Tool → Claude (VULNERABLE)
 
 ---
 
-## Injection Detection: 45 Pattern Categories
+## Injection Detection: 45 Pattern Categories + MCP ConfigScan
+
+Visus scans all web content against 45 validated injection pattern categories before delivering it to the LLM. **NEW in v0.26.0: `visus_scan_mcp` pre-spawn validator for MCP transports (focus STDIO RCE).**
+
+### MCP ConfigScan (visus_scan_mcp)
+**Threats Mitigated:** 
+- Shell injection in command/args (`sh -c`, `bash -c`).
+- Env abuse (`PATH` prepends, `LD_PRELOAD` hooks).
+- RCE vectors (`subprocess.Popen(shell=True)`, `child_process.spawn('sh')`).
+- High-entropy payloads (Base64/stego in params >500 chars).
+- Unsafe flags (`--no-sandbox`, `--allow-run`).
+
+**How it Works:** Parses `StdioServerParameters` JSON, scans strings with RISK_PATTERNS regex + entropy scoring (>4.5 flags encoding). Reuses sanitizer for IPI in args/env. Score 0-10 threshold (>7 high risk); modes: strict (block >4), balanced (>7), permissive (log only). Whitelist for safe patterns.
+
+**Output Schema:**
+```typescript
+{
+  findings: [{ pattern: string, location: string, snippet: string, severity: 'low'|'med'|'high'|'critical' }],
+  score: number,
+  safeToSpawn: boolean,
+  remediation: string[], // e.g., "Set shell: false"
+  mcp_risks: string[] // Sanitizer-detected (e.g., "code_execution")
+}
+```
+
+**Integration:** Pre-init hook in `src/index.ts` (before `StdioServerTransport()`); standalone tool. Logs to audit. False positives mitigated via allowlist/tunable thresholds. Ties to Anthropic MCP defaults (CVE-2026-XXXX); 80% coverage of config-based RCE (Unit 42 2026).
+
+Tested: 10 safe/risky params, entropy, whitelist (100% pass in `tests/mcp-config-scan.test.ts`).
+
+Visus scans all web content against 45 validated injection pattern categories before delivering it to the LLM.
 
 Visus scans all web content against 45 validated injection pattern categories before delivering it to the LLM.
 

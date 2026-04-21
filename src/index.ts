@@ -54,6 +54,7 @@ import { shouldElicit, buildElicitMessage } from './sanitizer/hitl-gate.js';
 import { runElicitation } from './sanitizer/elicit-runner.js';
 import type { ThreatReport } from './sanitizer/threat-reporter.js';
 import { SessionLedger, type SessionRiskSummary } from './security/session-ledger.js';
+import { visusScanMcp, visusScanMcpToolDefinition } from './tools/mcp-config-scan.js';
 
 /**
  * Create and configure the MCP server
@@ -88,7 +89,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       visusReadExcelToolDefinition,
       visusReadGsheetToolDefinition,
       visusContextScanToolDefinition,
-      visusGetLedgerProofToolDefinition
+      visusGetLedgerProofToolDefinition,
+      visusScanMcpToolDefinition
     ]
   };
 });
@@ -563,24 +565,36 @@ case 'visus_db_verify': {
     return await visusContextScan(request);
   }
 
-  case 'visus_get_ledger_proof': {
-    const { arguments: args } = request.params;
-    const result = await visusGetLedgerProof(args.request_id);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
+        case 'visus_get_ledger_proof': {
+          const { arguments: args } = request.params;
+          const result = await visusGetLedgerProof(args.request_id);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2)
+              }
+            ]
+          };
         }
-      ]
-    };
-  }
 
-  default:
-    throw new McpError(
-      ErrorCode.MethodNotFound,
-      `Unknown tool: ${name}`
-    );
+        case 'visus_scan_mcp': {
+          const result = await visusScanMcp(args as any);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2)
+              }
+            ]
+          };
+        }
+
+        default:
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Unknown tool: ${name}`
+          );
 
         }
 
