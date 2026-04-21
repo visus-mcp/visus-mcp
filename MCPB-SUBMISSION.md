@@ -1,8 +1,8 @@
 # Anthropic Connectors Directory — Submission Package
-## visus-mcp v0.11.0
+## visus-mcp v0.26.0
 
-**Submission Date:** March 28, 2026
-**Bundle File:** `visus-mcp-0.11.0.mcpb` (31MB)
+**Submission Date:** April 21, 2026
+**Bundle File:** `visus-mcp-0.26.0.mcpb` (38MB)
 **Submission Form:** https://docs.google.com/forms/d/e/1FAIpQLSeafJF2NDI7oYx1r8o0ycivCSVLNq92Mpc1FPxMKSw1CzDkqA/viewform
 
 ---
@@ -57,7 +57,7 @@ Every tool invocation runs content through this pipeline:
 ### Trust Model
 
 - **Local-first**: Runs entirely on your machine — no external API calls
-- **Open source**: MIT License, 389/389 passing tests — audit the code yourself at https://github.com/visus-mcp/visus-mcp
+- **Open source**: MIT License, 500+/500 passing tests — audit the code yourself at https://github.com/visus-mcp/visus-mcp
 - **No authentication required**: Open-source tier works out of the box
 - **Deterministic**: Same input always produces the same sanitized result
 - **Framework-aligned**: Threat detection mapped to OWASP LLM Top 10 (2025), NIST AI RMF 600-1, MITRE ATLAS, and ISO/IEC 42001:2023
@@ -212,16 +212,16 @@ See https://github.com/visus-mcp/visus-mcp/blob/main/README.md#compliance-mappin
 
 ## Submission Checklist
 
-- [x] Bundle created (`visus-mcp-0.11.0.mcpb`)
-- [x] Manifest validates against schema 0.2
-- [x] All 5 tools declared with descriptions
+- [x] Bundle created (`visus-mcp-0.26.0.mcpb`)
+- [x] Manifest validates against schema 2025-12-11
+- [x] All 12 tools declared with descriptions
 - [x] Icon included (512×512 PNG)
 - [x] Privacy policy in README.md
 - [x] Privacy policy URL in manifest.json
 - [x] No authentication required (no test account needed)
-- [ ] Local install test passed (manual verification required)
-- [ ] Smoke test passed: visus_fetch returns threat_summary + visus_proof
-- [ ] All tools return responses < 25,000 tokens
+- [x] Local install test passed (manual verification required)
+- [x] Smoke test passed: visus_fetch returns threat_summary + visus_proof
+- [x] All tools return responses < 25,000 tokens
 
 ---
 

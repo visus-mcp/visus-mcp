@@ -1,7 +1,7 @@
 {
   "name": "visus-mcp",
   "displayName": "Visus — Secure Web Access",
-  "version": "0.11.0",
+  "version": "0.26.0",
   "status": "active",
   "tier": "open-source",
   "phase": "1",
@@ -34,11 +34,43 @@
     {
       "name": "visus_fetch_structured",
       "description": "Extract structured data from a web page according to a user-defined schema. All fields are independently sanitized."
+    },
+    {
+      "name": "visus_scan_mcp",
+      "description": "Scan MCP config (StdioServerParameters) for RCE risks pre-spawn. Detects shell injection, env abuse, high-entropy payloads. Returns score, safeToSpawn, remediation."
+    },
+    {
+      "name": "visus_report",
+      "description": "Generate a structured compliance audit report from sanitization logs, including detected threat classifications and framework mappings (NIST AI RMF, OWASP LLM Top 10, ISO/IEC 42001)."
+    },
+    {
+      "name": "visus_verify",
+      "description": "Verify cryptographic proof for a sanitization event, ensuring tamper-evident logging."
+    },
+    {
+      "name": "visus_read_csv",
+      "description": "Parse CSV files with PII redaction and injection scanning."
+    },
+    {
+      "name": "visus_read_excel",
+      "description": "Parse Excel files with PII redaction and injection scanning."
+    },
+    {
+      "name": "visus_read_gsheet",
+      "description": "Parse Google Sheets with PII redaction and injection scanning (public sheets only)."
+    },
+    {
+      "name": "visus_context_scan",
+      "description": "Scan conversation history for multi-turn priming risks and dangling instructions."
+    },
+    {
+      "name": "visus_get_ledger_proof",
+      "description": "Retrieve tamper-evident proof for a specific audit event ID."
     }
   ],
   "security": {
     "frameworks": ["OWASP LLM Top 10 2025", "NIST AI 600-1", "MITRE ATLAS", "ISO/IEC 42001:2023"],
-    "injectionPatterns": 43,
+    "injectionPatterns": 45,
     "piiTypes": ["email", "phone", "ssn", "creditCard", "ipAddress"]
   }
 }
