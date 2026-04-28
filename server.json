@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "identifier": "visus-mcp",
-      "version": "0.26.0",
+      "version": "0.27.0",
       "transport": {
         "type": "stdio"
       },
@@ -41,7 +41,7 @@
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "tool": "mcp-publisher",
-      "version": "0.15.0",
+"version": "0.27.0",
       "buildInfo": {
         "timestamp": "2026-04-09T00:00:00Z",
         "release": "v0.15.0 — IPI-018: MCP Tool Description Poisoning detection with 3-signal architecture"
