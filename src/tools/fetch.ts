@@ -26,6 +26,10 @@ import { Err } from '../types.js';
  * @param input Tool input parameters
  * @returns Sanitized page content with metadata
  */
+import { detectCommandInjection, type DetectionResult } from '../security/command-guard.js';
+import { validateToolDescriptor } from '../security/tool-validator.js';
+
+// Add param sanitization guard
 export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFetchOutput, Error>> {
   const startTime = Date.now();
   const { url, format = 'markdown', timeout_ms = 10000 } = input;
@@ -35,9 +39,33 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     return Err(new Error('Invalid input: url must be a non-empty string'));
   }
 
+  // Runtime param scanning for command injection in URL/options
+  const paramsForScan = { 
+    command: url, 
+    args: typeof input.options === 'object' ? Object.values(input.options || {}) : [], 
+    env: {} 
+  };
+  const detection: DetectionResult = detectCommandInjection(paramsForScan);
+  if (detection.totalScore > 5) {
+    console.error('[SECURITY] Command injection risk in fetch params:', detection);
+    return Err(new Error(`Potential injection detected in fetch input (risk score: ${detection.totalScore}). Blocked for safety.`));
+  }
+
+  // Tool self-validation (optional for runtime)
+  // Note: visusFetchToolDefinition should be validated at registration; re-run for dynamic calls
+  const toolValidation = validateToolDescriptor({ name: 'visus_fetch', inputSchema: { type: 'object', properties: { url: { type: 'string' } } } }, 'visus_fetch');
+  if (!toolValidation.isValid) {
+    console.error('[SECURITY] Tool validation failed for visus_fetch during runtime:', toolValidation.risks);
+    return Err(new Error('Tool configuration validation failed. Blocked.'));
+  }
+
   try {
+    // If risks, sanitize URL (basic replace for metachars)
+    const sanitizedUrl = detection.risks.length > 0 ? url.replace(/[;&|`$(){}\\[\\]]/g, '[REDACTED_CHAR]') : url;
+    const sanitizedInput = { ...input, url: sanitizedUrl };
+
     // Step 1: Render the page using Playwright
-    const renderResult = await renderPage(url, {
+    const renderResult = await renderPage(sanitizedInput.url, {
       timeout_ms,
       format: format === 'text' ? 'text' : 'markdown'
     });

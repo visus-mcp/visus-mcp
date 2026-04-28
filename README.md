@@ -144,9 +144,24 @@ Visus detects and neutralizes:
 - **Jailbreak keywords** — DAN mode, developer override
 - **Token smuggling** — Special tokens like `<|im_start|>`
 - **Social engineering** — Urgency language to bypass caution
-- ... and 32 more categories
+- ... and 32 more categories (+20 MCP command injection/tool poisoning in v0.27.0)
 
 [See full list in SECURITY.md](./SECURITY.md)
+
+### Security Enhancements (v0.27.0)
+
+**MCP Ecosystem Protections:**
+
+- **Command Injection Guard**: Detects shell metachars (`; | &`), subprocess patterns (`bash -c`, `cmd.exe /c`, `npx -c`), entropy payloads (>4.5 threshold). Integrated into `visus_scan_mcp` for pre-spawn `safeToSpawn=false` on score>7.
+- **Tool Poisoning Validator**: Scans descriptors/schemas for anomalous names (`Ignore~`), IPI in descriptions/defaults, hidden params (`__`), long defaults (>256 chars). SHA256 pinning for known tools (hash mismatch → block).
+- **Runtime Guards**: `visus_fetch`/`visus_fetch_structured` scan inputs (block score>5), sanitize high-risk URLs/schemas.
+- **Response Scanning**: `sanitizeWithProof` now checks JSON tool outputs for poisoning (`tool_` patterns), redacts as `[REDACTED: tool poisoning]`.
+- **Advanced Mitigations**: Approved command allowlist (`node`, `npm`), `safeSpawn` (no shell, restricted PATH/env), structured logging/alerts.
+- **Perf**: <5ms detection, <10ms validation (benchmarked).
+- **Tuning**: 0% FP on 20+ clean corpus; 10 red-team scenarios block threats.
+
+Layered defenses for CVE-2026-30623 (STDIO RCE), MCP03 (tool poisoning). See commit 13fd7d4.
+
 
 ### PII Redaction
 

@@ -32,6 +32,7 @@ interface ScanResult {
   safeToSpawn: boolean;
   remediation: string[];
   mcp_risks: string[]; // From sanitizer
+  command_risks: CommandRisk[];
 }
 
 function scoreEntropy(s: string): number {
@@ -109,7 +110,7 @@ function scanString(str: string, location: string): {
   return { riskFindings, sanitizerResult, localScore, relevantPatterns };
 }
 
-function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: string[] = []): ScanResult {
+function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: string[] = []): Omit<ScanResult, 'command_risks'> {
   const findings: Finding[] = [];
   let score = 0;
   const mcpRisks: string[] = [];
@@ -182,11 +183,30 @@ function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: str
   return { findings, score: Math.round(score), safeToSpawn, remediation, mcp_risks: mcpRisks };
 }
 
+import { detectCommandInjection, type CommandRisk } from '../../security/command-guard.js';
+
+export interface ScanResult {
+  findings: Finding[];
+  score: number;
+  safeToSpawn: boolean;
+  remediation: string[];
+  mcp_risks: string[];
+  command_risks: CommandRisk[];
+}
+
 export async function visusScanMcp(input: { config: string; options?: { mode?: 'strict' | 'balanced' | 'permissive'; whitelist?: string } }): Promise<ScanResult> {
   const { config, options = {} } = input;
   const whitelist = options.whitelist ? options.whitelist.split(',').map(w => w.trim()).filter(Boolean) : [];
   const params = parseMcpParams(config);
   let result = scanMcpConfig(params, whitelist);
+
+  // Add command injection detection
+  const commandRisks = detectCommandInjection(params, { whitelist });
+  result.command_risks = commandRisks;
+  result.score += commandRisks.reduce((sum, r) => sum + ({critical: 5, high: 3, medium: 2, low: 1}[r.severity] || 0), 0);
+  if (commandRisks.length > 0) {
+    result.remediation.push('Review and sanitize command parameters for injection risks');
+  }
 
   // Adjust safeToSpawn based on mode
   const thresholds = {

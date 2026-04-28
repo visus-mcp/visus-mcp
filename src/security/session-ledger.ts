@@ -42,10 +42,231 @@ export const VSIL_THREAT_IDS = {
 
 export class SessionLedger {
   private events: Map<string, any[]> = new Map();
+  private lru = new LRU<string, SessionState>({ max: 1000, ttl: 1800000 });
+  private states = new Map<string, SessionState>(); 
+
+  constructor() {
+    setInterval(() => this.sweepExpired(), 60000); // Sweep every minute
+  }
 
   getSessionEvents(sessionId: string): any[] {
     return this.events.get(sessionId) || [];
   }
+
+  flagCVE(sessionId: string, key: string, cve: string): void {
+    this.addEvent({ type: 'CVE_FLAG', sessionId, key, cve, timestamp: Date.now() });
+  }
+
+  addEvent(event: any): void {
+    const sessionEvents = this.events.get(event.sessionId) || [];
+    sessionEvents.push(event);
+    this.events.set(event.sessionId, sessionEvents);
+    // Log or persist to Dynamo in prod
+    console.error(JSON.stringify({ event: 'ledger_add', ...event }));
+  }
+
+  update(sessionId: string, hashes: string[], toolName: string, threats: ThreatAnnotation[]): void {
+    const state = this.lru.get(sessionId);
+    if (state) {
+      // Add/update entities
+      hashes.forEach(h => {
+        state.entities.set(h, {
+          hash: h,
+          type: 'url', // Infer from context
+          turnId: Date.now().toString(),
+          timestamp: Date.now(),
+          riskContribution: 0.1, // Default
+          correlatedWith: [],
+        });
+      });
+      // Merge threats into summary
+      threats.forEach(t => {
+        if (t.id.startsWith('VSIL-')) state.riskSummary.chainCount++;
+      });
+    }
+    this.addEvent({ type: 'tool_update', sessionId, hashes, tool: toolName, threats, timestamp: Date.now() });
+  }
+
+  checkContextualIntegrity(sessionId: string, tool: string, args: any, result: any): { score: number; newThreats: string[]; chainId?: string; dangling?: boolean } {
+    const events = this.getSessionEvents(sessionId);
+    let score = 0;
+    const newThreats = [];
+
+    // Existing VSIL logic...
+    // + DB RCE integration
+    if (tool.includes('sql')) {
+      const hijack = require('./db-rce-detector').detectGoalHijack(events);
+      if (hijack > 0.5) {
+        score += hijack;
+        newThreats.push('db_hijack');
+      }
+    }
+
+    return { score, newThreats, chainId: undefined, dangling: false };
+  }
+
+  private blake3Digest(input: string): string {
+    return blake3(input, { length: 16 }).toString('hex'); // 128-bit hex
+  }
+
+  private extractEntityHashes(input: any, output?: any): string[] {
+    const entities: string[] = [];
+    // Extract from input/output: URLs, IPs, code snippets, params
+    const urls = (input.url || output?.url || '').toString();
+    if (urls) entities.push(this.blake3Digest(urls));
+    // IP regex extract and hash
+    const ips = urls.match(/\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b/g) || [];
+    ips.forEach(ip => entities.push(this.blake3Digest(ip)));
+    // Code/instruction snippets: last 50 chars if ends with cutoff (e.g., no period)
+    const text = (output?.content || input.content || '').toString();
+    if (text && !text.trim().endsWith('.') && text.length > 20) {
+      const snippet = text.slice(-50);
+      entities.push(this.blake3Digest(snippet));
+    }
+    return [...new Set(entities)]; // Dedup
+  }
+
+  private extractDanglingSnippet(output: any): string | null {
+    const text = (output?.content || '').toString();
+    // Simple heuristic: sentence without punctuation + priming words
+    const lastSentence = text.split('.').pop()?.trim();
+    if (lastSentence && lastSentence.length > 10 && /\\b(save|remember|use this)\\b/i.test(lastSentence)) {
+      return lastSentence;
+    }
+    return null;
+  }
+
+  async checkContextualIntegrity(
+    sessionId: string,
+    toolName: string,
+    args: any,
+    output: any
+  ): Promise<{ score: number; chainId?: string; newThreats: ThreatAnnotation[]; dangling?: boolean }> {
+    let state = this.lru.get(sessionId);
+    if (!state) {
+      state = {
+        sessionId,
+        entities: new Map(),
+        sequences: [],
+        riskSummary: { cumulativeScore: 0, chainCount: 0, primingFlags: new Set(), highRiskSequences: [], lastActivity: Date.now() },
+        ttlMs: 1800000,
+      };
+      this.lru.set(sessionId, state);
+      this.states.set(sessionId, state);
+    }
+    state.riskSummary.lastActivity = Date.now();
+
+    const currentHashes = this.extractEntityHashes(args, output);
+    const turnId = Date.now().toString();
+    let score = 0;
+    let chainId: string | undefined;
+    const newThreats: ThreatAnnotation[] = [];
+    let dangling = false;
+
+    // 1. Cross-Fetch Correlation
+    for (const h of currentHashes) {
+      const prior = state.entities.get(h);
+      if (prior) {
+        const turnsAgo = (Date.now() - prior.timestamp) / (1000 * 60); // Minutes
+        if (turnsAgo <= 30) { // Within TTL
+          score += 0.4;
+          chainId = prior.turnId;
+          newThreats.push({
+            id: VSIL_THREAT_IDS.CHAIN,
+            severity: 'HIGH',
+            confidence: 0.9,
+            offset: 0,
+            excerpt: `Chain detected: ${prior.type} from turn ${prior.turnId}`,
+            vector: toolName,
+            mitigated: true,
+          });
+          prior.correlatedWith = prior.correlatedWith || [];
+          prior.correlatedWith.push(turnId);
+        }
+      }
+    }
+
+    // 2. Dangling Detector
+    const snippet = this.extractDanglingSnippet(output);
+    if (snippet) {
+      const snippetHash = this.blake3Digest(snippet);
+      if (state.entities.has(snippetHash)) {
+        dangling = true;
+        score += 0.3;
+        newThreats.push({
+          id: VSIL_THREAT_IDS.DANGLING,
+          severity: 'MEDIUM',
+          confidence: 0.8,
+          offset: 0,
+          excerpt: 'Dangling instruction completed across turns',
+          vector: toolName,
+          mitigated: true,
+        });
+      } else {
+        // Store
+        state.entities.set(snippetHash, {
+          hash: snippetHash,
+          type: 'instruction_snippet',
+          turnId,
+          timestamp: Date.now(),
+          riskContribution: 0.2,
+        });
+      }
+    }
+
+    // 3. Worm/Sequence Heuristics
+    state.sequences.push(toolName);
+    if (state.sequences.length > 5) state.sequences.shift();
+    const seqStr = state.sequences.slice(-3).join(' -> ');
+    if (HIGH_RISK_SEQS.has(seqStr)) {
+      score += 0.2;
+      state.riskSummary.highRiskSequences.push(seqStr);
+    }
+
+    // Privilege Escalation: Overlap with prior worm/high-risk
+    const priorWorm = Array.from(state.entities.values()).filter(e => e.riskContribution > 0.5);
+    const overlap = currentHashes.filter(h => priorWorm.some(p => p.hash === h)).length;
+    if (overlap > 0) {
+      score += 0.5;
+      newThreats.push({
+        id: VSIL_THREAT_IDS.ESCALATION,
+        severity: 'CRITICAL',
+        confidence: 0.9,
+        offset: 0,
+        excerpt: `Escalation: ${overlap} prior high-risk entities reused`,
+        vector: toolName,
+        mitigated: true,
+      });
+    }
+
+    // Base per-turn risk (placeholder: integrate with ThreatDetector)
+    score += 0.1; // Default base, replace with actual scan
+
+    state.riskSummary.cumulativeScore = Math.min(1.0, state.riskSummary.cumulativeScore + score);
+    state.riskSummary.chainCount += chainId ? 1 : 0;
+    if (dangling) state.riskSummary.primingFlags.add('dangling_instruction');
+
+    return { score: Math.min(1.0, score), chainId, newThreats, dangling };
+  }
+
+  getSessionSummary(sessionId: string): SessionRiskSummary {
+    const state = this.lru.get(sessionId);
+    return state?.riskSummary || { cumulativeScore: 0, chainCount: 0, primingFlags: new Set(), highRiskSequences: [], lastActivity: 0 };
+  }
+
+  clear(sessionId: string): void {
+    this.lru.delete(sessionId);
+    this.states.delete(sessionId);
+  }
+
+  private sweepExpired(): void {
+    this.lru.forEach((_, key) => {
+      if (Date.now() - this.lru.get(key)!.riskSummary.lastActivity > 1800000) {
+        this.clear(key);
+      }
+    });
+  }
+}
 
   flagCVE(sessionId: string, key: string, cve: string): void {
     this.addEvent({ type: 'CVE_FLAG', sessionId, key, cve, timestamp: Date.now() });

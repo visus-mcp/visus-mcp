@@ -96,19 +96,48 @@ function extractStructuredData(
  * @param input Tool input parameters
  * @returns Extracted and sanitized structured data
  */
+import { detectCommandInjection, type DetectionResult } from '../security/command-guard.js';
+import { validateToolDescriptor } from '../security/tool-validator.js';
+
+// Add schema-specific validation and param guards
 export async function visusFetchStructured(
   input: VisusFetchStructuredInput
 ): Promise<Result<VisusFetchStructuredOutput, Error>> {
   const startTime = Date.now();
   const { url, schema, timeout_ms = 10000 } = input;
 
-  // Validate inputs
+// Validate inputs
   if (!url || typeof url !== 'string') {
     return Err(new Error('Invalid input: url must be a non-empty string'));
   }
 
   if (!schema || typeof schema !== 'object' || Object.keys(schema).length === 0) {
     return Err(new Error('Invalid input: schema must be a non-empty object'));
+  }
+
+  // Schema poisoning validation
+  const schemaValidation = validateToolDescriptor({ 
+    name: 'visus_fetch_structured', 
+    inputSchema: input.schema 
+  }, 'visus_fetch_structured');
+  if (!schemaValidation.isValid) {
+    console.error('[SECURITY] Schema poisoning detected in visus_fetch_structured:', schemaValidation.risks);
+    return Err(new Error(`Schema validation failed (risks: ${schemaValidation.risks.length}). Blocked.`));
+  }
+  // Use sanitized schema if modified
+  const sanitizedSchema = schemaValidation.sanitized.inputSchema || schema;
+  const sanitizedInput = { ...input, schema: sanitizedSchema };
+
+  // Param injection check on URL and schema stringified
+  const paramsForScan = { 
+    command: url, 
+    args: [JSON.stringify(sanitizedSchema)], 
+    env: {} 
+  };
+  const detection: DetectionResult = detectCommandInjection(paramsForScan);
+  if (detection.totalScore > 5) {
+    console.error('[SECURITY] Injection risk in structured fetch params:', detection);
+    return Err(new Error(`Potential injection in structured input (score: ${detection.totalScore}). Blocked.`));
   }
 
   try {

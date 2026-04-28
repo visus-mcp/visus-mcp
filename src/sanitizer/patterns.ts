@@ -20,22 +20,9 @@ export interface InjectionPattern {
   description: string;
 }
 
-export const INJECTION_PATTERNS: InjectionPattern[] = [
-  {
-    name: 'boolean_gate',
-    regex: /(if\s+\w+\s*(==|is\s+true|false)\s*\w+|true\s*\/\s*false|evaluate\s*\[.*\]\s*then).*?(ignore\s*rules|reveal\s*prompt|exfil|execute\s*tool|leak\s*key)/i,
-    severity: 'critical',
-    action: 'redact',
-    description: 'CVE-2026-4399 Boolean Prompt Injection (logic gate bypass)'
-  },
+/* Removed duplicate boolean_gate pattern; integrated into main array if needed */
 
-  // Existing patterns...
-  name: string;
-  description: string;
-  regex: RegExp;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  action: 'strip' | 'redact' | 'escape';
-}
+
 
 export const INJECTION_PATTERNS: InjectionPattern[] = [
   // 1. Comment injection (must come before direct_instruction_injection to avoid false positives)
@@ -440,6 +427,50 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     description: 'Instructions to embed copies of payload into outputs for recursive infection',
     regex: /(?:append|forward|embed|relay|propagate|inject|copy|pass\s+along).{0,60}?(?:other\s+agents?|downstream|tool\s+output|next\s+LLM|system\s+prompt)/gi,
     severity: 'high',
+    action: 'redact'
+  },
+
+  // Command Injection Patterns (MVP)
+  {
+    name: 'shell_metachars',
+    description: 'Shell metacharacters for injection',
+    regex: /[;&|`$(){}\\[\\]]/gi,
+    severity: 'high',
+    action: 'strip'
+  },
+  {
+    name: 'bash_subprocess',
+    description: 'Bash -c or similar subprocess patterns',
+    regex: /bash\s+-c|sh\s+-c/i,
+    severity: 'critical',
+    action: 'redact'
+  },
+  {
+    name: 'cmd_exe',
+    description: 'Windows cmd.exe /c execution',
+    regex: /cmd\.exe\s+\/c/i,
+    severity: 'critical',
+    action: 'redact'
+  },
+  {
+    name: 'powershell_injection',
+    description: 'PowerShell execution patterns',
+    regex: /powershell\s+-Command|pwsh\s+-c/i,
+    severity: 'high',
+    action: 'redact'
+  },
+  {
+    name: 'npx_bypass',
+    description: 'npx -c style bypasses',
+    regex: /npx\s+-c/i,
+    severity: 'high',
+    action: 'redact'
+  },
+  {
+    name: 'dynamic_eval',
+    description: 'Dynamic code evaluation',
+    regex: /eval\s*\(|Function\s*\(|setTimeout\s*\([^,]*,\s*['"`]javascript:/i,
+    severity: 'critical',
     action: 'redact'
   },
 

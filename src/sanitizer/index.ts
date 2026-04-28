@@ -177,6 +177,8 @@ export function needsSanitization(_content: string): boolean {
  * @param pipelineVersion Sanitization library version
  * @returns Sanitized content with cryptographic proof
  */
+import { INJECTION_PATTERNS } from './patterns.js';
+
 export async function sanitizeWithProof(
   rawContent: string,
   sourceUrl?: string,
@@ -188,7 +190,7 @@ export async function sanitizeWithProof(
   const timestampUtc = new Date().toISOString();
   const startMs = Date.now();
 
-// Run existing sanitization pipeline (unmodified)
+  // Run existing sanitization pipeline (unmodified)
     let sanitizationResult = sanitize(rawContent, sourceUrl);
 
     // New: Run worm detection post-sanitization (v0.18.0)
@@ -202,6 +204,25 @@ export async function sanitizeWithProof(
       (sanitizationResult.sanitization as any).worm_patterns_detected = wormResult.patterns;
       (sanitizationResult.sanitization as any).worm_risk_score = wormResult.score;
       (sanitizationResult.metadata as any).worm_risk = wormResult.score;
+    }
+
+    // Extend for tool outputs: Scan for poisoning patterns in returns (e.g., embedded instructions in JSON)
+    if (rawContent.startsWith('{' ) || rawContent.startsWith('[')) { // Likely JSON tool output
+      const toolPoisonPatterns = INJECTION_PATTERNS.filter(p => p.name.startsWith('tool_') || p.name.includes('poison'));
+      let hasPoisoning = false;
+      toolPoisonPatterns.forEach(pat => {
+        if (pat.regex.test(sanitizationResult.content)) {
+          hasPoisoning = true;
+          sanitizationResult.sanitization.patterns_detected.push(pat.name);
+          // Basic neutralization: redact matches
+          sanitizationResult.content = sanitizationResult.content.replace(pat.regex, '[REDACTED: tool poisoning]');
+          sanitizationResult.sanitization.content_modified = true;
+        }
+      });
+      if (hasPoisoning) {
+        console.error('[SECURITY] Tool output poisoning detected and neutralized');
+        (sanitizationResult.metadata as any).tool_poisoning = true;
+      }
     }
 
   const processingDurationMs = Date.now() - startMs;
