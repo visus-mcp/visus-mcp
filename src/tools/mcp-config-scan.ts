@@ -196,7 +196,7 @@ export interface ScanResult {
   command_risks: CommandRisk[];
 }
 
-export async function visusScanMcp(input: { config: string; options?: { mode?: 'strict' | 'balanced' | 'permissive'; whitelist?: string } }): Promise<ScanResult> {
+export async function visusScanMcp(input: { config: string; options?: { mode?: 'strict' | 'balanced' | 'permissive'; whitelist?: string; commandAllowlist?: string } }): Promise<ScanResult> {
   const { config, options = {} } = input;
   const whitelist = options.whitelist ? options.whitelist.split(',').map(w => w.trim()).filter(Boolean) : [];
   const params = parseMcpParams(config);

@@ -68,7 +68,7 @@ describe('Command Guard - Tuning and Benchmarks', () => {
   });
 
   it('tuning: no false positives on clean cases (20 cases)', () => {
-    CLEAN_CASES.forEach((testCase, index) => {
+    CLEAN_CASES.forEach((testCase) => {
       const result = detectCommandInjection(testCase);
       expect(result.totalScore).toBe(0);
       expect(result.risks.length).toBe(0);

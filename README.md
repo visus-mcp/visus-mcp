@@ -1,6 +1,10 @@
 # Visus — Secure Web Access for MCP-compatible AI agents
 
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
+
+[![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp/actions)
+
+[![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
 [![tools](https://img.shields.io/badge/MCP%20tools-10-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
@@ -12,7 +16,7 @@
 
 How Visus-MCP helps your MCP-compatible AI agents become EU AI compliant ready
 ```bash
-npx visus-mcp@0.25.1
+npx visus-mcp@0.28.0
 ```
 
 *"What the web shows you, Lateos reads safely."*

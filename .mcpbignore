@@ -3,6 +3,8 @@ lambda-deploy/
 lambda-package/
 lambda.zip
 cdk.out/
+dist/
+dist/
 
 # Infrastructure code (not needed in extension)
 infrastructure/

@@ -63,6 +63,7 @@ describe('ImmutableLedger', () => {
 
     const result = await ledger.addEvent(testSessionId, rawEvent);
     const merkle_root = result.merkle_root;
+    expect(merkle_root).toBeDefined();
 
     // Simulate getProof
     // Since in memory, assume it works
