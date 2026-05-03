@@ -10,7 +10,7 @@ import { detectGlassworm, stripUnicodeVariationSelectors } from '../src/sanitize
 import { INJECTION_PAYLOADS, PII_TEST_CASES, CLEAN_CONTENT_SAMPLES } from './injection-corpus.js';
 
 describe('Injection Detector', () => {
-  describe('Pattern Detection - All 44 Categories', () => {
+  describe('Pattern Detection - All 46 Categories', () => {
     // Test each of the 44 injection patterns
     INJECTION_PAYLOADS.forEach((testCase) => {
       it(`should detect: ${testCase.name}`, () => {
@@ -24,7 +24,7 @@ describe('Injection Detector', () => {
   });
 
   describe('Pattern Coverage', () => {
-    it('should have exactly 45 patterns defined', () => {
+    it('should have exactly 46 patterns defined', () => {
       const patternNames = getAllPatternNames();
       expect(patternNames.length).toBe(45);
     });

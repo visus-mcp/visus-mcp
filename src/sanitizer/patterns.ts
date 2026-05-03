@@ -482,20 +482,14 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     severity: 'critical',
     action: 'strip',
   },
+  // 46. SQL Injection Vectors (Mitigates CVE-2026-42208: LiteLLM pre-auth SQLi via Authorization header)
   {
-    name: 'ipi_021_assistant_voice_declaration',
-    description: 'Explicit assistant-voice self-declaration in third-party web content — synthetic model identity claim intended for prefill injection into API messages array',
-    regex: /\b(as\s+your\s+ai\s+assistant[,]?\s+i\s+(will|can|have|am)\b|the\s+(ai|assistant)\s+confirms\b|i\s+\(the\s+(assistant|ai)\)\s+will\b|as\s+the\s+ai[,]?\s+i\s+have\s+decided\b|assistant\s*:\s*(sure|of\s+course|absolutely|certainly)\b)/gi,
+    name: 'sql_injection_vectors',
+    description: 'Detects common SQL injection payloads including classic SQLi, comments, and execution attempts. Addresses CVE-2026-42208 where Authorization headers enable pre-auth SQLi for credential exfiltration in LiteLLM v1.81.16–1.83.6.',
+    regex: /(?:['";](\s*(?:OR|AND)\s+['"]?1['"]?(?:\s+['"]?=\s+['"]?)?)|UNION\s+(?:ALL\s+)?SELECT|DROP\s+(?:TABLE|DATABASE)|INSERT\s+INTO|UPDATE\s+(?:SET|FROM)|DELETE\s+(?:FROM|WHERE)|EXEC(?:UTE)?\s+(?:SP|XP)|CONCAT(?:ENATE)?\s*\(|--.*|\/\*.*?\*\/)/gi,
     severity: 'critical',
-    action: 'strip',
+    action: 'redact'
   },
-  {
-    name: 'ipi_021_json_role_fragment',
-    description: 'JSON messages-array assistant role fragment embedded in web content — likely a smuggled API payload attempting structural prefill injection via messages role field',
-    regex: /["']role["']\s*:\s*["']assistant["']|role\s*:\s*["']assistant["']/gi,
-    severity: 'critical',
-    action: 'strip',
-  }
 ];
 
 /**

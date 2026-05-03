@@ -39,7 +39,7 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     return Err(new Error('Invalid input: url must be a non-empty string'));
   }
 
-  // Runtime param scanning for command injection in URL/options
+  // Runtime param scanning for command injection and SQLi in URL/options
   const paramsForScan = { 
     command: url, 
     args: typeof input.options === 'object' ? Object.values(input.options || {}) : [], 
@@ -47,6 +47,15 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
   };
   const detection: DetectionResult = detectCommandInjection(paramsForScan);
   if (detection.totalScore > 5) {
+    return Err(new Error(`Potential injection detected in fetch input (risk score: ${detection.totalScore}). Blocked for safety.`));
+  }
+
+  // Additional SQLi scan on URL specifically (CVE-2026-42208 mitigation)
+  const urlScan = detectAndNeutralize(url);
+  if (urlScan.patterns_detected.includes('sql_injection_vectors')) {
+    console.error('[SECURITY] SQL injection vectors detected in URL, blocking request:', urlScan.patterns_detected);
+    return Err(new Error('SQL injection detected in URL parameters (CVE-2026-42208 mitigation). Request blocked for security.'));
+  }
     console.error('[SECURITY] Command injection risk in fetch params:', detection);
     return Err(new Error(`Potential injection detected in fetch input (risk score: ${detection.totalScore}). Blocked for safety.`));
   }

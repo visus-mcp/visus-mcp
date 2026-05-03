@@ -129,7 +129,7 @@ threat_summary: {
 
 When detected, all variation selectors are automatically stripped from content before delivery to an MCP-compatible AI agent.
 
-### 45 Injection Pattern Categories
+### 46 Injection Pattern Categories
 
 Visus detects and neutralizes:
 
@@ -144,7 +144,8 @@ Visus detects and neutralizes:
 - **Jailbreak keywords** — DAN mode, developer override
 - **Token smuggling** — Special tokens like `<|im_start|>`
 - **Social engineering** — Urgency language to bypass caution
-- ... and 32 more categories (+20 MCP command injection/tool poisoning in v0.27.0)
+- **SQL Injection Vectors** — Detects CVE-2026-42208 (LiteLLM v1.81.16–1.83.6) payloads like `' OR 1=1 --` and `UNION SELECT` in content/headers for credential exfiltration prevention (NEW v0.27.0)
+- ... and 31 more categories (+20 MCP command injection/tool poisoning in v0.27.0)
 
 [See full list in SECURITY.md](./SECURITY.md)
 

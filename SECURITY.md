@@ -35,7 +35,7 @@ Attacker → Compromised Website → MCP Tool → Claude (VULNERABLE)
 
 ---
 
-## Injection Detection: 45 Pattern Categories + MCP ConfigScan
+## Injection Detection: 46 Pattern Categories + MCP ConfigScan (includes CVE-2026-42208 SQLi Detection)
 
 Visus scans all web content against 45 validated injection pattern categories before delivering it to the LLM. **NEW in v0.26.0: `visus_scan_mcp` pre-spawn validator for MCP transports (focus STDIO RCE).**
 

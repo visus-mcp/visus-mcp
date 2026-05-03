@@ -14,6 +14,7 @@ const RISK_PATTERNS = {
   rce_node: /child_process\.spawn\s*\(\s*['&quot;]sh['&quot;]/i,
   rce_python: /subprocess\.Popen\s*\(\s*shell=True|os\.system/i,
   unsafe_flags: /--allow-run|--no-sandbox|--disable-web-security/i,
+  sql_injection: /(union\s+select|or\s+1=1|--|\/\*\*)/i, // CVE-2026-42208 SQLi patterns
   high_entropy: 4.5 // Threshold
 } as const;
 
@@ -71,6 +72,7 @@ function getRelevantSanitizerPatterns(): string[] {
     p.name.includes('code_execution') || 
     p.name.includes('file_system') || 
     p.name.includes('credential') ||
+    p.name === 'sql_injection_vectors' || // CVE-2026-42208
     p.severity === 'critical'
   ).map(p => p.name);
 }
@@ -104,7 +106,7 @@ function scanString(str: string, location: string): {
 
   // Sanitizer for relevant patterns
   const sanitizerResult = detectAndNeutralize(str);
-  const relevantPatterns = sanitizerResult.patterns_detected.filter(p => getRelevantSanitizerPatterns().includes(p));
+  const relevantPatterns = sanitizerResult.patterns_detected.filter(p => getRelevantSanitizerPatterns().includes(p) || p === 'sql_injection_vectors');
   localScore += relevantPatterns.length * 4;
 
   return { riskFindings, sanitizerResult, localScore, relevantPatterns };
