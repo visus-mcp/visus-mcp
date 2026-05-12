@@ -1859,7 +1859,9 @@ Visus does not retain any data. All processing is stateless and ephemeral.
 
 None. Visus does not share data with any third party.
 
-### Contact
+---
+
+
 
 For privacy questions or concerns:
 - Email: leo@lateos.ai
