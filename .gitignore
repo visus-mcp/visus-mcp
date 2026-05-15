@@ -14,11 +14,10 @@ system-ca-bundle.pem
 .mcpregistry_github_token
 .mcpregistry_registry_token
 
-# Troubleshooting logs
-TROUBLESHOOT-*.md
+# Root-level troubleshooting logs only (new convention: docs/troubleshoot/)
+/TROUBLESHOOT-*.md
 
 # Lambda deployment artifacts
 lambda-deploy/
 lambda-package/
 lambda.zip
-

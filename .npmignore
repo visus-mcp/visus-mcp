@@ -32,14 +32,13 @@ jest.setup.js
 *.swo
 *~
 
-# Documentation that's not needed in npm package
-TROUBLESHOOT-*.md
-VISUS-*.md
-LINKEDIN-STRATEGY.md
+# Documentation not needed in npm package
+docs/internal/
+docs/legal/
+docs/troubleshoot/
 CONTRIBUTING.md
 ROADMAP.md
-SECURITY-AUDIT-*.md
-SUBMISSION.md
+ENTERPRISE.md
 
-# Security test files (these are for development only)
+# Security test files (for development only)
 security/
