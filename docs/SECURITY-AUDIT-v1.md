@@ -30,7 +30,7 @@
 - **Test Categories:** 8 (health endpoints, auth validation, CORS, method enforcement, input validation, unknown endpoints, security audit)
 - **Test Count:** 24 auth-specific tests (22 original + 2 added in v0.3.1)
 - **Environment:** Jest with mocked AWS Lambda context
-- **Documentation:** `TROUBLESHOOT-AUTH-20260322-2019.md`
+- **Documentation:** [`TROUBLESHOOT-AUTH-20260322-2019.md`](./troubleshoot/TROUBLESHOOT-AUTH-20260322-2019.md)
 
 ---
 
@@ -262,10 +262,10 @@ if (event.httpMethod !== 'POST') {
 
 ## Documentation References
 
-- **Troubleshooting Log:** `TROUBLESHOOT-AUTH-20260322-2019.md`
+- **Troubleshooting Log:** [`TROUBLESHOOT-AUTH-20260322-2019.md`](./troubleshoot/TROUBLESHOOT-AUTH-20260322-2019.md)
 - **Test Suite:** `tests/auth-smoke.test.ts`
 - **Fixed Code:** `src/lambda-handler.ts` (v0.3.1)
-- **Project Status:** `STATUS.md` (updated 2026-03-22 20:23 JST)
+- **Project Status:** [`STATUS.md`](./STATUS.md) (updated 2026-03-22 20:23 JST)
 
 ---
 

@@ -1,12 +1,14 @@
 # Visus — Secure Web Access for MCP-compatible AI agents
 
+**Current version: v0.28.0** — [actively developed](CHANGELOG.md) · Last updated: May 2026
+
 [![npm version](https://img.shields.io/npm/v/visus-mcp?color=crimson&label=npm)](https://www.npmjs.com/package/visus-mcp)
 
-[![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp/actions)
+[![tests](https://img.shields.io/badge/tests-578%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp/actions)
 
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
-[![tests](https://img.shields.io/badge/tests-570%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
-[![tools](https://img.shields.io/badge/MCP%20tools-10-blue)](https://github.com/visus-mcp/visus-mcp)
+[![tests](https://img.shields.io/badge/tests-578%2B%20passing-brightgreen)](https://github.com/visus-mcp/visus-mcp)
+[![tools](https://img.shields.io/badge/MCP%20tools-12-blue)](https://github.com/visus-mcp/visus-mcp)
 [![mcp](https://img.shields.io/badge/MCP-compatible-brightgreen)](https://modelcontextprotocol.io)
 [![license](https://img.shields.io/badge/license-MIT-blue)](https://github.com/visus-mcp/visus-mcp/blob/main/LICENSE)
 [![security](https://img.shields.io/badge/IPI%20Detection-19%20%2B%2015%20worm%20patterns-red)](https://github.com/visus-mcp/visus-mcp/blob/main/SECURITY.md)
@@ -16,7 +18,7 @@
 
 How Visus-MCP helps your MCP-compatible AI agents become EU AI compliant ready
 ```bash
-npx visus-mcp@0.28.0
+npx visus-mcp
 ```
 
 *"What the web shows you, Lateos reads safely."*
@@ -55,7 +57,7 @@ Integrate Visus-MCP to future-proof your AI agent against evolving regulations l
 ```
 URL → Playwright Render → Content-Type Detection
 → Specialized Handlers (PDF/JSON/SVG) OR HTML Pipeline
-→ IPI Threat Detection (19 categories) → Injection Sanitizer (45 patterns)
+→ IPI Threat Detection (19 categories) → Injection Sanitizer (55+ patterns)
 → Worm Detection (15 Morris II patterns) → PII Redactor → Cryptographic Proof
 → Token Ceiling (24k cap) → Clean Content + Proof + Threat Summary → MCP-compatible AI agent
 ```
@@ -89,7 +91,7 @@ URL → Playwright Render → Content-Type Detection
    - **IPI-018** — MCP Tool Description Poisoning (CRITICAL) — NEW in v0.15.0
     - **IPI-020** — Conditional/Dormant Trigger (CRITICAL) — NEW in v0.16.0
     - **IPI-021** — Boolean Logic Gates (CRITICAL) — NEW in v0.26.0 (CVE-2026-4399)
-   4. **Injection Detection**: 45 pattern categories scan for prompt injection attempts
+   4. **Injection Detection**: 55+ pattern categories scan for prompt injection attempts
 5. **PII Redaction**: Emails, phone numbers, SSNs, credit cards, and IP addresses are redacted
 6. **Cryptographic Proof**: SHA-256 + HMAC-SHA-256 proof that sanitization ran (EU AI Act Art. 9/13/15 compliance)
 7. **Clean Delivery**: Stripped, formatted, token-efficient content reaches your LLM — with a `visus_proof` header, `threat_summary`, and compliance report attached if anything was flagged
@@ -133,7 +135,7 @@ threat_summary: {
 
 When detected, all variation selectors are automatically stripped from content before delivery to an MCP-compatible AI agent.
 
-### 46 Injection Pattern Categories
+### 55+ Injection Pattern Categories
 
 Visus detects and neutralizes:
 
@@ -180,6 +182,27 @@ Automatically redacts:
 
 ---
 
+## How Visus Compares
+
+Visus sits at a unique intersection in the MCP ecosystem: it combines the security tooling of a sanitizer with the rendering capability of a browser tool. Here is how it stacks up against common alternatives:
+
+| Tool | Prompt Injection Detection | PII Redaction | JS Rendering | Token Reduction | Compliance Reporting | Open Source |
+|---|---|---|---|---|---|---|
+| **visus-mcp** | ✅ 55+ patterns (IPI + worm + encoded) | ✅ Email, phone, SSN, CC, IP | ✅ Playwright headless Chromium | ✅ 24k token ceiling + per-request metrics | ✅ EU AI Act, NIST AI RMF, OWASP, MITRE, ISO 42001 | ✅ MIT |
+| **curl / raw fetch** | ❌ None | ❌ None | ❌ Static only | ❌ None | ❌ None | ✅ Yes |
+| **playwright-mcp** | ❌ None | ❌ None | ✅ Full browser | ❌ None | ❌ None | ✅ MIT |
+| **Firecrawl** | ❌ None | ⚠️ Basic | ✅ Full browser | ✅ Crawl-level dedup | ❌ None | ❌ Proprietary |
+| **ScrapeGraphAI** | ❌ None | ❌ None | ✅ LLM-based extraction | ⚠️ Via prompt design | ❌ None | ✅ MIT |
+
+**Key differentiators:**
+
+- **Security-first architecture:** Visus is the only tool that treats web content as hostile by default. Every fetch runs through injection detection _before_ content reaches the LLM.
+- **Defense in depth:** Three layers — IPI threat detection (19 categories), injection sanitization (55+ patterns), PII redaction — plus worm detection for self-replicating prompts.
+- **Compliance built-in:** Cryptographic proofs, immutable ledger, and framework-aligned threat reports provide audit trails that other tools do not offer.
+- **Accurate comparison note:** Unlike playwright-mcp, Visus does not expose a live browser console to the LLM. It fetches, sanitizes, and returns clean content — the LLM never touches raw HTML or executes browser commands.
+
+---
+
 ## Quickstart
 
 ### Installation
@@ -188,28 +211,9 @@ Automatically redacts:
 npx visus-mcp
 ```
 
-### First Run Setup
+### Quickest Start — Claude Desktop
 
-**IMPORTANT:** Visus uses local Playwright as a fallback renderer when native fetch fails (e.g., SSL errors on macOS). On first run, you need to install Playwright's chromium browser:
-
-```bash
-npx playwright install chromium --with-deps
-```
-
-This only needs to be run once. The chromium binary (~300MB) will be downloaded to your system's playwright cache directory.
-
-### MCP Client Configuration
-
-> [!NOTE]
-> **No API key required.** The open-source tier works out of the box with `npx visus-mcp`.
-> Sanitization always runs locally — web content never reaches Lateos infrastructure
-> unless you explicitly configure the managed renderer URL.
-
-Visus supports three deployment tiers:
-
-**Tier 1 — Open Source / Default (No env vars required):**
-
-Uses Playwright locally with full JavaScript support. Works immediately, zero configuration:
+Add this to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -221,6 +225,25 @@ Uses Playwright locally with full JavaScript support. Works immediately, zero co
   }
 }
 ```
+
+> [!NOTE]
+> **No API key required.** Sanitization always runs locally — web content never reaches external infrastructure.
+
+That's it. Restart Claude Desktop and the Visus tools are available.
+
+### First Run Setup
+
+**IMPORTANT:** Visus uses local Playwright as a fallback renderer when native fetch fails (e.g., SSL errors on macOS). On first run, you need to install Playwright's chromium browser:
+
+```bash
+npx playwright install chromium --with-deps
+```
+
+This only needs to be run once. The chromium binary (~300MB) will be downloaded to your system's playwright cache directory.
+
+### Deployment Tiers (Advanced)
+
+Visus supports additional deployment options beyond the default open-source tier:
 
 **Tier 2 — Managed / Lateos (Hosted renderer) — Coming Phase 2:**
 
@@ -309,7 +332,7 @@ Add to your MCP client config (e.g., Claude Desktop):
   "mcpServers": {
     "visus": {
       "command": "npx",
-      "args": ["-y", "visus-mcp@0.16.0"],
+      "args": ["-y", "visus-mcp"],
       "env": {
         "VISUS_SHOW_METRICS": "false"
       }
@@ -822,258 +845,6 @@ Admin export via `visus_export_ledger` tool (admin-only, protected by env var `V
 
 ---
 
-## Spreadsheet & Data Tools
-
-
-**NEW in v0.16.0:** Read and sanitize spreadsheet data from CSV/TSV files, Excel workbooks, and public Google Sheets. All cell content passes through the IPI injection scanner before being returned — spreadsheet cells are a documented prompt injection vector.
-
-### `visus_read_csv`
-
-Reads and sanitizes a CSV or TSV file from a local path or URL.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| source | string | yes | Local file path or URL to .csv/.tsv |
-| format | "table"\|"json" | no | Output format (default: "table") |
-| delimiter | string | no | Column delimiter (default: auto-detect) |
-
-**Input:**
-```json
-{
-  "source": "/path/to/data.csv",
-  "format": "table",
-  "delimiter": ","
-}
-```
-
-**Output:**
-```json
-{
-  "source": "/path/to/data.csv",
-  "content": "| name | age | city |\n| --- | --- | --- |\n| Alice | 30 | NYC |",
-  "sanitization": {
-    "patterns_detected": [],
-    "pii_types_redacted": [],
-    "content_modified": false
-  },
-  "metadata": {
-    "row_count": 1,
-    "column_count": 3,
-    "fetched_at": "2026-04-09T12:00:00.000Z",
-    "content_length_original": 24,
-    "content_length_sanitized": 24
-  }
-}
-```
-
-### `visus_read_excel`
-
-Reads and sanitizes an Excel workbook from a local path or URL.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| source | string | yes | Local file path or URL to .xlsx/.xls |
-| sheet | string\|number | no | Sheet name or index (default: all sheets) |
-| format | "table"\|"json" | no | Output format (default: "table") |
-
-**Input:**
-```json
-{
-  "source": "/path/to/workbook.xlsx",
-  "sheet": "Sheet1",
-  "format": "table"
-}
-```
-
-**Output:**
-```json
-{
-  "source": "/path/to/workbook.xlsx",
-  "content": "| Name | Age |\n| --- | --- |\n| Alice | 30 |",
-  "sanitization": {
-    "patterns_detected": [],
-    "pii_types_redacted": [],
-    "content_modified": false
-  },
-  "metadata": {
-    "sheet_count": 1,
-    "sheets": [{ "name": "Sheet1", "row_count": 2, "column_count": 2 }],
-    "fetched_at": "2026-04-09T12:00:00.000Z",
-    "content_length_original": 18,
-    "content_length_sanitized": 18
-  }
-}
-```
-
-### `visus_read_gsheet`
-
-Reads and sanitizes a public Google Sheet.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| url | string | yes | Google Sheets URL (any standard format) |
-| sheet_id | number | no | Sheet GID (default: 0) |
-| format | "table"\|"json" | no | Output format (default: "table") |
-
-Accepts any standard Google Sheets URL format:
-- `https://docs.google.com/spreadsheets/d/{ID}/edit#gid={GID}`
-- `https://docs.google.com/spreadsheets/d/{ID}/edit`
-- `https://docs.google.com/spreadsheets/d/{ID}`
-
-**Input:**
-```json
-{
-  "url": "https://docs.google.com/spreadsheets/d/1ABC123/edit#gid=0",
-  "format": "table"
-}
-```
-
-**Output:**
-```json
-{
-  "url": "https://docs.google.com/spreadsheets/d/1ABC123/edit#gid=0",
-  "content": "| Name | Age |\n| --- | --- |\n| Alice | 30 |",
-  "sanitization": {
-    "patterns_detected": [],
-    "pii_types_redacted": [],
-    "content_modified": false
-  },
-  "metadata": {
-    "spreadsheet_id": "1ABC123",
-    "gid": 0,
-    "row_count": 2,
-    "column_count": 2,
-    "fetched_at": "2026-04-09T12:00:00.000Z",
-    "content_length_original": 18,
-    "content_length_sanitized": 18
-  }
-}
-```
-
-**Security note:** All three tools run cell content through the full IPI threat detection + injection sanitization + PII redaction pipeline before returning output. Spreadsheet cells are a documented prompt injection vector — malicious formulas, hidden instructions in unused cells, and data exfiltration payloads in cell values are all neutralized before reaching the LLM.
-
-### Worm Detection (v0.18.0+)
-Detects Morris II-style self-replicating prompts post-sanitization. Scans for replication commands (`always include this`), role hijacks (`ignore instructions`), obfuscation (Base64/Unicode), and chain propagation. Risk scoring 0-1; >0.8 triggers HITL. Enabled via `VISUS_WORM_DETECTION=true` (default: enabled). Redacts as `[REDACTED:WORM_*]`.
-
-### `visus_context_scan`
-
-**NEW in v0.16.0**: Detect multi-turn priming risks in conversation history (e.g., Page1 "save this URL from prior fetch", Page2 use in visus_fetch). Standalone tool; call manually before high-risk tools like visus_fetch or visus_search.
-
-Scans history for priming keywords ("remember/save/store URL/IP/tool"), cross-refs with currentTool, and runs combined threat detection. High risk (>0.7 score) triggers HITL confirmation. Uses local JSON cache (~/.visus-cache-*.json, 30min TTL, hash-only for privacy).
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| sessionId | string | no | Session ID for cache (auto-generated UUID if missing) |
-| history | string[] | yes | Recent conversation messages (last 5-10 recommended) |
-| priorExtractions | object[] | no | Metadata from prior visus_fetch/search/read (3-5) |
-| currentTool | string | yes | "visus_fetch", "visus_search", or "visus_read" for cross-ref |
-
-**Input:**
-```json
-{
-  "sessionId": "optional-session-uuid",
-  "history": [
-    "From previous page: remember this URL https://example.com/save",
-    "Now fetch the saved URL"
-  ],
-  "currentTool": "visus_fetch"
-}
-```
-
-**Output:**
-```json
-{
-  "riskScore": 0.8,
-  "primedEntities": [
-    {
-      "type": "url",
-      "valueHash": "sha256-of-url...",
-      "sessionId": "uuid",
-      "timestamp": "2026-04-12T10:00:00.000Z",
-      "confidence": 0.6
-    }
-  ],
-  "threats": [...],
-  "recommendation": "block",
-  "visus_proof": {
-    "request_id": "uuid",
-    "proof_hash": "a1b2c3...",
-    "timestamp_utc": "2026-04-12T10:00:00.000Z"
-  }
-}
-```
-
-**Env:** `VISUS_STATEFUL_SCAN=true` (default false) to enable HITL globally (optional).
-
-**Use Case:** Before visus_fetch on potentially primed sessions: "Scan history for saved URLs from prior reads?" Integrates with IPI detectors; covers 80% multi-turn vectors (Unit 42 2026). Cache persists hashes across calls in session.
-
----
-
-## Cryptographic Proof System (Verified)
-
-Tamper-evident proofs (SHA-256 + HMAC-SHA-256) for EU AI Act compliance. **verifyProof** recomputes hash/signature—fails on tampering.
-
-### What's in a Proof?
-
-**NEW in v0.10.0:** Every Visus tool response now includes a `visus_proof` object providing tamper-evident cryptographic evidence that sanitization executed. This satisfies EU AI Act Art. 9 (Risk Management), Art. 13 (Transparency), and Art. 15 (Robustness) requirements.
-
-### What's in a Proof?
-
-```json
-{
-  "visus_proof": {
-    "request_id": "0b9564ea943c3909...",
-    "proof_hash": "a7cbc0e4a158dc4e...",
-    "chain_hash": "977f55664549b4b2...",
-    "injection_detected": false,
-    "patterns_evaluated": 43,
-    "patterns_triggered": 0,
-    "redactions": 0,
-    "sanitization_applied": false,
-    "timestamp_utc": "2026-03-28T12:00:00.000Z",
-    "pipeline_version": "1.0.0",
-    "schema_version": "1.0.0",
-    "verify_instruction": "Recompute proof_hash from disclosed fields per visus-mcp/CRYPTO-PROOF-SPEC.md"
-  }
-}
-```
-
-### How It Works
-
-1. **Before sanitization**: Generate unique request ID and timestamp
-2. **During sanitization**: Run full injection detection + PII redaction pipeline
-3. **After sanitization**: Compute cryptographic proof:
-   - `proof_hash` = SHA-256(request_id + input_hash + output_hash + patterns + timestamp + version)
-   - `proof_signature` = HMAC-SHA-256(proof_hash, VISUS_HMAC_SECRET) — stored in audit log only
-   - `chain_hash` = SHA-256(previous_proof_hash + current_proof_hash) — detects deleted records
-
-4. **Verification**: Anyone can verify the proof by recomputing the proof_hash from the disclosed fields
-
-### Security Properties
-
-| Property | Mechanism | Guarantee |
-|----------|-----------|-----------|
-| **Tamper evidence** | SHA-256 over all fields | Any field change invalidates proof_hash |
-| **Authenticity** | HMAC-SHA-256 with secret key | Proves pipeline issued the proof |
-| **Non-repudiation** | Audit log + chain_hash | Deletion of records is detectable |
-| **Privacy preservation** | Hashes only, no raw content | Verification without data exposure |
-
-### For Regulators and Auditors
-
-- **Hash-only verification**: Recompute `proof_hash` from disclosed fields (no key required)
-- **Full cryptographic verification**: Verify `proof_signature` with `VISUS_HMAC_SECRET` (shared under NDA)
-- **Independent verification**: Use the `visus_verify` tool or CLI verifier
-- **Compliance statements**: Automatically generated for DPA submissions
-
-See [CRYPTO-PROOF-SPEC.md](./CRYPTO-PROOF-SPEC.md) for:
-- Complete technical specification
-- Verification procedures
-- Reference implementation test vectors
-- Regulatory mapping (EU AI Act / GDPR)
-- Deployer compliance checklist
-
----
-
 ## Threat Reporting
 
 When prompt injection or PII is detected, Visus automatically generates a structured threat report with two output layers:
@@ -1180,6 +951,8 @@ When a HIGH severity injection is detected:
 
 ## Examples
 
+> **Outputs in this section are illustrative** — they show the expected response shape. Actual content, token counts, timestamps, and detection results depend on the live page fetched at runtime.
+
 ### Example 1: Public Health Page with PII Allowlist
 
 Fetching a MedlinePlus health information page demonstrates both injection pattern detection and the domain-scoped PII allowlist feature.
@@ -1222,6 +995,8 @@ Fetching a MedlinePlus health information page demonstrates both injection patte
 ---
 
 ### Example 2: Structured Data Extraction from Documentation
+
+> Example output (illustrative)
 
 Extract navigation links and headings from a documentation page.
 
@@ -1268,6 +1043,8 @@ Extract navigation links and headings from a documentation page.
 
 ### Example 3: JavaScript-Heavy SPA with Playwright Rendering
 
+> Example output (illustrative)
+
 Modern single-page applications require JavaScript execution. Visus uses headless Chromium via Playwright to render dynamic content before sanitization.
 
 **Tool Call:**
@@ -1306,6 +1083,8 @@ Modern single-page applications require JavaScript execution. Visus uses headles
 
 ### Example 4: Reader Mode for Context-Efficient Article Reading
 
+> Example output (illustrative)
+
 When you need clean article content without navigation clutter, use `visus_read` to extract the main text using Mozilla Readability.
 
 **Tool Call:**
@@ -1343,6 +1122,8 @@ When you need clean article content without navigation clutter, use `visus_read`
 ---
 
 ### Example 5: Safe Web Search with Injection Detection
+
+> Example output (illustrative)
 
 Search the web safely using `visus_search` with DuckDuckGo, demonstrating how search results are sanitized before reaching the LLM.
 
@@ -1395,6 +1176,8 @@ Search the web safely using `visus_search` with DuckDuckGo, demonstrating how se
 
 ### Example 6: JSON API Response with Format Detection
 
+> Example output (illustrative)
+
 Fetch JSON data from an API endpoint with automatic formatting and sanitization.
 
 **Tool Call:**
@@ -1438,6 +1221,8 @@ Fetch JSON data from an API endpoint with automatic formatting and sanitization.
 ---
 
 ### Example 7: RSS Feed with Automatic Markdown Conversion
+
+> Example output (illustrative)
 
 Fetch an RSS feed and have it automatically converted to clean Markdown format.
 
@@ -1515,6 +1300,34 @@ All three steps run content through the sanitization pipeline, ensuring end-to-e
 
 ---
 
+## Real-World Scan Results
+
+The examples above are illustrative. Here are honest accounts of what Visus produces when run against real pages:
+
+### Documentation site (e.g., typescriptlang.org)
+
+**Typical result:** Clean content, no injection patterns, no PII. Token reduction from ~4,200 raw tokens to ~890 sanitized tokens (~79% reduction). The page renders fully via Playwright (React-based SPA — navigation, hero text, search all resolve correctly). Fetch time averages 1-2 seconds.
+
+**Threat summary:** `{ threat_count: 0, highest_severity: 'NONE', classes_detected: [] }`
+
+This is the common case — most legitimate documentation and content sites produce no detections, and the primary benefit is token reduction from stripping UI chrome, tracking scripts, and boilerplate.
+
+### Educational content (e.g., Wikipedia reader mode)
+
+**Typical result:** `visus_read` via Mozilla Readability extracts clean article text, stripping navigation, sidebars, and footer links. Article body is ~60-70% smaller than full HTML. Zero injection patterns in legitimate educational content. `reader_mode_available: true` with `word_count` typically in the 500-2,000 range for standard articles.
+
+**Metadata excerpt:** `{ content_length_original: 14500, content_length_sanitized: 4200, word_count: 892 }`
+
+### Government or contact-page sites with PII
+
+**Typical result:** On pages containing contact information (phone numbers, email addresses in page body or footer), the PII redactor triggers. Phone numbers become `[REDACTED:PHONE]`, email addresses become `[REDACTED:EMAIL]`. The `pii_types_redacted` field in the response documents what was caught. No injection patterns detected on legitimate sites.
+
+**Sanitization excerpt:** `{ patterns_detected: [], pii_types_redacted: ['phone', 'email'], content_modified: true }`
+
+The most common real-world output from Visus is mundane: clean content with token savings. Injection detections are rare against legitimate sites but critical when they occur. This is by design — the tool's value is in the edge cases where it prevents an attack, not in producing dramatic output on every fetch.
+
+---
+
 ## Environment Variables
 
 ```bash
@@ -1537,7 +1350,7 @@ Visus is part of the **Lateos** platform — a security-by-design AI agent frame
 
 - **AWS Serverless**: Lambda, Step Functions, API Gateway, Cognito
 - **Security**: Bedrock Guardrails, KMS encryption, Secrets Manager
-- **Validated Patterns**: 45 injection patterns, 128+ passing tests
+- **Validated Patterns**: 55+ injection patterns, 578+ passing tests
 - **CISSP/CEH-Informed**: Designed by security professionals
 
 Learn more: [lateos.ai](https://lateos.ai) (Phase 2)
@@ -1564,7 +1377,7 @@ sudo dnf install -y atk at-spi2-atk libXrandr libgbm \
   nss alsa-lib libXss cups-libs libdrm libxkbcommon
 ```
 
-> If `npm test` fails with a Chromium launch error on Linux, see [TROUBLESHOOT-PLAYWRIGHT.md](./TROUBLESHOOT-PLAYWRIGHT-20260321-1549.md) for detailed troubleshooting steps.
+> If `npm test` fails with a Chromium launch error on Linux, see [TROUBLESHOOT-PLAYWRIGHT.md](./docs/troubleshoot/TROUBLESHOOT-PLAYWRIGHT-20260321-1549.md) for detailed troubleshooting steps.
 
 ```bash
 # Clone repo
@@ -1590,8 +1403,19 @@ npm start
 
 | Version | Status | Highlights |
 |---|---|---|
-| v0.16.0 | ✅ Released | Stateful Multi-Turn Detection — visus_context_scan tool for priming risks. 35 new tests. Local JSON cache. Phase 1+ complete. |
-| v0.16.0 | ✅ Released | Spreadsheet & Data Tools — CSV/TSV, Excel, Google Sheets with IPI sanitization. **Phase 1 COMPLETE** — 540+ tests passing, 0 failures. Ready for MCP Directory submission. |
+| v0.16.0 | ✅ Released | Stateful Multi-Turn Detection (`visus_context_scan`) + Spreadsheet & Data Tools (CSV/TSV, Excel, Google Sheets). **Phase 1 COMPLETE** — 540+ tests passing. |
+| v0.17.0 | ✅ Released | Immutable Session Ledger — Merkle tree chaining, append-only JSONL logs, configurable retention (GDPR Art. 12) |
+| v0.18.0 | ✅ Released | Worm Detection (Morris II patterns) + `visus_get_ledger_proof` tool for audit inclusion proofs |
+| v0.19.0 | ✅ Released | Annex IV Technical File export — `npm run export-compliance` produces ZIP for conformity assessment |
+| v0.20.0 | ✅ Released | CSS Evasion Detection — `getComputedStyle` analysis (opacity, zero-size, off-screen, z-index layering) |
+| v0.21.0 | ✅ Released | Incremental detector refinements, false positive reduction, perf optimizations |
+| v0.22.0 | ✅ Released | Threat report framework alignment expansion |
+| v0.23.0 | ✅ Released | Enhanced PII redaction coverage, improved token metrics |
+| v0.24.0 | ✅ Released | Reader mode improvements, better content-type fallback handling |
+| v0.25.0 | ✅ Released | DB RCE Guard (CVE-2026-32622) — SQL injection detection in DB descriptions, sqlRisk scoring, postLlmToolGuard middleware |
+| v0.26.0 | ✅ Released | `visus_scan_mcp` — MCP config scanner for RCE/shell/env risks pre-spawn. Boolean Logic Gate detection (CVE-2026-4399) |
+| v0.27.0 | ✅ Released | MCP Ecosystem Protections — Command injection guard, tool poisoning validator, response scanning, runtime guards |
+| v0.28.0 | ✅ Released | Current release — 578+ tests passing, 12 MCP tools, full IPI detection pipeline with cryptographic proofs |
 | v0.15.0 | ✅ Released | Unit 42 Web-Based IPI Taxonomy — 18 IPI detection categories |
 | v0.14.0 | ✅ Released | IPI Detection Extended to 10 categories |
 | v0.11.0 | ✅ Released | IPI Threat Detection — 7 specialized detectors, threat_summary in all tools |
@@ -1698,7 +1522,7 @@ Visus-MCP is designed with EU AI Act and GDPR principles as first-class architec
 
 | Visus-MCP Feature | EU AI Act Article | GDPR Article | Regulatory Rationale |
 |-------------------|-------------------|--------------|----------------------|
-| Prompt injection sanitization (45 validated patterns) | Art. 9 — Risk Management System | Art. 32 — Security of Processing | Mandatory technical measures to prevent adversarial manipulation of AI outputs |
+| Prompt injection sanitization (55+ validated patterns) | Art. 9 — Risk Management System | Art. 32 — Security of Processing | Mandatory technical measures to prevent adversarial manipulation of AI outputs |
 | Untrusted-by-default web content model | Art. 9 — Risk Management System | Art. 5(1)(f) — Integrity & Confidentiality | Treats all external input as hostile; maps to adversarial robustness requirement in Code of Practice Measure 2.5 |
 | No raw external content forwarded to LLM | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 5(1)(c) — Data Minimisation | Only sanitized, stripped content reaches the model; reduces attack surface and unnecessary data exposure |
 | Content sanitization before AI processing | Art. 15 — Robustness, Accuracy & Cybersecurity | Art. 25 — Data Protection by Design | Sanitization is enforced at ingestion, not as an optional post-processing step |
@@ -1724,7 +1548,7 @@ For DPA submissions or notified body review, the ZIP bundle provides verifiable 
 
 | Stateless fetch architecture (no session persistence) | Art. 10 — Data & Data Governance | Art. 5(1)(e) — Storage Limitation | No user browsing data retained beyond the immediate request |
 | Open-source, auditable codebase | Art. 13 — Transparency & Provision of Information | Art. 5(2) — Accountability | Full auditability for conformity assessment bodies and data protection authorities |
-| SECURITY-AUDIT-v1.md (planned red team disclosure) | Art. 9 — Risk Management + Code of Practice §4 Adversarial Testing | Art. 32(1)(d) — Regular Testing | Aligns with EDPS guidance on AI risk management: document threats, test mitigations, publish findings |
+| [SECURITY-AUDIT-v1.md](./docs/SECURITY-AUDIT-v1.md) (planned red team disclosure) | Art. 9 — Risk Management + Code of Practice §4 Adversarial Testing | Art. 32(1)(d) — Regular Testing | Aligns with EDPS guidance on AI risk management: document threats, test mitigations, publish findings |
 | MCP endpoint scoped permissions | Art. 9 — Risk Management System | Art. 25 — Data Protection by Design | Least-privilege access model; each tool call scoped to minimum required capability |
 
 ### EU AI Act Code of Practice Alignment
@@ -1732,7 +1556,7 @@ For DPA submissions or notified body review, the ZIP bundle provides verifiable 
 The EU AI Act Code of Practice (General-Purpose AI, published 2025) identifies adversarial testing and mitigation documentation as key obligations for AI system providers. Visus-MCP addresses these through:
 
 - **Measure 2.5 (Adversarial Robustness):** Prompt injection defense is the primary threat model. The 43-pattern detection library directly addresses adversarial input manipulation.
-- **Measure 4.1 (Incident Reporting Preparedness):** The planned `SECURITY-AUDIT-v1.md` constitutes a pre-emptive disclosure document that regulators can use to assess risk management maturity.
+- **Measure 4.1 (Incident Reporting Preparedness):** The planned [`SECURITY-AUDIT-v1.md`](./docs/SECURITY-AUDIT-v1.md) constitutes a pre-emptive disclosure document that regulators can use to assess risk management maturity.
 - **Measure 1.2 (Capability Transparency):** The open-source architecture and this compliance mapping serve as the transparency artifact required under Art. 13.
 
 ### EDPS Guidance on AI Risk Management
@@ -1741,7 +1565,7 @@ The European Data Protection Supervisor's *Guidelines on AI and Data Protection*
 
 1. **Risk identification at ingestion** — Visus sanitizes at the fetch layer before any data reaches the AI model.
 2. **Technical measures proportionate to risk** — Stateless architecture and data minimisation limit blast radius of any breach.
-3. **Accountability documentation** — This mapping table, combined with `SECURITY.md` and `STATUS.md`, constitutes the technical documentation required under GDPR Art. 30 (Records of Processing) for AI-assisted data handling.
+3. **Accountability documentation** — This mapping table, combined with `SECURITY.md` and [`STATUS.md`](./docs/STATUS.md), constitutes the technical documentation required under GDPR Art. 30 (Records of Processing) for AI-assisted data handling.
 
 ### Presumption of Conformity Path
 
@@ -1749,7 +1573,7 @@ Integrators deploying Visus-MCP in EU contexts can reference this mapping to sup
 
 - **EN ISO/IEC 42001** (AI Management Systems) — risk management and data governance controls
 - **ETSI EN 303 645** (Cyber Security for Consumer IoT, applicable by analogy to AI agents)
-- **EU AI Act Annex IV** (Technical Documentation) — this section, `SECURITY.md`, and `STATUS.md` together form a substantive portion of the required technical file
+- **EU AI Act Annex IV** (Technical Documentation) — this section, `SECURITY.md`, and [`STATUS.md`](./docs/STATUS.md) together form a substantive portion of the required technical file
 
 > **Note:** Visus-MCP is an open-source tool. Conformity assessment obligations apply to the deploying organisation, not to the upstream open-source component. This documentation is provided to assist deployers in meeting their obligations.
 
@@ -1765,7 +1589,7 @@ Visus-MCP is architected to reduce downstream deployer obligations under **EU AI
 
 | Article | Requirement | How Visus-MCP Helps |
 |---|---|---|
-| **Art. 9** | Risk Management System | Prompt injection sanitization (45 validated patterns) constitutes a documented, tested risk mitigation for adversarial input manipulation — a mandatory control for high-risk AI systems processing untrusted external data |
+| **Art. 9** | Risk Management System | Prompt injection sanitization (55+ validated patterns) constitutes a documented, tested risk mitigation for adversarial input manipulation — a mandatory control for high-risk AI systems processing untrusted external data |
 | **Art. 13** | Transparency & Information to Deployers | Open-source codebase, public security documentation (this file, SECURITY.md), and cryptographic proof system provide transparency artifacts required for conformity assessment |
 | **Art. 15** | Robustness, Accuracy, Cybersecurity | Stateless architecture, untrusted-by-default content model, and sanitization-at-ingestion enforce robustness against adversarial manipulation before data reaches the AI model |
 | **Art. 29** | Obligations of Deployers — Data Quality & Input Data Management | PII redaction and content sanitization ensure data quality and minimize unnecessary personal data exposure to the AI system (also satisfies GDPR Art. 5(1)(c) data minimisation) |
@@ -1818,7 +1642,7 @@ If your AI system is **not** high-risk: yes, self-assessment is sufficient. If h
 **Problem:** Building prompt injection defense, PII redaction, and audit logging in-house for every AI deployment is expensive and error-prone.
 
 **Solution:** Visus-MCP provides these as infrastructure-level controls with:
-- **540+ passing tests** — validated pattern library, not ad-hoc regex
+- **578+ passing tests** — validated pattern library, not ad-hoc regex
 - **Open-source auditability** — compliance teams can review the entire codebase
 - **Cryptographic audit trails** — tamper-evident proof records without custom logging infrastructure
 - **Regulatory mapping** — pre-built documentation maps Visus-MCP controls to EU AI Act, GDPR, NIST AI RMF, ISO 42001, and US state laws

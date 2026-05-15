@@ -250,7 +250,7 @@ Added three new detector methods following exact same interface as IPI-001 throu
 **Documentation:**
 - `README.md` - Updated badges, pipeline diagram, added IPI-008/009/010 descriptions
 - `STATUS.md` - This section
-- `TROUBLESHOOT-SANITIZER-20260404-0859.md` - Detailed troubleshooting log for sanitizer fixes
+- [`TROUBLESHOOT-SANITIZER-20260404-0859.md`](./troubleshoot/TROUBLESHOOT-SANITIZER-20260404-0859.md) - Detailed troubleshooting log for sanitizer fixes
 
 **Total Changes:** +651 lines, -8 lines across 7 core files, +2 documentation files
 
@@ -1023,7 +1023,7 @@ Added intelligent network error detection and automatic fallback to Lambda Playw
 
 **Documentation:**
 - Updated CHANGELOG.md with bug fix entry
-- Created TROUBLESHOOT-PDF-EXTRACTION-20260325-2040.md with full investigation log
+- Created [TROUBLESHOOT-PDF-EXTRACTION-20260325-2040.md](./troubleshoot/TROUBLESHOOT-PDF-EXTRACTION-20260325-2040.md) with full investigation log
 - Added inline comments explaining Buffer handling in all modified files
 
 ---
@@ -1167,7 +1167,7 @@ Updated test files:
 - `pdf-parse@2.4.5` - PDF text extraction library
 
 **Troubleshooting:**
-- Documented handler interface metadata loss issue in `TROUBLESHOOT-CONTENT-HANDLERS-20260325-1047.md`
+- Documented handler interface metadata loss issue in [`TROUBLESHOOT-CONTENT-HANDLERS-20260325-1047.md`](./troubleshoot/TROUBLESHOOT-CONTENT-HANDLERS-20260325-1047.md)
 - Root cause: Initial interface only had `sanitized_fields: number`, lost pattern names and PII types
 - Resolution: Expanded interface to include full `sanitization` object
 - Time to resolution: ~10 minutes
@@ -1810,7 +1810,7 @@ Returns clean article text with metadata, stripped of Wikipedia's navigation sid
 **Test Results:** ✅ 176/176 tests passing (14 new reader tests added)
 
 **Troubleshooting:**
-- Documented Jest ESM parsing issue with jsdom in `TROUBLESHOOT-JEST-20260323-1357.md`
+- Documented Jest ESM parsing issue with jsdom in [`TROUBLESHOOT-JEST-20260323-1357.md`](./troubleshoot/TROUBLESHOOT-JEST-20260323-1357.md)
 - Resolution: Mock reader module in tests to avoid importing jsdom
 - Time to resolution: 8 minutes
 
@@ -2300,7 +2300,7 @@ POST /render {"url": "https://medlineplus.gov/druginfo/meds/a682878.html"}
 **Test File:** `tests/auth-smoke.test.ts`
 **Results:** 24/24 tests passing (100%) - **2 resolution verification tests added in v0.3.1**
 **Execution Time:** ~2s
-**Documentation:** `TROUBLESHOOT-AUTH-20260322-2019.md`, `SECURITY-AUDIT-v1.md`
+**Documentation:** [`TROUBLESHOOT-AUTH-20260322-2019.md`](./troubleshoot/TROUBLESHOOT-AUTH-20260322-2019.md), [`SECURITY-AUDIT-v1.md`](./SECURITY-AUDIT-v1.md)
 
 #### Test Coverage (8 Categories)
 
@@ -2467,13 +2467,13 @@ POST /render {"url": "https://medlineplus.gov/druginfo/meds/a682878.html"}
 - Troubleshooting protocol
 - Phase 1 Definition of Done checklist
 
-### ✅ TROUBLESHOOT-BUILD-20260319-1450.md
+### ✅ [TROUBLESHOOT-BUILD-20260319-1450.md](./troubleshoot/TROUBLESHOOT-BUILD-20260319-1450.md)
 - Detailed recovery log from initial build issues
 - Platform compatibility analysis (macOS 26.1 ARM64)
 - Playwright dependency removal process
 - Native fetch implementation decision rationale
 
-### ✅ TROUBLESHOOT-TEST-20260320-0942.md
+### ✅ [TROUBLESHOOT-TEST-20260320-0942.md](./troubleshoot/TROUBLESHOOT-TEST-20260320-0942.md)
 - Test timeout investigation and resolution
 - iCloud sync root cause identification
 - Project relocation to non-iCloud directory
@@ -2502,7 +2502,7 @@ Checklist from CLAUDE.md:
 - 24 auth enforcement smoke tests passing (22 original + 2 resolution verification)
 - 2 findings identified (1 HIGH, 1 LOW)
 - ✅ **Both findings RESOLVED in v0.3.1**
-- See: `TROUBLESHOOT-AUTH-20260322-2019.md`, `SECURITY-AUDIT-v1.md`
+- See: [`TROUBLESHOOT-AUTH-20260322-2019.md`](./troubleshoot/TROUBLESHOOT-AUTH-20260322-2019.md), [`SECURITY-AUDIT-v1.md`](./SECURITY-AUDIT-v1.md)
 
 ---
 
@@ -2542,7 +2542,7 @@ Checklist from CLAUDE.md:
 - Configured `NODE_EXTRA_CA_CERTS` in Claude Desktop MCP config
 - Replaced `NODE_TLS_REJECT_UNAUTHORIZED=0` (insecure) with proper SSL verification
 **Result:** SSL certificate verification fully enabled and working
-**Documentation:** `TROUBLESHOOT-SSL-20260320-1138.md`
+**Documentation:** [`TROUBLESHOOT-SSL-20260320-1138.md`](./troubleshoot/TROUBLESHOOT-SSL-20260320-1138.md)
 
 ### ✅ RESOLVED: Empty Content Bug in visus_fetch
 **Symptom:** All fetches returned `content_length: 0`
@@ -2551,7 +2551,7 @@ Checklist from CLAUDE.md:
 - Changed `const { title, text } = renderResult.value;` to `const { html, title } = ...`
 - Changed `const rawContent = text || '';` to `const rawContent = html || '';`
 **Result:** Content extraction working, full HTML returned
-**Documentation:** `TROUBLESHOOT-FETCH-20260320-1150.md`
+**Documentation:** [`TROUBLESHOOT-FETCH-20260320-1150.md`](./troubleshoot/TROUBLESHOOT-FETCH-20260320-1150.md)
 
 ### ✅ RESOLVED: Null Extraction in visus_fetch_structured
 **Symptom:** All schema fields returned `null`
@@ -2561,7 +2561,7 @@ Checklist from CLAUDE.md:
 - Implemented semantic extraction (h1, h2, p, a[href] elements)
 - Updated tests to use HTML mocks instead of text mocks
 **Result:** Structured extraction working for headings, paragraphs, links
-**Documentation:** `TROUBLESHOOT-STRUCTURED-20260320-1200.md`
+**Documentation:** [`TROUBLESHOOT-STRUCTURED-20260320-1200.md`](./troubleshoot/TROUBLESHOOT-STRUCTURED-20260320-1200.md)
 **Tests:** 95/95 passing, no regressions
 
 ---
@@ -2837,7 +2837,7 @@ This section tracks the implementation status of EU AI Act and GDPR-mapped secur
 | Data minimisation before LLM forwarding | AI Act Art. 15 / GDPR Art. 5(1)(c) | ✅ Implemented | Only sanitized content forwarded |
 | Data Protection by Design (sanitization at ingestion) | AI Act Art. 15 / GDPR Art. 25 | ✅ Implemented | Enforced at architecture level, not optional |
 | Transparency documentation (this mapping) | AI Act Art. 13 / GDPR Art. 5(2) | ✅ Implemented | README.md, SECURITY.md, STATUS.md |
-| SECURITY-AUDIT-v1.md (public red team disclosure) | AI Act Code of Practice §4 / GDPR Art. 32(1)(d) | 🔄 Planned | Scheduled for v1.0 release milestone |
+| [SECURITY-AUDIT-v1.md](./SECURITY-AUDIT-v1.md) (public red team disclosure) | AI Act Code of Practice §4 / GDPR Art. 32(1)(d) | 🔄 Planned | Scheduled for v1.0 release milestone |
 | EN ISO/IEC 42001 alignment review | AI Act Annex IV technical documentation | 🔄 Planned | Post-v1.0 |
 | Formal GDPR Art. 30 Records of Processing | GDPR Art. 30 | 🔄 Planned for deployers | Template to be provided for deploying organisations |
 
@@ -2850,7 +2850,7 @@ This section tracks the implementation status of EU AI Act and GDPR-mapped secur
 | EU AI Act (2024/1689) | Art. 13 — Transparency | Open-source codebase, public documentation, this compliance mapping |
 | EU AI Act (2024/1689) | Art. 15 — Robustness, Accuracy & Cybersecurity | Untrusted-by-default model, sanitization pipeline, minimal data forwarding |
 | EU AI Act Code of Practice (2025) | Measure 2.5 — Adversarial Robustness | 43-pattern injection detection library |
-| EU AI Act Code of Practice (2025) | Measure 4.1 — Incident Disclosure | Planned SECURITY-AUDIT-v1.md |
+| EU AI Act Code of Practice (2025) | Measure 4.1 — Incident Disclosure | Planned [SECURITY-AUDIT-v1.md](./SECURITY-AUDIT-v1.md) |
 | GDPR (2016/679) | Art. 5(1)(c) — Data Minimisation | Only sanitized, stripped content reaches AI model |
 | GDPR (2016/679) | Art. 5(1)(e) — Storage Limitation | Stateless fetch; no persistence beyond request lifecycle |
 | GDPR (2016/679) | Art. 5(1)(f) — Integrity & Confidentiality | Untrusted-by-default; injection filtering at ingestion |
@@ -2861,6 +2861,6 @@ This section tracks the implementation status of EU AI Act and GDPR-mapped secur
 
 ### Next Compliance Milestones
 
-- [ ] **v1.0**: Publish `SECURITY-AUDIT-v1.md` with red team methodology and findings
+- [ ] **v1.0**: Publish [`SECURITY-AUDIT-v1.md`](./SECURITY-AUDIT-v1.md) with red team methodology and findings
 - [ ] **v1.1**: Provide GDPR Art. 30 Records of Processing template for Visus-MCP deployers
 - [ ] **v1.2**: EN ISO/IEC 42001 gap analysis against Visus-MCP architecture

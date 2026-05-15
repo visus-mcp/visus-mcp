@@ -169,7 +169,7 @@ Per fetch-structured.ts:18-20:
 
 **Option A: Do Nothing**
 - Mark as known Phase 1 limitation
-- Document in STATUS.md
+- Document in [STATUS.md](../STATUS.md)
 - Wait for Phase 2 LLM-powered extraction
 - ❌ Leaves tool completely non-functional
 

@@ -142,7 +142,7 @@ Start with headless. User-session relay is Phase 2.
 lateos-visus/
 ├── README.md                    # Security-first narrative
 ├── SECURITY.md                  # 43-pattern engine documentation
-├── SECURITY-AUDIT-v1.md         # Red team results (publish after Phase 1)
+├── docs/SECURITY-AUDIT-v1.md         # Red team results (publish after Phase 1)
 ├── package.json
 ├── src/
 │   ├── index.ts                 # MCP server entry point

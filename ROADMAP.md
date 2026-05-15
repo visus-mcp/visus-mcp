@@ -29,7 +29,7 @@
 
 ## ✅ v0.3.0 — PUBLISHED (2026-03-22)
 - Domain-scoped PII allowlist for health authority phone numbers
-- Security hardening: scrubbed sensitive infrastructure details from STATUS.md
+- Security hardening: scrubbed sensitive infrastructure details from [STATUS.md](./docs/STATUS.md)
 - Test suite expanded to 121/121 tests passing
 - npm publish v0.3.0
 
@@ -44,7 +44,7 @@ Target: this week
 - [ ] Add API Gateway usage plan: 1,000 req/day, 10 rps per API key
 - [ ] Add TTL (90-day) to audit records
 - [ ] Smoke test: unauthenticated request returns 401
-- [ ] Update STATUS.md after deploy
+- [ ] Update [STATUS.md](./docs/STATUS.md) after deploy
 
 ---
 
@@ -84,7 +84,7 @@ Target: this week
 - [ ] Target: 0% bypass rate for Visus on known patterns
 
 ### LinkedIn Launch Sequence (6 posts, 1 per week)
-See LINKEDIN-STRATEGY.md for full post drafts.
+See [LINKEDIN-STRATEGY.md](./docs/internal/LINKEDIN-STRATEGY.md) for full post drafts.
 - [ ] Post 1: OpenClaw CVE story — the credential leak nobody fixed
 - [ ] Post 2: What prompt injection actually looks like (show the Injection Arena)
 - [ ] Post 3: Why "engineered not vibe-coded" — the 43-pattern story

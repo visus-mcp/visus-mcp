@@ -96,7 +96,7 @@ package-lock.json (173,502 bytes)
   "typescript": "^5.7.2"
 }
 ```
-**Finding:** According to STATUS.md, Playwright and Turndown should be in dependencies, but they're missing. However, src/browser/playwright-renderer.ts uses native fetch() for Phase 1, so this might be intentional.
+**Finding:** According to [STATUS.md](../STATUS.md), Playwright and Turndown should be in dependencies, but they're missing. However, src/browser/playwright-renderer.ts uses native fetch() for Phase 1, so this might be intentional.
 **Status:** ✅ Success - Dependencies appear minimal but correct for Phase 1
 
 ---

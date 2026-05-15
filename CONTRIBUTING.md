@@ -238,7 +238,7 @@ See [SECURITY.md](./SECURITY.md) for the full disclosure policy.
    ```
    TypeScript must compile cleanly with zero errors.
 
-5. **Update STATUS.md** if adding a new feature:
+5. **Update [STATUS.md](./docs/STATUS.md)** if adding a new feature:
    - Add your feature to the current version section
    - Use consistent formatting with existing entries
 

@@ -129,13 +129,13 @@ Whenever you encounter an error, blocked deployment, or multi-step recovery task
 ### Log File Naming
 
 ```
-TROUBLESHOOT-<CONTEXT>-$(date +%Y%m%d-%H%M).md
+docs/troubleshoot/TROUBLESHOOT-<CONTEXT>-$(date +%Y%m%d-%H%M).md
 ```
 
-Save to project root. Examples:
-- `TROUBLESHOOT-CDK-20260314-0621.md`
-- `TROUBLESHOOT-LAMBDA-20260314-0900.md`
-- `TROUBLESHOOT-SLIM-20260314-0629.md`
+Save to `docs/troubleshoot/`. Examples:
+- `docs/troubleshoot/TROUBLESHOOT-CDK-20260314-0621.md`
+- `docs/troubleshoot/TROUBLESHOOT-LAMBDA-20260314-0900.md`
+- `docs/troubleshoot/TROUBLESHOOT-SLIM-20260314-0629.md`
 
 ### Log Structure
 

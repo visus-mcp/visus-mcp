@@ -671,7 +671,7 @@ Under the EU AI Act Code of Practice for General-Purpose AI Models (2025), provi
 - Multi-turn injection via session context manipulation
 
 **How we document it:**
-- `SECURITY-AUDIT-v1.md` (planned): A public red team disclosure document covering methodology, findings, and mitigations. This directly satisfies Code of Practice Measure 4.1 (incident and vulnerability disclosure preparedness).
+- [`SECURITY-AUDIT-v1.md`](./docs/SECURITY-AUDIT-v1.md) (planned): A public red team disclosure document covering methodology, findings, and mitigations. This directly satisfies Code of Practice Measure 4.1 (incident and vulnerability disclosure preparedness).
 
 **EDPS AI Risk Management Guidance:**
 The European Data Protection Supervisor recommends that AI systems document the following for each data processing operation:
@@ -680,7 +680,7 @@ The European Data Protection Supervisor recommends that AI systems document the 
 3. The risk mitigations applied (stateless, no persistence, injection filtering)
 4. The residual risk and monitoring approach (open-source auditability, community disclosure)
 
-Visus-MCP addresses all four points through this document, `README.md`, and `STATUS.md`.
+Visus-MCP addresses all four points through this document, `README.md`, and [`STATUS.md`](./docs/STATUS.md).
 
 ### Reporting Security Issues
 
