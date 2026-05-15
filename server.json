@@ -7,12 +7,11 @@
     "url": "https://github.com/visus-mcp/visus-mcp",
     "source": "github"
   },
-  "version": "0.15.0",
+  "version": "0.28.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "visus-mcp",
-"version": "0.28.0",
       "transport": {
         "type": "stdio"
       },
@@ -41,7 +40,6 @@
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "tool": "mcp-publisher",
-"version": "0.27.0",
       "buildInfo": {
         "timestamp": "2026-04-09T00:00:00Z",
         "release": "v0.28.0 — CVE-2026-42208: SQL injection detection in URLs/parameters (46 patterns)"
