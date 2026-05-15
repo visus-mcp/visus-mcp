@@ -56,9 +56,6 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     console.error('[SECURITY] SQL injection vectors detected in URL, blocking request:', urlScan.patterns_detected);
     return Err(new Error('SQL injection detected in URL parameters (CVE-2026-42208 mitigation). Request blocked for security.'));
   }
-    console.error('[SECURITY] Command injection risk in fetch params:', detection);
-    return Err(new Error(`Potential injection detected in fetch input (risk score: ${detection.totalScore}). Blocked for safety.`));
-  }
 
   // Tool self-validation (optional for runtime)
   // Note: visusFetchToolDefinition should be validated at registration; re-run for dynamic calls
@@ -206,14 +203,14 @@ export async function visusFetch(input: VisusFetchInput): Promise<Result<VisusFe
     // This step CANNOT be skipped or bypassed
     const sanitizationResult = await sanitizeWithProof(processedContent, url, 'visus_fetch', '1.0.0');
 
-// Post-tool worm scan if not already in pipeline (for compatibility)
-if (process.env.VISUS_WORM_DETECTION !== 'false' && !sanitizationResult.sanitization.worm_patterns_detected) {
-  const { wormScan } = await import('../sanitizer/worm-detector.js');
-  const wormResult = wormScan(sanitizationResult.content);
-  sanitizationResult.content = wormResult.modifiedContent;
-  (sanitizationResult.sanitization as any).worm_patterns_detected = wormResult.patterns;
-  (sanitizationResult.sanitization as any).worm_risk_score = wormResult.score;
-}
+    // Post-tool worm scan if not already in pipeline (for compatibility)
+    if (process.env.VISUS_WORM_DETECTION !== 'false' && !sanitizationResult.sanitization.worm_patterns_detected) {
+      const { wormScan } = await import('../sanitizer/worm-detector.js');
+      const wormResult = wormScan(sanitizationResult.content);
+      sanitizationResult.content = wormResult.modifiedContent;
+      (sanitizationResult.sanitization as any).worm_patterns_detected = wormResult.patterns;
+      (sanitizationResult.sanitization as any).worm_risk_score = wormResult.score;
+    }
 
     // Step 5: Apply token ceiling truncation (AFTER sanitization)
     // Anthropic MCP Directory enforces 25,000 token response limit
@@ -307,47 +304,6 @@ if (process.env.VISUS_WORM_DETECTION !== 'false' && !sanitizationResult.sanitiza
   }
 
   return { ok: true, value: finalOutput };
-    const output: VisusFetchOutput = {
-      url,
-      content: finalContent,
-      sanitization: {
-        patterns_detected: sanitizationResult.sanitization.patterns_detected,
-        pii_types_redacted: sanitizationResult.sanitization.pii_types_redacted,
-        pii_allowlisted: sanitizationResult.sanitization.pii_allowlisted,
-        content_modified: sanitizationResult.sanitization.content_modified
-      },
-      metadata: {
-        title: title || 'Untitled',
-        fetched_at: new Date().toISOString(),
-        content_length_original: sanitizationResult.metadata.original_length,
-        content_length_sanitized: sanitizationResult.metadata.sanitized_length,
-        format_detected: formatType,
-        content_type: detectedContentType,
-        ...(truncationResult.truncated && {
-          truncated: true,
-          truncated_at_chars: truncationResult.truncated_at_chars
-        })
-      },
-      // Include threat_report only if findings exist
-      ...(sanitizationResult.threat_report && { threat_report: sanitizationResult.threat_report }),
-      // Include threat_summary only if threats detected
-      ...(threatSummary.threat_count > 0 && { threat_summary: threatSummary }),
-      // Include cryptographic proof header (EU AI Act Art. 13 Transparency)
-      ...sanitizationResult.proofHeader
-    };
-
-    // Log to stderr if critical threats detected
-    if (sanitizationResult.metadata.has_critical_threats) {
-      console.error(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        event: 'critical_threat_detected',
-        url,
-        patterns: sanitizationResult.sanitization.patterns_detected,
-        severity_score: sanitizationResult.metadata.severity_score
-      }));
-    }
-
-    return { ok: true, value: output };
 
   } catch (error) {
     return Err(error instanceof Error ? error : new Error(String(error)));

@@ -41,18 +41,6 @@ describe('visusScanMcp', () => {
     expect(result.findings[0].pattern).toBe('high_entropy_payload');
     expect(result.score).toBeGreaterThan(0);
   });
-    const highEntropyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.repeat(10); // High entropy string
-    const lowEntropyStr = 'a'.repeat(600); // Low entropy ~0
-    const input = {
-      config: JSON.stringify({
-        args: [highEntropyStr]
-      })
-    };
-    const result = await visusScanMcp(input);
-    expect(result.score).toBeGreaterThan(0);
-    // Entropy test may need adjustment; for base64-like high entropy
-    expect(scoreEntropy(highEntropyStr) > 4.5).toBe(true);
-  });
 
   it('integrates sanitizer patterns', async () => {
     const input = {

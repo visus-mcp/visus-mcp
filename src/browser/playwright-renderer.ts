@@ -356,7 +356,6 @@ export async function renderPage(
   }
   return result;
 }
-}
 
 /**
  * Check if a URL is accessible

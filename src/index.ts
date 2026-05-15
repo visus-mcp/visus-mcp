@@ -55,6 +55,7 @@ import { runElicitation } from './sanitizer/elicit-runner.js';
 import type { ThreatReport } from './sanitizer/threat-reporter.js';
 import { SessionLedger, type SessionRiskSummary } from './security/session-ledger.js';
 import { visusScanMcp, visusScanMcpToolDefinition } from './tools/mcp-config-scan.js';
+import { visusDbVerify, visusDbVerifyToolDefinition } from './tools/db-guard.js';
 
 /**
  * Create and configure the MCP server
@@ -120,7 +121,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     visusReadGsheetToolDefinition,
     visusContextScanToolDefinition,
     visusGetLedgerProofToolDefinition,
-    visusScanMcpToolDefinition
+    visusScanMcpToolDefinition,
+    visusDbVerifyToolDefinition
   ];
   
   const sanitizedTools = rawTools.map(sanitizeToolDefinition);
