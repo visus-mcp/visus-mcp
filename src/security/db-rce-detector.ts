@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import type { ThreatAnnotation } from './threats.js';
 
 // Semantic boundary markers
 const DB_TERM_START = '[DB_TERM_START]';
@@ -171,3 +170,4 @@ export function postLlmToolGuard(toolCall: {name: string; args: any}): boolean {
   }
   return true;
 }
+

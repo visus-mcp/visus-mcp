@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tool Validator - Detects tool poisoning attacks in MCP descriptors and schemas
  *
@@ -143,3 +144,4 @@ export function createStubTool(name: string): any {
     inputSchema: { type: 'object', properties: {} }
   };
 }
+

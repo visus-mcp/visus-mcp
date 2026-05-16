@@ -3,7 +3,7 @@
  * Red-teams Crescendo/Skeleton Key.
  */
 
-import { DriftDetector } from '../../src/security/drift-detector.js';
+import { DriftDetector } from '../src/security/drift-detector.js';
 import { DRIFT_POCS } from './drift-corpus.js';
 
 describe('Drift Detector', () => {

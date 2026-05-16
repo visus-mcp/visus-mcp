@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * visus_context_scan Tool
  * Standalone tool to scan provided history for multi-turn priming risks.
@@ -151,3 +152,4 @@ export const visusContextScan: CallToolRequestHandler = async (request) => {
     }]
   };
 };
+

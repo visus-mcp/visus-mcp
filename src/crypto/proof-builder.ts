@@ -95,6 +95,10 @@ export interface BuildProofParams {
   piiDetected?: string[];
   /** Number of threats neutralized (triggered patterns + redactions) */
   threatsNeutralized?: number;
+  /** Worm patterns detected during post-sanitization scan */
+  worm_patterns_detected?: string[];
+  /** Worm risk score from post-sanitization scan */
+  worm_risk_score?: number;
 }
 
 export function buildProof(params: BuildProofParams): SanitizationProofRecord {

@@ -15,7 +15,7 @@ let mockRenderPage: jest.MockedFunction<any>;
 let mockCloseBrowser: jest.MockedFunction<any>;
 
 beforeAll(async () => {
-  await jest.unstable_mockModule('../src/browser/playwright-renderer.js', () => ({
+  await (jest as any).unstable_mockModule('../src/browser/playwright-renderer.js', () => ({
     renderPage: jest.fn(),
     closeBrowser: jest.fn(),
     checkUrl: jest.fn()

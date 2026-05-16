@@ -109,7 +109,7 @@ export async function scanContext(input: ContextScanInput): Promise<ContextScanO
 
   const currentExcerpt = input.history.slice(-1)[0] || '';
   const currentTool = input.currentTool || '';
-  const { match, confidence: matchConf } = crossRefPrimedWithCurrent(primedTexts, currentExcerpt, currentTool);
+  const { match, confidence: _matchConf } = crossRefPrimedWithCurrent(primedTexts, currentExcerpt, currentTool);
 
   // Combine history + primed for threat scan
   const combined = [...input.history, ...primedTexts].join('\n\n---PRIMED---\n');
@@ -125,3 +125,8 @@ export async function scanContext(input: ContextScanInput): Promise<ContextScanO
     recommendation
   };
 }
+
+
+
+
+

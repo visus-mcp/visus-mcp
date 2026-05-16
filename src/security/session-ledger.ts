@@ -1,7 +1,6 @@
-import blake3 from '@noble/hashes/blake3';
-import LRU from 'lru-cache';
-import type { ThreatAnnotation } from './threats.js';
-import type { ThreatSummary } from '../types.js';
+import * as crypto from 'crypto';
+import type { ThreatAnnotation, ContentType, ThreatClass } from './threats.js';
+export type { ThreatAnnotation } from './threats.js';
 
 export interface HashedEntity {
   hash: string; // BLAKE3 hash (hex string)
@@ -42,7 +41,7 @@ export const VSIL_THREAT_IDS = {
 
 export class SessionLedger {
   private events: Map<string, any[]> = new Map();
-  private lru = new LRU<string, SessionState>({ max: 1000, ttl: 1800000 });
+  private stateMap = new Map<string, SessionState>();
 
   constructor() {
     setInterval(() => this.sweepExpired(), 60000); // Sweep every minute
@@ -65,7 +64,7 @@ export class SessionLedger {
   }
 
   update(sessionId: string, hashes: string[], toolName: string, threats: ThreatAnnotation[]): void {
-    const state = this.lru.get(sessionId);
+    const state = this.stateMap.get(sessionId);
     if (state) {
       // Add/update entities
       hashes.forEach(h => {
@@ -87,7 +86,7 @@ export class SessionLedger {
   }
 
   private blake3Digest(input: string): string {
-    return blake3(input, { length: 16 }).toString('hex'); // 128-bit hex
+    return crypto.createHash('sha256').update(input).digest().subarray(0, 16).toString('hex'); // 128-bit hex
   }
 
   private extractEntityHashes(input: any, output?: any): string[] {
@@ -97,7 +96,7 @@ export class SessionLedger {
     if (urls) entities.push(this.blake3Digest(urls));
     // IP regex extract and hash
     const ips = urls.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g) || [];
-    ips.forEach(ip => entities.push(this.blake3Digest(ip)));
+    ips.forEach((ip: string) => entities.push(this.blake3Digest(ip)));
     // Code/instruction snippets: last 50 chars if ends with cutoff (e.g., no period)
     const text = (output?.content || input.content || '').toString();
     if (text && !text.trim().endsWith('.') && text.length > 20) {
@@ -123,7 +122,7 @@ export class SessionLedger {
     args: any,
     output: any
   ): Promise<{ score: number; chainId?: string; newThreats: ThreatAnnotation[]; dangling?: boolean }> {
-    let state = this.lru.get(sessionId);
+    let state = this.stateMap.get(sessionId);
     if (!state) {
       state = {
         sessionId,
@@ -132,7 +131,7 @@ export class SessionLedger {
         riskSummary: { cumulativeScore: 0, chainCount: 0, primingFlags: new Set(), highRiskSequences: [], lastActivity: Date.now() },
         ttlMs: 1800000,
       };
-      this.lru.set(sessionId, state);
+      this.stateMap.set(sessionId, state);
     }
     state.riskSummary.lastActivity = Date.now();
 
@@ -152,12 +151,12 @@ export class SessionLedger {
           score += 0.4;
           chainId = prior.turnId;
           newThreats.push({
-            id: VSIL_THREAT_IDS.CHAIN,
+            id: VSIL_THREAT_IDS.CHAIN as ThreatClass,
             severity: 'HIGH',
             confidence: 0.9,
             offset: 0,
             excerpt: `Chain detected: ${prior.type} from turn ${prior.turnId}`,
-            vector: toolName,
+            vector: toolName as ContentType,
             mitigated: true,
           });
           prior.correlatedWith = prior.correlatedWith || [];
@@ -174,12 +173,12 @@ export class SessionLedger {
         dangling = true;
         score += 0.3;
         newThreats.push({
-          id: VSIL_THREAT_IDS.DANGLING,
+          id: VSIL_THREAT_IDS.DANGLING as ThreatClass,
           severity: 'MEDIUM',
           confidence: 0.8,
           offset: 0,
           excerpt: 'Dangling instruction completed across turns',
-          vector: toolName,
+          vector: toolName as ContentType,
           mitigated: true,
         });
       } else {
@@ -209,12 +208,12 @@ export class SessionLedger {
     if (overlap > 0) {
       score += 0.5;
       newThreats.push({
-        id: VSIL_THREAT_IDS.ESCALATION,
+        id: VSIL_THREAT_IDS.ESCALATION as ThreatClass,
         severity: 'CRITICAL',
         confidence: 0.9,
         offset: 0,
         excerpt: `Escalation: ${overlap} prior high-risk entities reused`,
-        vector: toolName,
+        vector: toolName as ContentType,
         mitigated: true,
       });
     }
@@ -232,17 +231,17 @@ export class SessionLedger {
   }
 
   getSessionSummary(sessionId: string): SessionRiskSummary {
-    const state = this.lru.get(sessionId);
+    const state = this.stateMap.get(sessionId);
     return state?.riskSummary || { cumulativeScore: 0, chainCount: 0, primingFlags: new Set(), highRiskSequences: [], lastActivity: 0 };
   }
 
   clear(sessionId: string): void {
-    this.lru.delete(sessionId);
+    this.stateMap.delete(sessionId);
   }
 
   private sweepExpired(): void {
-    this.lru.forEach((_, key) => {
-      if (Date.now() - this.lru.get(key)!.riskSummary.lastActivity > 1800000) {
+    this.stateMap.forEach((_, key) => {
+      if (Date.now() - this.stateMap.get(key)!.riskSummary.lastActivity > 1800000) {
         this.clear(key);
       }
     });
@@ -250,3 +249,19 @@ export class SessionLedger {
 }
 
 export const ledger = new SessionLedger();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

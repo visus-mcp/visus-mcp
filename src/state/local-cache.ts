@@ -6,7 +6,6 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import crypto from 'crypto';
 
 import type { PrimedEntity } from '../types.js';
 
@@ -68,3 +67,4 @@ class LocalCache {
 }
 
 export const cacheManager = new LocalCache();
+

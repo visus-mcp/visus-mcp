@@ -14,8 +14,8 @@ import { generateThreatReport, type ThreatReport } from './threat-reporter.js';
 import { generateRequestId } from '../crypto/proof-builder.js';
 import { buildProof, proofToResponseHeader } from '../crypto/proof-builder.js';
 import type { SanitizationProofRecord } from '../crypto/primitives.js';
-import { getAllPatternNames } from './patterns.js';
-
+import { getAllPatternNames, INJECTION_PATTERNS } from './patterns.js';
+import { detectBooleanGate } from '../security/boolean-gate-detector.js';
 export interface SanitizationResult {
   content: string;
   sanitization: {
@@ -23,6 +23,8 @@ export interface SanitizationResult {
     pii_types_redacted: string[];
     pii_allowlisted: Array<{ type: string; value: string; reason: string }>;
     content_modified: boolean;
+    worm_patterns_detected?: string[];
+    worm_risk_score?: number;
   };
   metadata: {
     original_length: number;
@@ -66,7 +68,6 @@ export function sanitize(content: string, sourceUrl?: string): SanitizationResul
   let injectionResult = detectAndNeutralize(content);
 
   // Integrate Boolean Gate Detection (CVE-2026-4399)
-  import { detectBooleanGate } from '../security/boolean-gate-detector.js';
   const booleanResult = detectBooleanGate(injectionResult.content);
   if (booleanResult.content_modified) {
     injectionResult.content = booleanResult.content;
@@ -177,7 +178,6 @@ export function needsSanitization(_content: string): boolean {
  * @param pipelineVersion Sanitization library version
  * @returns Sanitized content with cryptographic proof
  */
-import { INJECTION_PATTERNS } from './patterns.js';
 
 export async function sanitizeWithProof(
   rawContent: string,
@@ -267,3 +267,7 @@ export async function sanitizeWithProof(
 export { detectAndNeutralize } from './injection-detector.js';
 export { redactPII, containsPII, detectPIITypes } from './pii-redactor.js';
 export { INJECTION_PATTERNS, getAllPatternNames } from './patterns.js';
+
+
+
+

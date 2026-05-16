@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for Elicitation Runner
  *
@@ -7,6 +8,7 @@
  * - Threat report inclusion logic
  */
 
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { runElicitation } from '../src/sanitizer/elicit-runner.js';
 import type { ThreatReport } from '../src/sanitizer/threat-reporter.js';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -230,3 +232,4 @@ describe('Elicitation Runner', () => {
     });
   });
 });
+

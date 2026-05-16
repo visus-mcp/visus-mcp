@@ -10,6 +10,12 @@
  */
 import type { DetectionResult } from '../sanitizer/injection-detector.js';
 
+const EMPTY_METADATA = {
+  original_length: 0,
+  sanitized_length: 0,
+  detections_by_severity: { critical: 0, high: 0, medium: 0, low: 0 }
+};
+
 const patterns = {
   conditional: /(if\s+\w+\s*(==|is\s+true|false)\s*\w+|true\s*\/\s*false|evaluate\s*\[.*\]\s*then)/i,
   highRisk: /ignore\s*rules|reveal\s*prompt|exfil|execute\s*tool|leak\s*key/i,
@@ -40,12 +46,12 @@ export function detectBooleanGate(content: string, options: { riskThreshold: num
   };
 
   if (!matches.cond || !matches.risk) {
-    return { content, patterns_detected: [], content_modified: false } as DetectionResult;
+    return { content, patterns_detected: [], content_modified: false, metadata: EMPTY_METADATA } as DetectionResult;
   }
 
   const riskScore = calculateScore(content, matches);
   if (riskScore < options.riskThreshold) {
-    return { content, patterns_detected: [], content_modified: false } as DetectionResult;
+    return { content, patterns_detected: [], content_modified: false, metadata: EMPTY_METADATA } as DetectionResult;
   }
 
   const antecedent = extractAntecedent(matches.cond[0]);
@@ -59,10 +65,10 @@ export function detectBooleanGate(content: string, options: { riskThreshold: num
     } as DetectionResult;
   }
 
-  return { content, patterns_detected: [], content_modified: false } as DetectionResult;
+  return { content, patterns_detected: [], content_modified: false, metadata: EMPTY_METADATA } as DetectionResult;
 }
 
-function calculateScore(content: string, matches: any): number {
+function calculateScore(_content: string, matches: any): number {
   let score = matches.taut ? 0.4 : 0;
   if (matches.cond && matches.risk) {
     const dist = Math.abs((matches.cond.index || 0) - (matches.risk.index || 0));

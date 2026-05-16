@@ -5,7 +5,6 @@
  */
 
 import { createHash } from 'crypto';
-import type { ThreatAnnotation } from './threats.js';
 
 interface TurnSummary {
   intent_hash: string;

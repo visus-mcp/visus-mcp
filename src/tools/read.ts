@@ -41,7 +41,7 @@ export async function visusRead(input: VisusReadInput): Promise<Result<VisusRead
 
   try {
     // Step 1: Render the page using Playwright
-    const renderResult = await renderPage(url, {
+    const renderResult = await renderPage(url, undefined, {
       timeout_ms,
       format: 'html'
     });

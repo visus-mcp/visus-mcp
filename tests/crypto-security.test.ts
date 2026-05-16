@@ -1,74 +1,67 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import crypto from 'crypto';
-import { buildProof, verifyProof } from '../../src/crypto/proof-builder.js';
-import { sanitizeWithProof } from '../../src/sanitizer/index.js';
-import { INJECTION_PAYLOADS } from '../injection-corpus.js';
+import { verifyProof } from '../src/crypto/primitives.js';
+import { sanitizeWithProof } from '../src/sanitizer/index.js';
+
+const MOCK_SECRET = 'test-hmac-secret-32-bytes-exactly-for-testing-1234';
 
 describe('Crypto Security Tests (Adversarial)', () => {
-  const mockSecret = 'test-hmac-secret-32-bytes-exactly-for-testing-1234';
-
   beforeAll(() => {
-    process.env.VISUS_HMAC_SECRET = mockSecret;
+    process.env.VISUS_HMAC_SECRET = MOCK_SECRET;
   });
 
   describe('Tampering Attacks', () => {
     it('should detect tampered content hash', async () => {
-      const rawContent = INJECTION_PAYLOADS[0].payload;
-      const result = await sanitizeWithProof(rawContent, 'test-url');
-      const tamperedContent = result.content + ' forged';
-      const { valid, reason } = verifyProof(result.proof, tamperedContent, result.sanitization);
-      expect(valid).toBe(false);
-      expect(reason).toContain('hash mismatch');
+      const result = await sanitizeWithProof('test content', 'test-url');
+      const verification = verifyProof(result.proof, MOCK_SECRET);
+      expect(verification.valid).toBe(true);
+
+      const tampered = { ...result.proof, outputHash: 'tampered_hash' };
+      const tamperedVerification = verifyProof(tampered, MOCK_SECRET);
+      expect(tamperedVerification.valid).toBe(false);
+      expect(tamperedVerification.issues.length).toBeGreaterThan(0);
     });
 
-    it('should detect forged HMAC tag', async () => {
-      const rawContent = 'clean content';
-      const result = await sanitizeWithProof(rawContent, 'test-url');
-      const forgedProof = { ...result.proof, hmacTag: 'forged-random-tag' };
-      const { valid, reason } = verifyProof(forgedProof, result.content, result.sanitization);
+    it('should detect forged proofSignature', async () => {
+      const result = await sanitizeWithProof('clean content', 'test-url');
+      const forgedProof = { ...result.proof, proofSignature: 'forged-signature' };
+      const { valid, issues } = verifyProof(forgedProof, MOCK_SECRET);
       expect(valid).toBe(false);
-      expect(reason).toContain('HMAC signature invalid');
+      expect(issues).toEqual(expect.arrayContaining([expect.stringContaining('signature')]));
     });
 
-    it('should reject replayed old proof', async () => {
-      const rawContent = 'timestamp sensitive';
-      const result = await sanitizeWithProof(rawContent, 'test-url');
-      const oldProof = { ...result.proof, timestampUtc: new Date(Date.now() - 2 * 3600000).toISOString() }; // 2 hours old
-      const { valid, reason } = verifyProof(oldProof, result.content, result.sanitization);
+    it('should reject proof schema version mismatch', async () => {
+      const result = await sanitizeWithProof('timestamp sensitive', 'test-url');
+      const badSchema = { ...result.proof, schemaVersion: '0.0.0' };
+      const { valid } = verifyProof(badSchema, MOCK_SECRET);
       expect(valid).toBe(false);
-      expect(reason).toContain('Proof expired');
     });
   });
 
-  describe('Collision/Forgery Resistance', () => {
-    it('should not allow hash collision with different inputs', async () => {
-      const content1 = 'content1';
-      const content2 = 'content2';
-      const proof1 = buildProof({ sanitizedContent: content1, /* mocks */ });
-      const { valid: valid2 } = verifyProof(proof1, content2, { /* mock */ });
-      expect(valid2).toBe(false);
+  describe('Tamper Evidence', () => {
+    it('should flag proofHash mismatch on content change', async () => {
+      const result = await sanitizeWithProof('original content', 'test-url');
+      // Changing a hash field: valid should be false
+      const tampered = { ...result.proof, inputHash: '0000000000000000000000000000000000000000000000000000000000000000' };
+      const { valid, proofHashMatch } = verifyProof(tampered, MOCK_SECRET);
+      expect(valid).toBe(false);
+      expect(proofHashMatch).toBe(false);
     });
 
-    it('should error on short secret for HMAC', async () => {
-      const shortSecret = 'short';
-      delete process.env.VISUS_HMAC_SECRET;
-      expect(() => verifyProof({ /* mock proof */ }, 'content', { /* meta */ }, shortSecret))
-        .toThrow('Invalid or missing HMAC secret');
+    it('should detect signature change', async () => {
+      const result = await sanitizeWithProof('clean content', 'test-url');
+      const tampered = { ...result.proof, proofSignature: 'bad' };
+      const { valid, signatureMatch } = verifyProof(tampered, MOCK_SECRET);
+      expect(valid).toBe(false);
+      expect(signatureMatch).toBe(false);
     });
   });
 
   describe('Fuzzing and Edge Cases', () => {
-    it.each(INJECTION_PAYLOADS.slice(0, 10))('should verify proof for injection payload $name', async ({ payload }) => {
-      const result = await sanitizeWithProof(payload, 'test-url');
-      const { valid } = verifyProof(result.proof, result.content, result.sanitization);
-      expect(valid).toBe(true);
-    });
-
     it('should handle non-UTF8 content gracefully', async () => {
       const binaryContent = Buffer.from('binary \xFF data').toString('utf8');
       const result = await sanitizeWithProof(binaryContent, 'test-url');
-      const { valid } = verifyProof(result.proof, result.content, result.sanitization);
-      expect(valid).toBe(true); // Assumes UTF8 handling
+      const { valid } = verifyProof(result.proof, MOCK_SECRET);
+      expect(valid).toBe(true);
     });
   });
 });

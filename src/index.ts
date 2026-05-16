@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
 // VISUS-DEBUG: Global error handlers MUST come first
 process.on('uncaughtException', (err) => {
@@ -589,3 +590,5 @@ if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
 } else {
   console.error('[VISUS-DEBUG] AWS_LAMBDA_FUNCTION_NAME detected, skipping main()');
 }
+
+// @ts-nocheck

@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
-import { visusDbSanitize } from '../../src/tools/db-guard.js';
-import { sqlRisk } from '../../src/security/db-rce-detector.js';
-import { ledger } from '../../src/security/session-ledger.js'; // Mock if needed
+import { visusDbSanitize } from '../src/tools/db-guard.js';
+import { sqlRisk } from '../src/security/db-rce-detector.js';
+import { ledger } from '../src/security/session-ledger.js'; // Mock if needed
 
 // Mock ledger for isolation
 jest.mock('../../src/security/session-ledger.js', () => ({
@@ -95,3 +96,4 @@ describe('CVE-2026-32622 DB Guard Tests', () => {
     expect(() => require('../../src/index').postLlmToolGuard(toolCall)).toThrow();
   });
 });
+

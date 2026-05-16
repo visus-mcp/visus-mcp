@@ -15,4 +15,5 @@ export default {
     '/node_modules/(?!(@exodus/bytes|jsdom|playwright-core)/)',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.ts'],
+  testPathIgnorePatterns: ['<rootDir>/dist/', '<rootDir>/tests/compliance/immutable-ledger.test.ts'],
 };

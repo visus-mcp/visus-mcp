@@ -54,7 +54,8 @@ export type ThreatClass =
   | 'IPI-018' // MCP Tool Description Poisoning
   | 'IPI-019' // Multi-Agent Propagation Worm
   | 'IPI-020' // Conditional/Dormant Trigger
-  | 'IPI-021'; // Assistant Role Prefill Injection
+  | 'IPI-021' // Assistant Role Prefill Injection
+  | 'IPI-026'; // Visual Concealment / Steganographic
 
 /**
  * Threat severity levels

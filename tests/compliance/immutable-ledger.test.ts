@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Unit tests for ImmutableLedger
  */
@@ -90,3 +91,4 @@ describe('ImmutableLedger', () => {
     expect(exists).toBe(false);
   });
 });
+

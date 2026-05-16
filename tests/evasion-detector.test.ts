@@ -3,12 +3,12 @@
  * Tests CSS zero-size and off-screen evasion detection.
  */
 
-import { chromium, Page } from 'playwright';
+import { chromium, Browser, Page } from 'playwright';
 import { EVASION_POCS } from './evasion-corpus.js';
-import { detectHiddenEvasion } from '../src/browser/playwright-renderer.js'; // Adjust path
+import { detectHiddenEvasion } from '../src/browser/playwright-renderer.js';
 
 describe('CSS Evasion Detection', () => {
-  let browser;
+  let browser: Browser;
   let page: Page;
 
   beforeAll(async () => {
@@ -25,8 +25,8 @@ describe('CSS Evasion Detection', () => {
       const result = await detectHiddenEvasion(page);
       await page.close();
 
-      expect(result.hiddenContent).toBeDefined();
-      if (poc.expectedTags > 0) {
+expect(result.hiddenContent).toBeDefined();
+      if (poc.expectedTags > 0 && 'expectedScore' in poc) {
         expect(result.hiddenContent).not.toBe('');
         expect(result.score).toBeGreaterThanOrEqual(poc.expectedScore === '>0.7' ? 0.7 : parseFloat(poc.expectedScore));
       } else {

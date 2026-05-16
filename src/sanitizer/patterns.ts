@@ -434,7 +434,7 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
   {
     name: 'shell_metachars',
     description: 'Shell metacharacters for injection',
-    regex: /[;&|`$(){}\\[\\]]/gi,
+    regex: /[;&|`$]/gi,
     severity: 'high',
     action: 'strip'
   },

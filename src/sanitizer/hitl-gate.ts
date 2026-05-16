@@ -29,7 +29,7 @@ import { hasCriticalThreats } from './injection-detector.js'; // Assume import f
  * @returns true if elicitation should be triggered
  */
 export function shouldElicit(threatReport: ThreatReport | null, wormRisk: number = 0): boolean {
-  const hasCritical = threatReport ? hasCriticalThreats(threatReport.detections_by_severity) : false;
+  const hasCritical = threatReport ? hasCriticalThreats((threatReport as any).by_severity) : false;
   return hasCritical || wormRisk > 0.8;
 }
 

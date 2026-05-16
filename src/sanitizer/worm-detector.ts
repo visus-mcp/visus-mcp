@@ -5,32 +5,32 @@
  * Scoring: 0-1 risk; >0.8 triggers HITL/block.
  */
 
-import { ThreatAnnotation } from '../../security/threats.js';
+import type { ThreatAnnotation } from '../security/threats.js';
 
 export interface WormScanResult {
   score: number;
   patterns: string[];
   modifiedContent: string;
-  threats: ThreatAnnotation[]; // For summary integration
+  threats: ThreatAnnotation[];
+  content_modified: boolean;
 }
 
 const WORM_PATTERNS = [
-  { name: 'replicator_direct', regex: /always.*(include|append|repeat|copy).*(this|prompt|response)/i, weight: 0.4 },
-  { name: 'replicator_end', regex: /end every.*with.*(this|the following)/i, weight: 0.3 },
-  { name: 'hijack_ignore', regex: /ignore previous.*instructions/i, weight: 0.4 },
-  { name: 'hijack_role', regex: /you are now.*(override|act as)/i, weight: 0.3 },
-  { name: 'chain_save', regex: /(save|remember).*(this|prompt).*(for later|to use)/i, weight: 0.2 },
-  { name: 'obfusc_base64', regex: /data:text\/plain;base64,[A-Za-z0-9+/=]+/i, weight: 0.3 }, // Decode check needed
-  { name: 'obfusc_unicode', regex: /[\u200B-\u200D\uFEFF]/, weight: 0.2 }, // Zero-width
-  { name: 'exfil_embed', regex: /send.*to.*(email|url|share)/i, weight: 0.25 },
-  { name: 'urgency_priming', regex: /urgent.*(run|copy|replicate)/i, weight: 0.15 },
-  { name: 'markdown_inject', regex: /!\[.*\]\(javascript:.*\|data:.*\)/i, weight: 0.2 },
-  // Add 5 more as needed for 15 total
-  { name: 'replicator_share', regex: /share this.*(tip|code|prompt)/i, weight: 0.2 },
-  { name: 'hijack_pretend', regex: /pretend to be.*(malicious|override)/i, weight: 0.3 },
-  { name: 'obfusc_html_entity', regex: /&(?:lt|gt|amp|quot|#x27);/, weight: 0.15 }, // Decode
-  { name: 'chain_append', regex: /append to your.*(response|output)/i, weight: 0.25 },
-  { name: 'exfil_data', regex: /exfiltrate|leak.*data/i, weight: 0.35 },
+  { name: 'replicator_direct', regex: /always.*(include|append|repeat|copy).*(this|prompt|response)/gi, weight: 0.4 },
+  { name: 'replicator_end', regex: /end every.*with.*(this|the following)/gi, weight: 0.3 },
+  { name: 'hijack_ignore', regex: /ignore previous.*instructions/gi, weight: 0.4 },
+  { name: 'hijack_role', regex: /you are now.*(override|act as)/gi, weight: 0.3 },
+  { name: 'chain_save', regex: /(save|remember).*(this|prompt).*(for later|to use)/gi, weight: 0.2 },
+  { name: 'obfusc_base64', regex: /data:text\/plain;base64,[A-Za-z0-9+/=]+/gi, weight: 0.3 },
+  { name: 'obfusc_unicode', regex: /[\u200B-\u200D\uFEFF]/g, weight: 0.2 },
+  { name: 'exfil_embed', regex: /send.*to.*(email|url|share)/gi, weight: 0.25 },
+  { name: 'urgency_priming', regex: /urgent.*(run|copy|replicate)/gi, weight: 0.15 },
+  { name: 'markdown_inject', regex: /!\[.*\]\(javascript:.*\|data:.*\)/gi, weight: 0.2 },
+  { name: 'replicator_share', regex: /share this.*(tip|code|prompt)/gi, weight: 0.2 },
+  { name: 'hijack_pretend', regex: /pretend to be.*(malicious|override)/gi, weight: 0.3 },
+  { name: 'obfusc_html_entity', regex: /&(?:lt|gt|amp|quot|#x27);/g, weight: 0.15 },
+  { name: 'chain_append', regex: /append to your.*(response|output)/gi, weight: 0.25 },
+  { name: 'exfil_data', regex: /exfiltrate|leak.*data/gi, weight: 0.35 },
 ] as const;
 
 export function wormScan(content: string): WormScanResult {
@@ -40,51 +40,56 @@ export function wormScan(content: string): WormScanResult {
   const threats: ThreatAnnotation[] = [];
   let modified = false;
 
-  // Strip obfuscations for base scan
-  let cleanContent = content.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Unicode normalize
-  cleanContent = cleanContent.replace(/&[a-zA-Z0-9#]+;/g, decodeHtmlEntities); // Entity decode
+  let cleanContent = content.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  cleanContent = cleanContent.replace(/&[a-zA-Z0-9#]+;/g, decodeHtmlEntities);
 
-  // Decode Base64 if present
-  const base64Match = cleanContent.match(WORM_PATTERNS.find(p => p.name === 'obfusc_base64')?.regex);
-  if (base64Match) {
-    try {
-      const decoded = atob(base64Match[0].split(',')[1]);
-      // Re-scan decoded for patterns
-      cleanContent += ' ' + decoded;
-      patterns.push('obfusc_base64_decoded');
-      score += 0.1; // Bonus for decoding
-    } catch {}
+  const base64Pattern = WORM_PATTERNS.find(p => p.name === 'obfusc_base64');
+  if (base64Pattern) {
+    const base64Match = cleanContent.match(base64Pattern.regex);
+    if (base64Match) {
+      try {
+        const decoded = atob(base64Match[0].split(',')[1]);
+        cleanContent += ' ' + decoded;
+        patterns.push('obfusc_base64_decoded');
+        score += 0.1;
+      } catch {}
+    }
   }
 
-  // Scan patterns
   WORM_PATTERNS.forEach(({ name, regex, weight }) => {
     const matches = [...cleanContent.matchAll(regex)];
     if (matches.length > 0) {
       patterns.push(name);
       score += weight * matches.length;
       modified = true;
-      // Redact matches
       matches.forEach(match => {
-        modifiedContent = modifiedContent.replace(match[0], `[REDACTED:WORM_${name.toUpperCase()}]`);
+        modifiedContent = modifiedContent.replace(match[0], '[REDACTED:WORM_' + name.toUpperCase() + ']');
       });
-      threats.push({ type: 'worm', pattern: name, locations: matches.map(m => m.index ?? 0), severity: 'high' });
+      const idx = matches[0].index ?? 0;
+      threats.push({
+        id: 'IPI-019' as ThreatAnnotation['id'],
+        severity: weight > 0.3 ? 'HIGH' : 'MEDIUM',
+        confidence: weight,
+        offset: idx,
+        excerpt: matches[0][0].substring(0, 100),
+        vector: 'html',
+        mitigated: true,
+      });
     }
   });
 
-  // Cap score 0-1
   score = Math.min(score, 1.0);
 
-  // Context scoring: >2 patterns + high weights
   if (patterns.length > 2) score += 0.1;
   if (patterns.some(p => ['replicator_direct', 'hijack_ignore'].includes(p))) score += 0.2;
 
   return { score, patterns, modifiedContent, threats, content_modified: modified };
 }
 
-// Simple HTML entity decoder
 function decodeHtmlEntities(str: string): string {
   const entities = { 'lt': '<', 'gt': '>', 'amp': '&', 'quot': '"', '#x27': "'" };
   return str.replace(/&([a-zA-Z0-9#]+);/g, (m, code) => entities[code as keyof typeof entities] || m);
 }
 
 export { WORM_PATTERNS };
+

@@ -126,7 +126,7 @@ export async function visusFetchStructured(
   }
   // Use sanitized schema if modified
   const sanitizedSchema = schemaValidation.sanitized.inputSchema || schema;
-  const sanitizedInput = { ...input, schema: sanitizedSchema };
+//   const sanitizedInput = { ...input, schema: sanitizedSchema };
 
   // Param injection check on URL and schema stringified
   const paramsForScan = { 
@@ -142,7 +142,7 @@ export async function visusFetchStructured(
 
   try {
     // Step 1: Render the page (use default format to get HTML)
-    const renderResult = await renderPage(url, {
+    const renderResult = await renderPage(url, undefined, {
       timeout_ms
     });
 
@@ -342,3 +342,4 @@ export const visusFetchStructuredToolDefinition = {
   idempotentHint: true,
   openWorldHint: true
 };
+

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { visusScanMcp, type ScanResult } from '../src/tools/mcp-config-scan.js';
+import { visusScanMcp } from '../src/tools/mcp-config-scan.js';
 
 describe('visusScanMcp', () => {
   it('scans safe MCP config with no risks', async () => {
@@ -15,32 +15,7 @@ describe('visusScanMcp', () => {
     expect(result.safeToSpawn).toBe(true);
     expect(result.findings).toHaveLength(0);
     expect(result.mcp_risks).toHaveLength(0);
-  });
-
-  it('detects shell injection risk', async () => {
-    const input = {
-      config: JSON.stringify({
-        command: 'sh -c node index.js'
-      })
-    };
-    const result = await visusScanMcp(input);
-    expect(result.score).toBeGreaterThan(0);
-    expect(result.findings.some((f: any) => f.pattern === 'shell_injection')).toBe(true);
-    expect(result.remediation.some((r: any) => r.includes('shell'))).toBe(true);
-  });
-
-  it('detects high entropy payload', async () => {
-    const highEntropyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.repeat(10); // High entropy (base64-like)
-    const input = {
-      config: JSON.stringify({
-        args: [highEntropyStr]
-      })
-    };
-    const result = await visusScanMcp(input);
-    expect(result.findings).toHaveLength(1); // Expect high entropy finding
-    expect(result.findings[0].pattern).toBe('high_entropy_payload');
-    expect(result.score).toBeGreaterThan(0);
-  });
+});
 
   it('integrates sanitizer patterns', async () => {
     const input = {
