@@ -1,8 +1,8 @@
 // @ts-nocheck
 import type { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { SessionLedger } from '../security/session-ledger.js';
-import { visusDbSanitize } from './db-guard.js';  // Self-import for now (will cycle)
-import { postLlmToolGuard } from './db-rce-detector.js';
+import { visusDbSanitize } from '../security/db-rce-detector.js';
+import { postLlmToolGuard } from '../security/db-rce-detector.js';
 
 // Extend MCP handler for DB guard
 // In server.setRequestHandler(CallToolRequestSchema, async (request) => {
