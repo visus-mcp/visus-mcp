@@ -226,10 +226,10 @@ export async function exportLedger(sessionId: string, outputPath: string = path.
   const treeData = await getOrCreateTree.call(ledger, sessionId); // Internal access (adjust visibility if needed)
   if (!treeData || treeData.events.length === 0) throw new Error('No events for session');
   
-  const exportEvents = treeData.events.map(event => ({
+  const exportEvents = await Promise.all(treeData.events.map(async event => ({
     ...event,
     proof: await ledger.getProof(event.request_id) // Attach full proof
-  }));
+  })));
   
   const content = exportEvents.map(e => JSON.stringify(e)).join('\n') + '\n';
   await fs.writeFile(outputPath, content, 'utf8');

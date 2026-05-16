@@ -11,11 +11,11 @@ import { INJECTION_PATTERNS } from '../sanitizer/patterns.js';
 
 const RISK_PATTERNS = {
   shell_injection: /sh\s+-c|bash\s+-c|cmd\s+\/c/i,
-  env_abuse: /(PATH|LD_PRELOAD|PYTHONPATH)=[^;]*?(rm|del|exec|\/bin\/sh)/i,
+  env_abuse: /(PATH|LD_PRELOAD|PYTHONPATH)=[\s\S]*?(rm|del|exec|\/bin\/sh)/i,
   rce_node: /child_process\.spawn\s*\(\s*['&quot;]sh['&quot;]/i,
   rce_python: /subprocess\.Popen\s*\(\s*shell=True|os\.system/i,
   unsafe_flags: /--allow-run|--no-sandbox|--disable-web-security/i,
-  sql_injection: /(union\s+select|or\s+1=1|--|\/\*\*)/i, // CVE-2026-42208 SQLi patterns
+  sql_injection: /(union\s+select|or\s+1=1|\/\*\*)/i, // CVE-2026-42208 SQLi patterns
   high_entropy: 4.5 // Threshold
 } as const;
 
@@ -78,7 +78,7 @@ function getRelevantSanitizerPatterns(): string[] {
   ).map(p => p.name);
 }
 
-function scanString(str: string, location: string): { 
+function scanString(str: string, location: string, whitelist: string[] = []): { 
   riskFindings: Finding[]; 
   sanitizerResult: DetectionResult; 
   localScore: number; 
@@ -92,7 +92,9 @@ function scanString(str: string, location: string): {
     if (typeof pat === 'number') continue; // Skip threshold
     if (pat.test(str)) {
       riskFindings.push({ pattern: name, location, snippet: str.slice(0, 100), severity: 'high' as const });
-      localScore += name === 'shell_injection' || name === 'rce_node' || name === 'rce_python' ? 5 : 3;
+      if (!whitelist.includes(name)) {
+        localScore += name === 'shell_injection' || name === 'rce_node' || name === 'rce_python' ? 5 : 3;
+      }
     }
   }
 
@@ -121,7 +123,7 @@ function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: str
 
   // Scan command
   if (params.command) {
-    const { riskFindings, localScore: cmdScore, relevantPatterns: cmdPatterns } = scanString(params.command, 'command');
+    const { riskFindings, localScore: cmdScore, relevantPatterns: cmdPatterns } = scanString(params.command, 'command', whitelist);
     for (const f of riskFindings) {
       if (!whitelist.includes(f.pattern)) {
         findings.push(f);
@@ -138,7 +140,7 @@ function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: str
   // Scan args
   const argsStr = params.args.join(' ');
   if (argsStr) {
-    const { riskFindings, localScore: argsScore, relevantPatterns: argsPatterns } = scanString(argsStr, 'args');
+    const { riskFindings, localScore: argsScore, relevantPatterns: argsPatterns } = scanString(argsStr, 'args', whitelist);
     for (const f of riskFindings) {
       if (!whitelist.includes(f.pattern)) {
         findings.push(f);
@@ -156,7 +158,7 @@ function scanMcpConfig(params: ReturnType<typeof parseMcpParams>, whitelist: str
   for (const [key, value] of Object.entries(params.env)) {
     if (typeof value === 'string') {
       const envStr = `${key}=${value}`;
-      const { riskFindings, localScore: envScore, relevantPatterns: envPatterns } = scanString(envStr, `env.${key}`);
+      const { riskFindings, localScore: envScore, relevantPatterns: envPatterns } = scanString(envStr, `env.${key}`, whitelist);
       for (const f of riskFindings) {
         if (!whitelist.includes(f.pattern)) {
           findings.push(f);

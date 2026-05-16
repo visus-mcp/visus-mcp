@@ -101,7 +101,7 @@ export async function visusReadCsv(input: VisusReadCsvInput): Promise<Result<Vis
     const rows = parseResult.data;
     const headers = parseResult.meta.fields ?? [];
 
-    const flatContent = rows.map(row => Object.values(row).join(' | ')).join('\n');
+    const flatContent = rows.map(row => Object.values(row).join(', ')).join('\n');
 
     const detector = new ThreatDetector();
     const threats = detector.scan(flatContent, 'text');
