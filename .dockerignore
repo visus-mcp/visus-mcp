@@ -1,0 +1,13 @@
+node_modules
+src
+tests
+.git
+.gitignore
+*.md
+*.ts
+tsconfig*.json
+jest.config.*
+scripts
+docs
+__brace_check.cjs
+__counter.cjs
