@@ -8,7 +8,7 @@
  */
 
 import { renderPage } from '../browser/playwright-renderer.js';
-import { sanitizeWithProof } from '../sanitizer/index.js';
+import { sanitizeWithProof, detectAndNeutralize } from '../sanitizer/index.js';
 import { createHash } from 'crypto';
 import { truncateContent } from '../utils/truncate.js';
 import { detectFormat, convertJson, convertXml, convertRss } from '../utils/format-converter.js';
