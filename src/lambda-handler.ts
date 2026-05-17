@@ -113,6 +113,11 @@ function logAuditEvent(
  * @returns API Gateway response
  */
 import { SessionLedger } from './security/session-ledger.js';
+import { scanContext } from './security/stateful-detector.js';
+import type { ContextScanInput } from './types.js';
+
+const ledger = new SessionLedger();
+
 // Lambda handler for Visus API
 export async function handler(
   event: APIGatewayProxyEvent,

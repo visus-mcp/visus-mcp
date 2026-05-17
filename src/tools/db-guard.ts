@@ -1,8 +1,9 @@
 // @ts-nocheck
 import type { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import crypto from 'crypto';
 import { SessionLedger } from '../security/session-ledger.js';
-import { visusDbSanitize } from '../security/db-rce-detector.js';
-import { postLlmToolGuard } from '../security/db-rce-detector.js';
+import { visusDbSanitize, postLlmToolGuard, detectGoalHijack } from '../security/db-rce-detector.js';
+import { runElicitation } from '../sanitizer/elicit-runner.js';
 
 // Extend MCP handler for DB guard
 // In server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -39,7 +40,7 @@ export async function dbGuardMiddleware(name: string, args: any, sessionId: stri
         // HITL: Elicit user confirmation
         const message = 'Potential goal hijack detected (DB admin deviation). Proceed?';
         // Integrate with existing runElicitation
-        const { proceed } = await require('./hitl-gate').runElicitation(message);  // Stub
+        const { proceed } = await runElicitation(null, message);  // Stub: null server in middleware context
         if (!proceed) {
           throw new McpError(ErrorCode.InternalError, 'Session blocked: Goal hijack (CVE-2026-32622)');
         }
