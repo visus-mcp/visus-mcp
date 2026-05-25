@@ -20,7 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*", "tests/**/*", "shared/**/*", "lambdas/**/*"],
   "exclude": ["node_modules", "dist", "src/compliance/ImmutableLedger.ts", "src/lambda-handler.ts"]
 }
 

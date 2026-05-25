@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lateos.ai/schemas/visus-event/v1",
+  "title": "VisusEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "schema_version",
+    "org_id",
+    "network_id",
+    "source",
+    "event_type",
+    "event_payload",
+    "source_url",
+    "harvest_timestamp",
+    "pipeline_version",
+    "content_hash",
+    "ttl"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{8,64}$"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "v1"
+    },
+    "org_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "network_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source": {
+      "type": "string",
+      "enum": ["meraki_poll", "meraki_webhook", "catalyst_poll"]
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "event_payload": {
+      "type": "object"
+    },
+    "source_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "harvest_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pipeline_version": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "ttl": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

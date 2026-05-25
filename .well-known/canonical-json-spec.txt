@@ -1,0 +1,15 @@
+Visus Canonical JSON Specification v1
+======================================
+Encoding: UTF-8
+Whitespace: none (no spaces or newlines between tokens)
+Key ordering: object keys sorted lexicographically (Unicode codepoint order)
+              at every nesting level, recursively
+Array ordering: preserved (arrays are NOT sorted)
+Number format: standard JSON number serialization; no trailing zeros
+String format: standard JSON string escaping; Unicode characters as-is (not escaped)
+Null: serialized as null
+Boolean: true / false (lowercase)
+
+This specification is stable. Any change constitutes a new version.
+All Visus cryptographic hashes and signatures are computed over
+the UTF-8 byte encoding of the canonical JSON of the data being hashed.

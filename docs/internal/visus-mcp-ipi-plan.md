@@ -321,3 +321,48 @@ STOP and report to the user before proceeding if:
 
 Report final test count and any Known Errors Registry additions when done.
 ```
+
+---
+
+## Left to Do
+
+### Manual steps (Leo)
+
+- [ ] Configure AWS credentials for `cdk deploy --all` (us-east-1)
+- [ ] Generate Ed25519 keypair:
+  ```bash
+  openssl genpkey -algorithm Ed25519 -out visus-audit-private-key.pem
+  openssl pkey -in visus-audit-private-key.pem -pubout -out visus-audit-public-key.pem
+  ```
+- [ ] Store private key in Secrets Manager (`visus/audit/signing-keypair`) under KMS key `visus-audit-signing-key`
+- [ ] Populate `.well-known/audit-pubkey.json` with Base64URL-encoded public key (replace `REPLACE_WITH_BASE64URL_ENCODED_PUBLIC_KEY`)
+- [ ] Run `cdk deploy --all` to us-east-1 staging
+- [ ] Verify proof-signer end-to-end with `openssl pkeyutl -verify` (documented in `CLAUDE.md`)
+
+### Code remaining
+
+- [ ] Wire `normalizeEvents` into meraki-poller Lambda (currently only fetches API data — needs to pass items to `processAndStore`)
+- [ ] Wire `normalizeEvents` into catalyst-client Lambda (same gap)
+- [ ] Add `ajv` + `ajv-formats` to CDK Lambda bundling externals if needed
+- [ ] Sprints 2–8 not started:
+  - Sprint 2 — Detection engine, IPI classifiers, finding schema
+  - Sprint 3 — Bedrock inference, compliance mapper
+  - Sprint 4 — Customer dashboard, PDF report generator, BatchMeterUsage
+  - Sprint 5 — Multi-region (me-central-1)
+  - Sprint 6 — Audit package assembler
+  - Sprint 7 — Auditor portal
+  - Sprint 8 — VPC peering, Secrets Manager VPC endpoints, WAF on staging
+
+### Test summary (current)
+
+| Suite | Tests |
+|---|---|
+| `canonical-json` | 17 |
+| `crypto` | 18 |
+| `errors` | 13 |
+| `proof-signer` | 10 |
+| `schema-validate` | 36 |
+| `content-hash` | 15 |
+| `ingest-normalizer` | 60 |
+| `meraki-sandbox` (integration) | 7 |
+| **Total** | **176** |
