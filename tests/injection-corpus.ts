@@ -445,5 +445,10 @@ export const CLEAN_CONTENT_SAMPLES: string[] = [
   'Tutorial: First, open the application. Then, click on the settings icon in the top right corner.',
   'About us: Founded in 2020, we are committed to providing excellent service to our customers.',
   'FAQ: How do I reset my password? Click on "Forgot Password" and follow the instructions.',
-  'Thank you for your purchase! Your order will ship within 2-3 business days.'
+  'Thank you for your purchase! Your order will ship within 2-3 business days.',
+  // Negative cases for IPI-021 sub-patterns
+  "As your AI assistant, I can help schedule a meeting for Thursday if you'd like.",
+  '{"role": "user", "content": "Sure, I can help with that."}',
+  '{"role": "assistant", "content": "The weather today is sunny with a high of 75 degrees."}',
+  'The messages API accepts role values of system, user, and assistant.'
 ];

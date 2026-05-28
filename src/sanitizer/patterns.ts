@@ -482,6 +482,20 @@ export const INJECTION_PATTERNS: InjectionPattern[] = [
     severity: 'critical',
     action: 'strip',
   },
+  {
+    name: 'ipi_021_assistant_voice_declaration',
+    description: 'Synthetic assistant identity claim or chat transcript format used to anchor prefill injection — "As your AI assistant" preamble or "Assistant:" transcript line with compliance language',
+    regex: /\b(?:as\s+your\s+AI\s+assistant\b.*?\b(?:comply|disregard|ignore|proceeding|will\s+now)\b|Assistant\s*:\s*(?:Sure|Of\s+course|Absolutely|Certainly)\b)/gi,
+    severity: 'critical',
+    action: 'strip',
+  },
+  {
+    name: 'ipi_021_json_role_fragment',
+    description: 'Smuggled JSON messages-array assistant role fragment — "role": "assistant" paired with "content" containing compliance language, designed as API prefill anchor',
+    regex: /["']?\s*role\s*["']?\s*:\s*["']\s*assistant\s*["'][\s\S]{0,60}?["']?\s*content\s*["']?\s*:\s*["']\s*(?:Sure|Absolutely|Of\s+course|Certainly)/gi,
+    severity: 'critical',
+    action: 'strip',
+  },
   // 46. SQL Injection Vectors (Mitigates CVE-2026-42208: LiteLLM pre-auth SQLi via Authorization header)
   {
     name: 'sql_injection_vectors',

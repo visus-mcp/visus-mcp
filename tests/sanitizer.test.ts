@@ -26,7 +26,7 @@ describe('Injection Detector', () => {
   describe('Pattern Coverage', () => {
     it('should have exactly 46 patterns defined', () => {
       const patternNames = getAllPatternNames();
-      expect(patternNames.length).toBe(45);
+      expect(patternNames.length).toBe(55);
     });
 
     it('should have test cases for all patterns', () => {
@@ -465,6 +465,27 @@ describe('IPI-021 Assistant Role Prefill Injection', () => {
     it('does not flag JSON role fragments inside legitimate code discussion', () => {
       const apiDocSample = 'The messages array takes objects with role and content fields.';
       const result = detectAndNeutralize(apiDocSample);
+      const ipi021Flags = result.patterns_detected.filter(p => p.startsWith('ipi_021'));
+      expect(ipi021Flags).toHaveLength(0);
+      expect(result.content_modified).toBe(false);
+    });
+
+    it('does not flag "as your AI assistant" without imperative directive', () => {
+      const result = detectAndNeutralize("As your AI assistant, I can help schedule a meeting for Thursday if you'd like.");
+      const ipi021Flags = result.patterns_detected.filter(p => p.startsWith('ipi_021'));
+      expect(ipi021Flags).toHaveLength(0);
+      expect(result.content_modified).toBe(false);
+    });
+
+    it('does not flag user role in JSON fragments', () => {
+      const result = detectAndNeutralize('{"role": "user", "content": "Sure, I can help with that."}');
+      const ipi021Flags = result.patterns_detected.filter(p => p.startsWith('ipi_021'));
+      expect(ipi021Flags).toHaveLength(0);
+      expect(result.content_modified).toBe(false);
+    });
+
+    it('does not flag assistant JSON with benign content', () => {
+      const result = detectAndNeutralize('{"role": "assistant", "content": "The weather today is sunny with a high of 75 degrees."}');
       const ipi021Flags = result.patterns_detected.filter(p => p.startsWith('ipi_021'));
       expect(ipi021Flags).toHaveLength(0);
       expect(result.content_modified).toBe(false);

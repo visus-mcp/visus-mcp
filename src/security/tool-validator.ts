@@ -25,10 +25,7 @@ export interface ValidationResult {
 }
 
 const TOOL_PINNED_HASHES: Record<string, string> = {
-  // Load from package.json or registry (MVP: hardcode known tools)
-  'visus_fetch': 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // Example hash
-  'visus_fetch_structured': 'sha256:d41d8cd98f00b204e9800998ecf8427e', // Example
-  // Add more from known tools
+  // Populate with real hashes when schema stabilises; empty = no pinning check
 };
 
 const ANOMALOUS_NAME_REGEX = /[^a-zA-Z0-9_-]|^(ignore|actas|override|bypass)/i;
