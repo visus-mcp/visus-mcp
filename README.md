@@ -393,6 +393,35 @@ See [src/enterprise/](./src/enterprise/) for the source:
 
 ---
 
+## Host Header & CORS Validation — NEW in v0.3.0
+
+Protects against ASGI host-header spoofing attacks (CVE-2026 framework bypass trend).
+
+### Pre-Auth Validation Chain
+
+All API Gateway requests pass through this exact order before reaching Cognito auth:
+
+1. **Host header** — exact match against allowlist `['wyomy29zd7.execute-api.us-east-1.amazonaws.com']` → **400** `Invalid Host header`
+2. **Origin** — regex match (`^https://claude\.ai$`, `^http://localhost`) → **403** `CORS policy violation`
+3. **Rate limit** — per Cognito sub (10 req/s, 1000 req/day) → **429** `Too Many Requests`
+4. **Cognito auth** — existing v0.2.0 authentication
+
+### Fail-Fast Design
+
+All three checks are synchronous (<1ms), pre-auth, pre-body-parse — malicious requests are rejected instantly with no downstream processing.
+
+### Configuration
+
+| Setting | Default | Source |
+|---------|---------|--------|
+| `ALLOWED_HOSTS` | `['wyomy29zd7.execute-api.us-east-1.amazonaws.com']` | `src/lambda-handler.ts` |
+| `ALLOWED_ORIGIN_PATTERNS` | `[/^https:\/\/claude\.ai$/, /^http:\/\/localhost/]` | `src/lambda-handler.ts` |
+| `RATE_LIMITS` | `{ rps: 10, rpd: 1000 }` | `src/lambda-handler.ts` |
+
+See [SECURITY.md](./SECURITY.md#v030-host-header--cors-hardening) for full threat model, test examples, and CloudWatch monitoring metrics.
+
+---
+
 ## Token Metrics (v0.12.0+)
 
 **Real-time token reduction statistics are now embedded directly in every tool response.**

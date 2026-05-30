@@ -377,6 +377,63 @@ We take security seriously. If you discover a vulnerability in Visus:
 
 ---
 
+## v0.3.0 Host Header & CORS Hardening
+
+### Why Host Header Validation Matters
+
+ASGI/API Gateway Lambda handlers are vulnerable to host-header spoofing attacks where an attacker sends a request with a manipulated `Host` header. Without validation, the top-level middleware (including Cognito auth) can be bypassed by sending requests with a spoofed Host header (CVE-2026 framework bypass trend).
+
+**Attack pattern:**
+```bash
+curl -H "Host: attacker.com" https://wyomy29zd7.execute-api.us-east-1.amazonaws.com/fetch
+```
+→ Returns `400 Invalid Host header` (blocked pre-auth)
+
+### Validation Chain Order (fail-fast)
+
+All protected endpoints enforce this exact order before reaching Cognito auth:
+
+1. **Host header** → validate against allowlist → 400 if invalid
+2. **Origin header** → validate against regex patterns → 403 if invalid
+3. **Rate limit** → per-user (Cognito sub) → 429 if exceeded
+4. **Cognito auth** → existing v0.2.0 authentication
+
+### Configuration
+
+| Setting | Value | Scope |
+|---------|-------|-------|
+| `ALLOWED_HOSTS` | `['wyomy29zd7.execute-api.us-east-1.amazonaws.com']` | `src/lambda-handler.ts` |
+| `ALLOWED_ORIGIN_PATTERNS` | `[/^https:\/\/claude\.ai$/, /^http:\/\/localhost/]` | `src/lambda-handler.ts` |
+| `RATE_LIMITS` | `{ rps: 10, rpd: 1000 }` | `src/lambda-handler.ts` |
+
+### Monitoring
+
+Track rejection rates in CloudWatch to detect scanning/fuzzing:
+
+| Metric | Filter Pattern | Alert Threshold |
+|--------|---------------|-----------------|
+| Host rejections | `{ $.event = "host_header_rejected" }` | >10/min |
+| Origin rejections | `{ $.event = "origin_rejected" }` | >10/min |
+| Rate limit hits | `{ $.event = "rate_limit_exceeded" }` | >50/min |
+
+### Test Examples
+
+```typescript
+// Valid request → proceeds to auth
+POST /fetch Host: wyomy29zd7... Origin: https://claude.ai → 2xx/4xx (not 400/403/429)
+
+// Spoofed Host
+POST /fetch Host: attacker.com → 400 "Invalid Host header"
+
+// Invalid Origin
+POST /fetch Origin: https://evil.com → 403 "CORS policy violation"
+
+// Rate limited
+POST /fetch (11th request in 1s) → 429 "Too Many Requests"
+```
+
+---
+
 ## Regulatory Readiness
 
 ### For Procurement & Legal Teams

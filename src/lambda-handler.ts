@@ -116,6 +116,16 @@ import { SessionLedger } from './security/session-ledger.js';
 import { scanContext } from './security/stateful-detector.js';
 import type { ContextScanInput } from './types.js';
 
+import {
+  validateHostHeader,
+  validateOrigin,
+  enforceRateLimit,
+} from './middleware/request-validator.js';
+
+const ALLOWED_HOSTS = ['wyomy29zd7.execute-api.us-east-1.amazonaws.com'];
+const ALLOWED_ORIGIN_PATTERNS = [/^https:\/\/claude\.ai$/, /^http:\/\/localhost/];
+const RATE_LIMITS = { rps: 10, rpd: 1000 };
+
 const ledger = new SessionLedger();
 
 // Lambda handler for Visus API
@@ -171,6 +181,54 @@ export async function handler(
           version: '0.18.0', // Update version
           timestamp: new Date().toISOString(),
         }),
+      };
+    }
+
+    // ---- v0.3.0: Host Header Validation (pre-auth, fail-fast) ----
+    const hostHeader = event.headers?.Host || event.headers?.host;
+    if (!validateHostHeader(hostHeader, ALLOWED_HOSTS)) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'host_header_rejected',
+        request_id: requestId,
+        host: hostHeader,
+      }));
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Invalid Host header' }),
+      };
+    }
+
+    // ---- v0.3.0: Origin Validation (pre-auth, fail-fast) ----
+    const originHeader = event.headers?.Origin || event.headers?.origin;
+    if (!validateOrigin(originHeader, ALLOWED_ORIGIN_PATTERNS)) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'origin_rejected',
+        request_id: requestId,
+        origin: originHeader,
+      }));
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'CORS policy violation' }),
+      };
+    }
+
+    // ---- v0.3.0: Rate Limiting (pre-auth, fail-fast) ----
+    const apiKey = userId;
+    if (!enforceRateLimit(apiKey, RATE_LIMITS)) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'rate_limit_exceeded',
+        request_id: requestId,
+        user_id: apiKey,
+      }));
+      return {
+        statusCode: 429,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Too Many Requests' }),
       };
     }
 
